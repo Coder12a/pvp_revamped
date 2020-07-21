@@ -1,5 +1,7 @@
 local head_height = 1.2
 local torso_height = 0.75
+local block_duration = 100000
+local block_pool_mul = 2
 local head_dmg_mul = 1.2
 local torso_dmg_mul = 1.0
 local arm_dmg_mul = 0.9
@@ -14,6 +16,9 @@ local velocity_dmg_mul = 0.15
 local optimal_distance_dmg_mul = 0.2
 local maximum_distance_dmg_mul = 0.1
 local optimal_distance_mul = 0.5
+local players_blocking = {}
+local players_dodging = {}
+local players_dashing = {}
 
 local hit_points = {{x = 0.3, y = 1.2, z = 0, part = 1}, 
         {x = 0, y = 1.2, z = 0, part = 0}, 
@@ -30,11 +35,46 @@ local sin = math.sin
 local abs = math.abs
 local atan = math.atan
 local pi = math.pi
+local get_us_time = minetest.get_us_time
+
+minetest.register_on_mods_loaded(function()
+    for k, v in pairs(registered_tools) do
+        if v.tool_capabilities and v.tool_capabilities.damage_groups.fleshy and v.tool_capabilities.full_punch_interval then
+            
+            local tool_capabilities = v.tool_capabilities
+            local block_pool = (tool_capabilities.damage_groups.fleshy - tool_capabilities.full_punch_interval) * block_pool_mul
+            local old_on_secondary_use = v.on_secondary_use
+            local old_on_place = v.on_place
+
+            if block_pool > 0 then
+                -- Allow the tool to block damage.
+                minetest.override_item(k, {on_secondary_use = function(itemstack, user, pointed_thing)
+                    players_blocking[user:get_player_name()] = {pool = block_pool, time = get_us_time()}
+                    return old_on_secondary_use(itemstack, user, pointed_thing)
+                end, on_place = function(itemstack, placer, pointed_thing)
+                    players_blocking[placer:get_player_name()] = {pool = block_pool, time = get_us_time()}
+                    return old_on_place(itemstack, placer, pointed_thing)
+                end})
+
+                registered_tools[k] = v
+            end
+        end
+    end
+end)
+
+-- Clear up memory if the player leaves.
+minetest.register_on_leaveplayer(function(player)
+    local name = player:get_player_name()
+    players_blocking[name] = nil
+    players_dodging[name] = nil
+    players_dashing[name] = nil
+end)
 
 -- Do the damage calculations when the player gets hit.
 minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, tool_capabilities, dir, damage)
     local pos1 = hitter:get_pos()
     local pos2 = player:get_pos()
+    local name = player:get_player_name()
     local hitter_pos = {x = pos1.x, y = pos1.y, z = pos1.z}
     local item = registered_tools[hitter:get_wielded_item():get_name()]
     local range = 4
@@ -104,7 +144,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
             damage = damage * leg_dmg_mul
         end
 
-        local dist = vector.distance(hitter_pos, pos2)
+        local dist = distance(hitter_pos, pos2)
         local optimal_range = range * optimal_distance_mul
         local dist_rounded = dist + 0.5 - (dist + 0.5) % 1
         
@@ -124,18 +164,20 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
 
         local re_yaw = yaw - yaw2
 
-        if front_dmg_mul and re_yaw <= 0.7853982 and re_yaw >= -0.7853982 then
-            -- Hit in the front.
+        if re_yaw <= 0.7853982 and re_yaw >= -0.7853982 then
+            -- Hit on the front.
             front = true
-            damage = damage * front_dmg_mul
+            if front_dmg_mul then
+                damage = damage * front_dmg_mul
+            end
         elseif side_dmg_mul and re_yaw <= -0.7853982 and re_yaw >= -2.356194 then
-            -- Hit in the left.
+            -- Hit on the left-side.
             damage = damage * side_dmg_mul
         elseif back_dmg_mul and re_yaw <= -2.356194 and re_yaw >= -3.926991 then
-            -- Hit in the back.
+            -- Hit on the back-side.
             damage = damage * back_dmg_mul
         elseif side_dmg_mul then
-            -- Hit in the right.
+            -- Hit on the right-side.
             damage = damage * side_dmg_mul
         end
         
@@ -157,7 +199,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         local v1 = hitter:get_player_velocity()
         local vv
         if front then
-            -- Ignore the victim's speed if you hit him in the front.
+            -- Ignore the victim's speed if you hit them in the front.
             vv = abs(v1.x) + abs(v1.y) + abs(v1.z)
         else
             -- Subtract the victim's velocity from the aggressor if they where not hit in the front.
@@ -173,6 +215,19 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     -- If damage is below zero set it to a default value.
     if damage <= 0 then
         damage = 1
+    end
+
+    -- Process if the player is blocking or not.
+    local data = players_blocking[name]
+
+    if front and data and data.pool > 0 and data.time + block_duration > get_us_time() then
+        -- Block the damage and add it as wear to the tool.
+        data.pool = data.pool - damage
+        players_blocking[name] = data
+        return true
+    elseif data then
+        -- Block attempt failed.
+        players_blocking[name] = nil
     end
 
     -- Damage the player.
