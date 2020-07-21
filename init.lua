@@ -1,6 +1,7 @@
 local head_height = 1.2
 local torso_height = 0.75
 local block_duration = 100000
+local block_interval_mul = 0.15
 local block_pool_mul = 2
 local block_dmg_mul = 50
 local head_dmg_mul = 1.2
@@ -43,17 +44,30 @@ minetest.register_on_mods_loaded(function()
         if v.tool_capabilities and v.tool_capabilities.damage_groups.fleshy and v.tool_capabilities.full_punch_interval then
             
             local tool_capabilities = v.tool_capabilities
-            local block_pool = (tool_capabilities.damage_groups.fleshy - tool_capabilities.full_punch_interval) * block_pool_mul
+            local full_punch_interval = tool_capabilities.full_punch_interval
+            local block_pool = (tool_capabilities.damage_groups.fleshy - full_punch_interval) * block_pool_mul
+            local full_block_interval = (full_punch_interval * block_interval_mul) * 1000000
             local old_on_secondary_use = v.on_secondary_use
             local old_on_place = v.on_place
 
             if block_pool > 0 then
                 -- Allow the tool to block damage.
+                local block_action = function(itemstack, user, pointed_thing)
+                    local time = get_us_time()
+                    local name = user:get_player_name()
+                    local data = players_blocking[name]
+
+                    -- Prevent spam blocking.
+                    if not data or time - data.time > full_block_interval then
+                        players_blocking[user:get_player_name()] = {pool = block_pool, time = time}
+                    end
+                end
+
                 minetest.override_item(k, {on_secondary_use = function(itemstack, user, pointed_thing)
-                    players_blocking[user:get_player_name()] = {pool = block_pool, time = get_us_time()}
+                    block_action(itemstack, user, pointed_thing)
                     return old_on_secondary_use(itemstack, user, pointed_thing)
                 end, on_place = function(itemstack, placer, pointed_thing)
-                    players_blocking[placer:get_player_name()] = {pool = block_pool, time = get_us_time()}
+                    block_action(itemstack, placer, pointed_thing)
                     return old_on_place(itemstack, placer, pointed_thing)
                 end})
 
@@ -217,6 +231,9 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     if damage <= 0 then
         damage = 1
     end
+
+    -- Remove the hitter's blocking data.
+    players_blocking[hitter:get_player_name()] = nil
 
     -- Process if the player is blocking or not.
     local data = players_blocking[name]
