@@ -286,7 +286,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         end
 
         -- Disarm the player if chance equals zero.
-        if chance and chance == 0 then
+        if chance and chance <= 0 then
             disarm_player()
         end
     end
