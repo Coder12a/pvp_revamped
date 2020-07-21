@@ -282,7 +282,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
             chance = random(0, ((hp + (item2.tool_capabilities.damage_groups.fleshy - item2.tool_capabilities.full_punch_interval) * disarm_chance_mul) - damage) + 1)
         elseif not item2 and not data then
             -- Compute the chance to disarm by the victim's hp.
-            chance = random(0, ((hp * disarm_chance_mul) - damage) + 1)
+            chance = random(0, (hp - damage) + 1)
         end
 
         -- Disarm the player if chance equals zero.
