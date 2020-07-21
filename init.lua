@@ -2,6 +2,7 @@ local head_height = 1.2
 local torso_height = 0.75
 local block_duration = 100000
 local block_pool_mul = 2
+local block_dmg_mul = 50
 local head_dmg_mul = 1.2
 local torso_dmg_mul = 1.0
 local arm_dmg_mul = 0.9
@@ -222,6 +223,9 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
 
     if front and data and data.pool > 0 and data.time + block_duration > get_us_time() then
         -- Block the damage and add it as wear to the tool.
+        local wielded_item = player:get_wielded_item()
+        wielded_item:add_wear(damage * block_dmg_mul)
+        player:set_wielded_item(wielded_item)
         data.pool = data.pool - damage
         players_blocking[name] = data
         return true
