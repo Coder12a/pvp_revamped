@@ -20,9 +20,7 @@ local velocity_dmg_mul = 0.15
 local optimal_distance_dmg_mul = 0.2
 local maximum_distance_dmg_mul = 0.1
 local optimal_distance_mul = 0.5
-local players_blocking = {}
-local players_dodging = {}
-local players_dashing = {}
+local player_data = {}
 
 local hit_points = {{x = 0.3, y = 1.2, z = 0, part = 1}, 
         {x = 0, y = 1.2, z = 0, part = 0}, 
@@ -31,6 +29,7 @@ local hit_points = {{x = 0.3, y = 1.2, z = 0, part = 1},
 local registered_tools = minetest.registered_tools
 local raycast = minetest.raycast
 local get_us_time = minetest.get_us_time
+local get_player_by_name = minetest.get_player_by_name
 local add = vector.add
 local multiply = vector.multiply
 local subtract = vector.subtract
@@ -60,11 +59,11 @@ minetest.register_on_mods_loaded(function()
                 local block_action = function(itemstack, user, pointed_thing)
                     local time = get_us_time()
                     local name = user:get_player_name()
-                    local data = players_blocking[name]
+                    local data = player_data[name].block
 
                     -- Prevent spam blocking.
                     if not data or time - data.time > full_block_interval then
-                        players_blocking[user:get_player_name()] = {pool = block_pool, time = time, duration = duration}
+                        player_data[name].block = {pool = block_pool, time = time, duration = duration}
                     end
                 end
 
@@ -82,12 +81,29 @@ minetest.register_on_mods_loaded(function()
     end
 end)
 
+-- Process player input data.
+minetest.register_globalstep(function(dtime)
+    for k, v in pairs(player_data) do
+        if v.block then
+            local player = get_player_by_name(k)
+            local controls = player:get_player_control()
+
+            -- Check if a player is holding down the RMB key.
+            if controls.RMB then
+                player_data[k].block.time = get_us_time()
+            end
+        end
+    end
+end)
+
+-- Create an empty data sheet for the player.
+minetest.register_on_joinplayer(function(player)
+    player_data[player:get_player_name()] = {}
+end)
+
 -- Clear up memory if the player leaves.
 minetest.register_on_leaveplayer(function(player)
-    local name = player:get_player_name()
-    players_blocking[name] = nil
-    players_dodging[name] = nil
-    players_dashing[name] = nil
+    player_data[player:get_player_name()] = nil
 end)
 
 -- Do the damage calculations when the player gets hit.
@@ -242,9 +258,9 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     end
 
     -- Remove the hitter's blocking data.
-    players_blocking[hitter:get_player_name()] = nil
+    player_data[hitter:get_player_name()].block = nil
 
-    local data = players_blocking[name]
+    local data = player_data[name].block
     local hp = player:get_hp()
     local wielded_item = player:get_wielded_item()
 
@@ -254,11 +270,11 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         wielded_item:add_wear(damage * block_dmg_mul)
         player:set_wielded_item(wielded_item)
         data.pool = data.pool - damage
-        players_blocking[name] = data
+        player_data[name].block = data
         return true
     elseif data then
         -- Block attempt failed.
-        players_blocking[name] = nil
+        player_data[name].block = nil
     end
 
     -- Process if the player was hit in the arm.
