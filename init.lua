@@ -1,6 +1,7 @@
 local head_height = 1.2
 local torso_height = 0.75
 local block_duration = 100000
+local disarm_chance_mul = 2
 local block_duration_mul = 100000
 local block_interval_mul = 0.15
 local block_pool_mul = 2
@@ -38,6 +39,7 @@ local cos = math.cos
 local sin = math.sin
 local abs = math.abs
 local atan = math.atan
+local random = math.random
 local pi = math.pi
 
 minetest.register_on_mods_loaded(function()
@@ -99,6 +101,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     local yaw = player:get_look_horizontal()
     local front
     local full_punch
+    local arm
 
     -- Get whether this was a full punch.
     if tool_capabilities and time_from_last_punch >= tool_capabilities.full_punch_interval then
@@ -119,7 +122,6 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     local _dir = hitter:get_look_dir()
     local hit_pos1 = add(hitter_pos, _dir)
     local hit_pos2 = add(hit_pos1, multiply(_dir, range))
-
     local ray = raycast(hit_pos1, hit_pos2):next()
 
     if ray then
@@ -151,9 +153,12 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
                 end
             end
 
-            if arm_dmg_mul and near_part == 1 then
+            if near_part == 1 then
                 -- Hit in the arm.
-                damage = damage * arm_dmg_mul
+                arm = true
+                if arm_dmg_mul then
+                    damage = damage * arm_dmg_mul
+                end
             elseif torso_dmg_mul then
                 -- Hit in the torso.
                 damage = damage * torso_dmg_mul
@@ -239,12 +244,13 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     -- Remove the hitter's blocking data.
     players_blocking[hitter:get_player_name()] = nil
 
-    -- Process if the player is blocking or not.
     local data = players_blocking[name]
+    local hp = player:get_hp()
+    local wielded_item = player:get_wielded_item()
 
+    -- Process if the player is blocking or not.
     if front and data and data.pool > 0 and data.time + data.duration > get_us_time() then
         -- Block the damage and add it as wear to the tool.
-        local wielded_item = player:get_wielded_item()
         wielded_item:add_wear(damage * block_dmg_mul)
         player:set_wielded_item(wielded_item)
         data.pool = data.pool - damage
@@ -255,8 +261,38 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         players_blocking[name] = nil
     end
 
+    -- Process if the player was hit in the arm.
+    if arm then
+        local item_name = wielded_item:get_name()
+        local item2 = registered_tools[item_name]
+
+        local disarm_player = function()
+            local drop_item = wielded_item:take_item()
+            local obj = minetest.add_item(pos2, drop_item)
+            if obj then
+                obj:get_luaentity().collect = true
+            end
+            player:set_wielded_item(wielded_item)
+        end
+
+        local chance
+        
+        if item2 and not data and item2.tool_capabilities and item2.tool_capabilities.damage_groups.fleshy and item2.tool_capabilities.full_punch_interval then
+            -- Compute the chance to disarm by the victim's hp and tool stats.
+            chance = random(0, ((hp + (item2.tool_capabilities.damage_groups.fleshy - item2.tool_capabilities.full_punch_interval) * disarm_chance_mul) - damage) + 1)
+        elseif not item2 and not data then
+            -- Compute the chance to disarm by the victim's hp.
+            chance = random(0, ((hp * disarm_chance_mul) - damage) + 1)
+        end
+
+        -- Disarm the player if chance equals zero.
+        if chance and chance == 0 then
+            disarm_player()
+        end
+    end
+
     -- Damage the player.
-    player:set_hp(player:get_hp() - damage, "punch")
+    player:set_hp(hp - damage, "punch")
 
     return true
 end)
