@@ -1,6 +1,7 @@
 local head_height = 1.2
 local torso_height = 0.75
 local block_duration = 100000
+local block_duration_mul = 100000
 local block_interval_mul = 0.15
 local block_pool_mul = 2
 local block_dmg_mul = 50
@@ -28,6 +29,7 @@ local hit_points = {{x = 0.3, y = 1.2, z = 0, part = 1},
 
 local registered_tools = minetest.registered_tools
 local raycast = minetest.raycast
+local get_us_time = minetest.get_us_time
 local add = vector.add
 local multiply = vector.multiply
 local subtract = vector.subtract
@@ -37,7 +39,6 @@ local sin = math.sin
 local abs = math.abs
 local atan = math.atan
 local pi = math.pi
-local get_us_time = minetest.get_us_time
 
 minetest.register_on_mods_loaded(function()
     for k, v in pairs(registered_tools) do
@@ -45,8 +46,10 @@ minetest.register_on_mods_loaded(function()
             
             local tool_capabilities = v.tool_capabilities
             local full_punch_interval = tool_capabilities.full_punch_interval
-            local block_pool = (tool_capabilities.damage_groups.fleshy - full_punch_interval) * block_pool_mul
+            local punch_number = abs(tool_capabilities.damage_groups.fleshy - full_punch_interval)
+            local block_pool = punch_number * block_pool_mul
             local full_block_interval = (full_punch_interval * block_interval_mul) * 1000000
+            local duration = block_duration + (punch_number * block_duration_mul)
             local old_on_secondary_use = v.on_secondary_use
             local old_on_place = v.on_place
 
@@ -59,7 +62,7 @@ minetest.register_on_mods_loaded(function()
 
                     -- Prevent spam blocking.
                     if not data or time - data.time > full_block_interval then
-                        players_blocking[user:get_player_name()] = {pool = block_pool, time = time}
+                        players_blocking[user:get_player_name()] = {pool = block_pool, time = time, duration = duration}
                     end
                 end
 
@@ -129,7 +132,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
             -- If the player was hit in the head add extra damage.
             damage = damage * head_dmg_mul
         elseif torso_height and y1 > y2 + torso_height then
-            -- Hit in the torso.
+            -- Find if the player was hit in the torso or arm.
             local near_part = 0
             local past_distance = -1
 
@@ -148,10 +151,11 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
                 end
             end
 
-            -- Hit in the arm.
             if arm_dmg_mul and near_part == 1 then
+                -- Hit in the arm.
                 damage = damage * arm_dmg_mul
             elseif torso_dmg_mul then
+                -- Hit in the torso.
                 damage = damage * torso_dmg_mul
             end
         elseif leg_dmg_mul then
@@ -238,7 +242,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     -- Process if the player is blocking or not.
     local data = players_blocking[name]
 
-    if front and data and data.pool > 0 and data.time + block_duration > get_us_time() then
+    if front and data and data.pool > 0 and data.time + data.duration > get_us_time() then
         -- Block the damage and add it as wear to the tool.
         local wielded_item = player:get_wielded_item()
         wielded_item:add_wear(damage * block_dmg_mul)
