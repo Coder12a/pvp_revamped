@@ -6,6 +6,7 @@ local block_duration_mul = 100000
 local block_interval_mul = 0.15
 local block_pool_mul = 2
 local shield_pool_mul = 2
+local shield_axe_dmg_mul = 20
 local block_wear_mul = 9000
 local head_dmg_mul = 1.2
 local torso_dmg_mul = 1.0
@@ -46,14 +47,19 @@ local random = math.random
 local pi = math.pi
 
 minetest.register_on_mods_loaded(function()
-    -- Get the max armor_use.
     local max_armor_use
 
     for k, v in pairs(registered_tools) do
         if v.groups and v.groups.armor_use then
             if not max_armor_use or max_armor_use < v.groups.armor_use then
+                -- Get the max armor_use.
                 max_armor_use = v.groups.armor_use
             end
+        elseif v.tool_capabilities and v.tool_capabilities.groupcaps and v.tool_capabilities.groupcaps.choppy then
+            -- Compute the damage an axe would do to a shield.
+            local choppy = v.tool_capabilities.groupcaps.choppy
+
+            minetest.override_item(k, {groups = {shield_dmg = (choppy.uses * choppy.maxlevel) * shield_axe_dmg_mul}})
         end
     end
 
@@ -334,7 +340,9 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     -- Process if the player is blocking with a shield or not.
     if data_shield and data_shield.pool > 0 and data_shield.name == item_name and (front or (re_yaw and re_yaw <= 1.570796 and re_yaw >= -2.356194)) then
         -- Block the damage and add it as wear to the tool.
-        wielded_item:add_wear(((damage - full_punch_interval) / 75) * block_wear_mul)
+        local axe_wear = item.groups.shield_dmg or 0
+
+        wielded_item:add_wear((((damage - full_punch_interval) / 75) * block_wear_mul) + axe_wear)
         player:set_wielded_item(wielded_item)
         data_shield.pool = data_shield.pool - damage
         player_data[name].shield = data_shield
