@@ -5,7 +5,8 @@ local disarm_chance_mul = 2
 local block_duration_mul = 100000
 local block_interval_mul = 0.15
 local block_pool_mul = 2
-local block_dmg_mul = 50
+local shield_pool_mul = 2
+local block_wear_mul = 50
 local head_dmg_mul = 1.2
 local torso_dmg_mul = 1.0
 local arm_dmg_mul = 0.9
@@ -45,9 +46,20 @@ local random = math.random
 local pi = math.pi
 
 minetest.register_on_mods_loaded(function()
+    -- Get the max armor_use.
+    local max_armor_use
+
     for k, v in pairs(registered_tools) do
-        if v.tool_capabilities and v.tool_capabilities.damage_groups.fleshy and v.tool_capabilities.full_punch_interval then
-            
+        if v.groups and v.groups.armor_use then
+            if not max_armor_use or max_armor_use < v.groups.armor_use then
+                max_armor_use = v.groups.armor_use
+            end
+        end
+    end
+
+    for k, v in pairs(registered_tools) do
+        if not (max_armor_use and v.groups and v.groups.armor_shield) and v.tool_capabilities and v.tool_capabilities.damage_groups.fleshy and v.tool_capabilities.full_punch_interval then
+            -- Block feature for tools with combat ability.
             local tool_capabilities = v.tool_capabilities
             local full_punch_interval = tool_capabilities.full_punch_interval
             local punch_number = abs(tool_capabilities.damage_groups.fleshy - full_punch_interval)
@@ -77,8 +89,35 @@ minetest.register_on_mods_loaded(function()
                     block_action(itemstack, placer, pointed_thing)
                     return old_on_place(itemstack, placer, pointed_thing)
                 end})
+            end
+        elseif max_armor_use and v.groups and v.groups.armor_shield then
+            -- Block feature for shields.
+            local armor_heal = v.groups.armor_heal or 0
+            local armor_use = v.groups.armor_use or 0
+            local armor_shield = v.groups.armor_shield or 1
+            local old_on_secondary_use = v.on_secondary_use
+            local old_on_place = v.on_place
+            local fleshy = 1
+            
+            if v.armor_groups and v.armor_groups.fleshy then
+                fleshy = v.armor_groups.fleshy
+            end
+            
+            local block_pool = (max_armor_use - armor_use + armor_heal + armor_shield + fleshy) * shield_pool_mul
 
-                registered_tools[k] = v
+            if block_pool > 0 then
+                -- Allow the shield to block damage.
+                local block_action = function(itemstack, user, pointed_thing)
+                    player_data[user:get_player_name()].shield = {name = k, pool = block_pool}
+                end
+
+                minetest.override_item(k, {on_secondary_use = function(itemstack, user, pointed_thing)
+                    block_action(itemstack, user, pointed_thing)
+                    return old_on_secondary_use(itemstack, user, pointed_thing)
+                end, on_place = function(itemstack, placer, pointed_thing)
+                    block_action(itemstack, placer, pointed_thing)
+                    return old_on_place(itemstack, placer, pointed_thing)
+                end})
             end
         end
     end
@@ -123,6 +162,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     local front
     local full_punch
     local arm
+    local re_yaw
 
     -- Get whether this was a full punch.
     if tool_capabilities and time_from_last_punch >= tool_capabilities.full_punch_interval then
@@ -207,7 +247,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
             yaw2 = yaw2 + pi
         end
 
-        local re_yaw = yaw - yaw2
+        re_yaw = yaw - yaw2
 
         if re_yaw <= 0.7853982 and re_yaw >= -0.7853982 then
             -- Hit on the front.
@@ -257,7 +297,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         end
     end
 
-    -- If damage is below zero set it to a default value.
+    -- If damage is at or below zero set it to a default value.
     if damage <= 0 then
         damage = 1
     end
@@ -265,15 +305,17 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     -- Remove the hitter's blocking data.
     local hitter_name = hitter:get_player_name()
     player_data[hitter_name].block = nil
+    player_data[hitter_name].shield = nil
 
     local data = player_data[name].block
     local hp = player:get_hp()
     local wielded_item = player:get_wielded_item()
+    local item_name = wielded_item:get_name()
 
-    -- Process if the player is blocking or not.
+    -- Process if the player is blocking with a tool or not.
     if front and data and data.pool > 0 and data.time + data.duration + lag + dedicated_server_step + abs(get_player_information(hitter_name).avg_jitter - get_player_information(name).avg_jitter) * 1000000 > get_us_time() then
         -- Block the damage and add it as wear to the tool.
-        wielded_item:add_wear(damage * block_dmg_mul)
+        wielded_item:add_wear(damage * block_wear_mul)
         player:set_wielded_item(wielded_item)
         data.pool = data.pool - damage
         player_data[name].block = data
@@ -283,20 +325,24 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         player_data[name].block = nil
     end
 
+    data = player_data[name].shield
+
+    -- Process if the player is blocking with a shield or not.
+    if data and data.pool > 0 and data.name == item_name and (front or (re_yaw and re_yaw <= 1.570796 and re_yaw >= -2.356194)) then
+        -- Block the damage and add it as wear to the tool.
+        wielded_item:add_wear(damage * block_wear_mul)
+        player:set_wielded_item(wielded_item)
+        data.pool = data.pool - damage
+        player_data[name].shield = data
+        return true
+    elseif data then
+        -- Shield block attempt failed.
+        player_data[name].shield = nil
+    end
+
     -- Process if the player was hit in the arm.
     if arm then
-        local item_name = wielded_item:get_name()
         local item2 = registered_tools[item_name]
-
-        local disarm_player = function()
-            local drop_item = wielded_item:take_item()
-            local obj = minetest.add_item(pos2, drop_item)
-            if obj then
-                obj:get_luaentity().collect = true
-            end
-            player:set_wielded_item(wielded_item)
-        end
-
         local chance
         
         if item2 and not data and item2.tool_capabilities and item2.tool_capabilities.damage_groups.fleshy and item2.tool_capabilities.full_punch_interval then
@@ -309,7 +355,12 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
 
         -- Disarm the player if chance equals zero.
         if chance and chance <= 0 then
-            disarm_player()
+            local drop_item = wielded_item:take_item()
+            local obj = minetest.add_item(pos2, drop_item)
+            if obj then
+                obj:get_luaentity().collect = true
+            end
+            player:set_wielded_item(wielded_item)
         end
     end
 
