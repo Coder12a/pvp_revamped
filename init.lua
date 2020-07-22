@@ -5,7 +5,7 @@ local disarm_chance_mul = 2
 local block_duration_mul = 100000
 local block_interval_mul = 0.15
 local block_pool_mul = 2
-local shield_pool_mul = 2
+local shield_pool_mul = 4
 local shield_axe_dmg_mul = 20
 local block_wear_mul = 9000
 local head_dmg_mul = 1.2
@@ -348,7 +348,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
 
         wielded_item:add_wear((((damage - full_punch_interval) / 75) * block_wear_mul) + axe_wear)
         player:set_wielded_item(wielded_item)
-        data_shield.pool = data_shield.pool - damage
+        data_shield.pool = data_shield.pool - (damage + axe_wear)
 
         local damage_texture_modifier = player:get_properties().damage_texture_modifier
 
