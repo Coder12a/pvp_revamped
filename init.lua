@@ -21,7 +21,7 @@ local optimal_distance_dmg_mul = 0.2
 local maximum_distance_dmg_mul = 0.1
 local optimal_distance_mul = 0.5
 local lag = 0
-local dedicated_server_step = tonumber(minetest.settings:get("dedicated_server_step")) or 0.1
+local dedicated_server_step = (tonumber(minetest.settings:get("dedicated_server_step")) or 0.1) * 1000000
 local player_data = {}
 
 local hit_points = {{x = 0.3, y = 1.2, z = 0, part = 1}, 
@@ -86,7 +86,7 @@ end)
 
 -- Process player input data.
 minetest.register_globalstep(function(dtime)
-    lag = dtime
+    lag = dtime * 1000000
     for k, v in pairs(player_data) do
         if v.block then
             local player = get_player_by_name(k)
@@ -94,6 +94,7 @@ minetest.register_globalstep(function(dtime)
 
             -- Check if a player is holding down the RMB key.
             if controls.RMB then
+                -- Update the block time.
                 player_data[k].block.time = get_us_time()
             end
         end
@@ -270,7 +271,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     local wielded_item = player:get_wielded_item()
 
     -- Process if the player is blocking or not.
-    if front and data and data.pool > 0 and data.time + data.duration + (abs(get_player_information(hitter_name).avg_jitter - get_player_information(name).avg_jitter) + lag + dedicated_server_step) * 1000000 > get_us_time() then
+    if front and data and data.pool > 0 and data.time + data.duration + lag + dedicated_server_step + abs(get_player_information(hitter_name).avg_jitter - get_player_information(name).avg_jitter) * 1000000 > get_us_time() then
         -- Block the damage and add it as wear to the tool.
         wielded_item:add_wear(damage * block_dmg_mul)
         player:set_wielded_item(wielded_item)
