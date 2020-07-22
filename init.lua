@@ -6,7 +6,7 @@ local block_duration_mul = 100000
 local block_interval_mul = 0.15
 local block_pool_mul = 2
 local shield_pool_mul = 2
-local block_wear_mul = 50
+local block_wear_mul = 9000
 local head_dmg_mul = 1.2
 local torso_dmg_mul = 1.0
 local arm_dmg_mul = 0.9
@@ -71,7 +71,7 @@ minetest.register_on_mods_loaded(function()
 
             if block_pool > 0 then
                 -- Allow the tool to block damage.
-                local block_action = function(itemstack, user, pointed_thing)
+                local block_action = function(user)
                     local time = get_us_time()
                     local name = user:get_player_name()
                     local data = player_data[name].block
@@ -83,10 +83,10 @@ minetest.register_on_mods_loaded(function()
                 end
 
                 minetest.override_item(k, {on_secondary_use = function(itemstack, user, pointed_thing)
-                    block_action(itemstack, user, pointed_thing)
+                    block_action(user)
                     return old_on_secondary_use(itemstack, user, pointed_thing)
                 end, on_place = function(itemstack, placer, pointed_thing)
-                    block_action(itemstack, placer, pointed_thing)
+                    block_action(placer)
                     return old_on_place(itemstack, placer, pointed_thing)
                 end})
             end
@@ -107,15 +107,15 @@ minetest.register_on_mods_loaded(function()
 
             if block_pool > 0 then
                 -- Allow the shield to block damage.
-                local block_action = function(itemstack, user, pointed_thing)
+                local block_action = function(user)
                     player_data[user:get_player_name()].shield = {name = k, pool = block_pool}
                 end
 
                 minetest.override_item(k, {on_secondary_use = function(itemstack, user, pointed_thing)
-                    block_action(itemstack, user, pointed_thing)
+                    block_action(user)
                     return old_on_secondary_use(itemstack, user, pointed_thing)
                 end, on_place = function(itemstack, placer, pointed_thing)
-                    block_action(itemstack, placer, pointed_thing)
+                    block_action(placer)
                     return old_on_place(itemstack, placer, pointed_thing)
                 end})
             end
@@ -163,10 +163,14 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     local full_punch
     local arm
     local re_yaw
+    local full_punch_interval = 1.4
 
     -- Get whether this was a full punch.
     if tool_capabilities and time_from_last_punch >= tool_capabilities.full_punch_interval then
         full_punch = true
+        full_punch_interval = tool_capabilities.full_punch_interval
+    elseif tool_capabilities then
+        full_punch_interval = tool_capabilities.full_punch_interval
     end
 
     -- May remove.
@@ -315,7 +319,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     -- Process if the player is blocking with a tool or not.
     if front and data_block and data_block.pool > 0 and data_block.time + data_block.duration + lag + dedicated_server_step + abs(get_player_information(hitter_name).avg_jitter - get_player_information(name).avg_jitter) * 1000000 > get_us_time() then
         -- Block the damage and add it as wear to the tool.
-        wielded_item:add_wear(damage * block_wear_mul)
+        wielded_item:add_wear(((damage - full_punch_interval) / 75) * block_wear_mul)
         player:set_wielded_item(wielded_item)
         data_block.pool = data_block.pool - damage
         player_data[name].block = data_block
@@ -330,7 +334,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     -- Process if the player is blocking with a shield or not.
     if data_shield and data_shield.pool > 0 and data_shield.name == item_name and (front or (re_yaw and re_yaw <= 1.570796 and re_yaw >= -2.356194)) then
         -- Block the damage and add it as wear to the tool.
-        wielded_item:add_wear(damage * block_wear_mul)
+        wielded_item:add_wear(((damage - full_punch_interval) / 75) * block_wear_mul)
         player:set_wielded_item(wielded_item)
         data_shield.pool = data_shield.pool - damage
         player_data[name].shield = data_shield
