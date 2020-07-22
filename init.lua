@@ -307,35 +307,35 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     player_data[hitter_name].block = nil
     player_data[hitter_name].shield = nil
 
-    local data = player_data[name].block
+    local data_block = player_data[name].block
     local hp = player:get_hp()
     local wielded_item = player:get_wielded_item()
     local item_name = wielded_item:get_name()
 
     -- Process if the player is blocking with a tool or not.
-    if front and data and data.pool > 0 and data.time + data.duration + lag + dedicated_server_step + abs(get_player_information(hitter_name).avg_jitter - get_player_information(name).avg_jitter) * 1000000 > get_us_time() then
+    if front and data_block and data_block.pool > 0 and data_block.time + data_block.duration + lag + dedicated_server_step + abs(get_player_information(hitter_name).avg_jitter - get_player_information(name).avg_jitter) * 1000000 > get_us_time() then
         -- Block the damage and add it as wear to the tool.
         wielded_item:add_wear(damage * block_wear_mul)
         player:set_wielded_item(wielded_item)
-        data.pool = data.pool - damage
-        player_data[name].block = data
+        data_block.pool = data_block.pool - damage
+        player_data[name].block = data_block
         return true
-    elseif data then
+    elseif data_block then
         -- Block attempt failed.
         player_data[name].block = nil
     end
 
-    data = player_data[name].shield
+    local data_shield = player_data[name].shield
 
     -- Process if the player is blocking with a shield or not.
-    if data and data.pool > 0 and data.name == item_name and (front or (re_yaw and re_yaw <= 1.570796 and re_yaw >= -2.356194)) then
+    if data_shield and data_shield.pool > 0 and data_shield.name == item_name and (front or (re_yaw and re_yaw <= 1.570796 and re_yaw >= -2.356194)) then
         -- Block the damage and add it as wear to the tool.
         wielded_item:add_wear(damage * block_wear_mul)
         player:set_wielded_item(wielded_item)
-        data.pool = data.pool - damage
-        player_data[name].shield = data
+        data_shield.pool = data_shield.pool - damage
+        player_data[name].shield = data_shield
         return true
-    elseif data then
+    elseif data_shield then
         -- Shield block attempt failed.
         player_data[name].shield = nil
     end
@@ -345,10 +345,10 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         local item2 = registered_tools[item_name]
         local chance
         
-        if item2 and not data and item2.tool_capabilities and item2.tool_capabilities.damage_groups.fleshy and item2.tool_capabilities.full_punch_interval then
+        if item2 and not data_shield and not data_block and item2.tool_capabilities and item2.tool_capabilities.damage_groups.fleshy and item2.tool_capabilities.full_punch_interval then
             -- Compute the chance to disarm by the victim's hp and tool stats.
             chance = random(0, ((hp + (item2.tool_capabilities.damage_groups.fleshy - item2.tool_capabilities.full_punch_interval) * disarm_chance_mul) - damage) + 1)
-        elseif not item2 and not data then
+        elseif not item2 and not data_shield and not data_block then
             -- Compute the chance to disarm by the victim's hp.
             chance = random(0, (hp - damage) + 1)
         end
