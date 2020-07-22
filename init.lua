@@ -163,7 +163,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     local name = player:get_player_name()
     local hitter_pos = {x = pos1.x, y = pos1.y, z = pos1.z}
     local item = registered_tools[hitter:get_wielded_item():get_name()]
-    local range = 4
+    local range = item.range or 4
     local yaw = player:get_look_horizontal()
     local front
     local full_punch
@@ -179,13 +179,6 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         full_punch_interval = tool_capabilities.full_punch_interval
     end
 
-    -- May remove.
-    if item and item.alt_range then
-        range = item.alt_range
-    elseif item and item.range then
-        range = item.range
-    end
-    
     -- Raise the position to eye height.
     hitter_pos.y = hitter_pos.y + hitter:get_properties().eye_height
     
@@ -328,9 +321,20 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         wielded_item:add_wear(((damage - full_punch_interval) / 75) * block_wear_mul)
         player:set_wielded_item(wielded_item)
         data_block.pool = data_block.pool - damage
+
+        local damage_texture_modifier = player:get_properties().damage_texture_modifier
+
+        if damage_texture_modifier ~= "" then
+            -- Disable the damage texture modifier on block.
+            player:set_properties{damage_texture_modifier = ""}
+            data_block.damage_texture_modifier = damage_texture_modifier
+        end
+
         player_data[name].block = data_block
         return true
     elseif data_block then
+        -- Revert the damage texture modifier.
+        player:set_properties{damage_texture_modifier = player_data[name].block.damage_texture_modifier}
         -- Block attempt failed.
         player_data[name].block = nil
     end
@@ -345,9 +349,20 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         wielded_item:add_wear((((damage - full_punch_interval) / 75) * block_wear_mul) + axe_wear)
         player:set_wielded_item(wielded_item)
         data_shield.pool = data_shield.pool - damage
+
+        local damage_texture_modifier = player:get_properties().damage_texture_modifier
+
+        if damage_texture_modifier ~= "" then
+            -- Disable the damage texture modifier on block.
+            player:set_properties{damage_texture_modifier = ""}
+            data_shield.damage_texture_modifier = damage_texture_modifier
+        end
+
         player_data[name].shield = data_shield
         return true
     elseif data_shield then
+        -- Revert the damage texture modifier.
+        player:set_properties{damage_texture_modifier = player_data[name].shield.damage_texture_modifier}
         -- Shield block attempt failed.
         player_data[name].shield = nil
     end
