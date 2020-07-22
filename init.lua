@@ -86,7 +86,7 @@ end)
 
 -- Process player input data.
 minetest.register_globalstep(function(dtime)
-    lag = abs(dtime - lag)
+    lag = dtime
     for k, v in pairs(player_data) do
         if v.block then
             local player = get_player_by_name(k)
