@@ -10,8 +10,8 @@ local shield_axe_dmg_mul = 20
 local block_wear_mul = 9000
 local head_dmg_mul = 1.2
 local torso_dmg_mul = 1.0
-local arm_dmg_mul = 0.9
-local leg_dmg_mul = 0.8
+local arm_dmg_mul = 0.6
+local leg_dmg_mul = 0.7
 local front_dmg_mul = nil
 local side_dmg_mul = 1.05
 local back_dmg_mul = 1.1
@@ -163,13 +163,17 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     local name = player:get_player_name()
     local hitter_pos = {x = pos1.x, y = pos1.y, z = pos1.z}
     local item = registered_tools[hitter:get_wielded_item():get_name()]
-    local range = item.range or 4
+    local range = 4
     local yaw = player:get_look_horizontal()
     local front
     local full_punch
     local arm
     local re_yaw
     local full_punch_interval = 1.4
+
+    if item and item.range then
+        range = item.range
+    end
 
     -- Get whether this was a full punch.
     if tool_capabilities and time_from_last_punch >= tool_capabilities.full_punch_interval then
