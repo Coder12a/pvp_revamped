@@ -44,6 +44,7 @@ local sin = math.sin
 local abs = math.abs
 local atan = math.atan
 local random = math.random
+local max = math.max
 local pi = math.pi
 
 minetest.register_on_mods_loaded(function()
@@ -224,6 +225,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
             if near_part == 1 then
                 -- Hit in the arm.
                 arm = true
+
                 if arm_dmg_mul then
                     damage = damage * arm_dmg_mul
                 end
@@ -305,9 +307,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     end
 
     -- If damage is at or below zero set it to a default value.
-    if damage <= 0 then
-        damage = 1
-    end
+    damage = max(damage, 0.5)
 
     -- Remove the hitter's blocking data.
     local hitter_name = hitter:get_player_name()
