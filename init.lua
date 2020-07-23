@@ -2,12 +2,13 @@ local head_height = 1.2
 local torso_height = 0.75
 local block_duration = 100000
 local disarm_chance_mul = 2
+local leg_stagger_mul = 0.8
 local block_duration_mul = 100000
 local block_interval_mul = 0.15
 local block_pool_mul = 2
 local shield_pool_mul = 4
-local shield_axe_dmg_mul = 20
 local block_wear_mul = 9000
+local shield_axe_dmg_mul = 20
 local head_dmg_mul = 1.2
 local torso_dmg_mul = 1.0
 local arm_dmg_mul = 0.6
@@ -45,6 +46,7 @@ local abs = math.abs
 local atan = math.atan
 local random = math.random
 local max = math.max
+local min = math.min
 local pi = math.pi
 
 minetest.register_on_mods_loaded(function()
@@ -130,11 +132,11 @@ minetest.register_on_mods_loaded(function()
     end
 end)
 
--- Process player input data.
 minetest.register_globalstep(function(dtime)
     lag = dtime * 1000000
     for k, v in pairs(player_data) do
         if v.block then
+            -- Process player input data.
             local player = get_player_by_name(k)
             local controls = player:get_player_control()
 
@@ -142,6 +144,16 @@ minetest.register_globalstep(function(dtime)
             if controls.RMB then
                 -- Update the block time.
                 player_data[k].block.time = get_us_time()
+            end
+        end
+        if v.stagger then
+            local stagger = v.stagger
+
+            -- Check if the stagger duration expired. 
+            if stagger.time + stagger.value < get_us_time() then
+                -- Restore the player's physics.
+                get_player_by_name(k):set_physics_override({speed = 1, jump = 1})
+                player_data[k].stagger = nil
             end
         end
     end
@@ -167,9 +179,10 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     local range = 4
     local yaw = player:get_look_horizontal()
     local front
-    local full_punch
     local arm
+    local leg
     local re_yaw
+    local full_punch
     local full_punch_interval = 1.4
 
     if item and item.range then
@@ -233,9 +246,13 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
                 -- Hit in the torso.
                 damage = damage * torso_dmg_mul
             end
-        elseif leg_dmg_mul then
+        else
             -- Hit in the leg.
-            damage = damage * leg_dmg_mul
+            leg = true
+
+            if leg_dmg_mul then
+                damage = damage * leg_dmg_mul
+            end
         end
 
         local dist = distance(hitter_pos, pos2)
@@ -388,10 +405,28 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         if chance and chance <= 0 then
             local drop_item = wielded_item:take_item()
             local obj = minetest.add_item(pos2, drop_item)
+
             if obj then
                 obj:get_luaentity().collect = true
             end
+
             player:set_wielded_item(wielded_item)
+        end
+    end
+
+    -- Process if the player was hit in the leg.
+    if leg then
+        -- Stagger the player.
+        local speed = min(1 / damage * leg_stagger_mul, 0.1)
+        local data_stagger = player_data[name].stagger
+
+        if not data_stagger or data_stagger.value > speed then
+            player:set_physics_override({speed = speed, jump = speed})
+
+            data_stagger = {}
+            data_stagger.time = get_us_time()
+            data_stagger.value = speed * 1000000
+            player_data[name].stagger = data_stagger
         end
     end
 
