@@ -1,8 +1,11 @@
 local head_height = 1.2
 local torso_height = 0.75
+local leg_height = 0.45
+local knee_height = 0.35
 local block_duration = 100000
 local disarm_chance_mul = 2
 local leg_stagger_mul = 0.8
+local knee_stagger_mul = 1.5
 local block_duration_mul = 100000
 local block_interval_mul = 0.15
 local block_pool_mul = 2
@@ -181,6 +184,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     local front
     local arm
     local leg
+    local knee
     local re_yaw
     local full_punch
     local full_punch_interval = 1.4
@@ -246,8 +250,22 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
                 -- Hit in the torso.
                 damage = damage * torso_dmg_mul
             end
-        else
+        elseif leg_height and y1 > y2 + leg_height then
             -- Hit in the leg.
+            leg = true
+
+            if leg_dmg_mul then
+                damage = damage * leg_dmg_mul
+            end
+        elseif knee_height and y1 > y2 + knee_height then
+            -- Hit in the knee.
+            knee = true
+
+            if leg_dmg_mul then
+                damage = damage * leg_dmg_mul
+            end
+        else
+            -- Hit in the lower leg.
             leg = true
 
             if leg_dmg_mul then
@@ -425,7 +443,30 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
 
             data_stagger = {}
             data_stagger.time = get_us_time()
-            data_stagger.value = speed * 1000000
+            data_stagger.value = (1 / speed) * 500000
+            player_data[name].stagger = data_stagger
+        end
+    elseif knee then
+        -- Stagger the player.
+        local speed = min(1 / damage * knee_stagger_mul, 0.1)
+        local data_stagger = player_data[name].stagger
+
+        if not data_stagger then
+            -- Create new table.
+            player:set_physics_override({speed = speed, jump = speed})
+
+            data_stagger = {}
+            data_stagger.time = get_us_time()
+            data_stagger.value = (1 / speed) * 500000
+            player_data[name].stagger = data_stagger
+        else
+            -- Add the original value and update all stagger data.
+            speed = min(abs(speed - data_stagger.value), 0.1)
+
+            player:set_physics_override({speed = speed, jump = speed})
+
+            data_stagger.time = get_us_time()
+            data_stagger.value = (1 / speed) * 500000
             player_data[name].stagger = data_stagger
         end
     end
