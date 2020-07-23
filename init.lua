@@ -432,6 +432,15 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         end
     end
 
+    local function set_stagger_data(speed)
+        player:set_physics_override({speed = speed, jump = speed})
+
+        data_stagger = {}
+        data_stagger.time = get_us_time()
+        data_stagger.value = (1 / speed) * 500000
+        player_data[name].stagger = data_stagger
+    end
+
     -- Process if the player was hit in the leg.
     if leg then
         -- Stagger the player.
@@ -439,35 +448,20 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         local data_stagger = player_data[name].stagger
 
         if not data_stagger or data_stagger.value > speed then
-            player:set_physics_override({speed = speed, jump = speed})
-
-            data_stagger = {}
-            data_stagger.time = get_us_time()
-            data_stagger.value = (1 / speed) * 500000
-            player_data[name].stagger = data_stagger
+            set_stagger_data(speed)
         end
     elseif knee then
         -- Stagger the player.
         local speed = min(1 / damage * knee_stagger_mul, 0.1)
         local data_stagger = player_data[name].stagger
 
-        if not data_stagger then
-            -- Create new table.
-            player:set_physics_override({speed = speed, jump = speed})
-
-            data_stagger = {}
-            data_stagger.time = get_us_time()
-            data_stagger.value = (1 / speed) * 500000
-            player_data[name].stagger = data_stagger
-        else
+        if data_stagger then
             -- Add the original value and update all stagger data.
             speed = min(abs(speed - data_stagger.value), 0.1)
 
-            player:set_physics_override({speed = speed, jump = speed})
-
-            data_stagger.time = get_us_time()
-            data_stagger.value = (1 / speed) * 500000
-            player_data[name].stagger = data_stagger
+            set_stagger_data(speed)
+        else
+            set_stagger_data(speed)
         end
     end
 
