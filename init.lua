@@ -95,11 +95,20 @@ minetest.register_on_mods_loaded(function()
                     local time = get_us_time()
                     local name = user:get_player_name()
                     local data = player_data[name].block
+                    local damage_texture_modifier = user:get_properties().damage_texture_modifier
 
                     -- Prevent spam blocking.
                     if not data or time - data.time > full_block_interval then
-                        player_data[name].block = {pool = block_pool, time = time, duration = duration}
+                        data = {pool = block_pool, time = time, duration = duration}
                     end
+
+                    if data and damage_texture_modifier ~= "" then
+                        -- Disable the damage texture modifier on tool block.
+                        user:set_properties{damage_texture_modifier = ""}
+                        data.damage_texture_modifier = damage_texture_modifier
+                    end
+
+                    player_data[name].block = data
                 end
 
                 minetest.override_item(k, {on_secondary_use = function(itemstack, user, pointed_thing)
@@ -128,7 +137,19 @@ minetest.register_on_mods_loaded(function()
             if block_pool > 0 then
                 -- Allow the shield to block damage.
                 local block_action = function(user)
-                    player_data[user:get_player_name()].shield = {name = k, pool = block_pool}
+                    local name = user:get_player_name()
+                    local data = player_data[name].shield
+                    local damage_texture_modifier = user:get_properties().damage_texture_modifier
+
+                    data = {name = k, pool = block_pool}
+                    
+                    if damage_texture_modifier ~= "" then
+                        -- Disable the damage texture modifier on shield block.
+                        user:set_properties{damage_texture_modifier = ""}
+                        data.damage_texture_modifier = damage_texture_modifier
+                    end
+
+                    player_data[name].shield = data
                 end
 
                 minetest.override_item(k, {on_secondary_use = function(itemstack, user, pointed_thing)
@@ -162,6 +183,8 @@ minetest.register_globalstep(function(dtime)
             
             -- Remove the block table if it's past duration.
             if block.time + block.duration + server_lag < get_us_time() then
+                -- Revert the damage texture modifier.
+                player:set_properties{damage_texture_modifier = player_data[k].block.damage_texture_modifier}
                 player_data[k].block = nil
             end
         end
@@ -336,11 +359,11 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     end
 
     local hitter_name = hitter:get_player_name()
-    data_dodge = player_data[hitter_name].data_dodge
+    hitter_data_dodge = player_data[hitter_name].data_dodge
     
     -- Cancel any attack if the hitter is in dodge mode.
-    if data_dodge then
-        for k, v in pairs(data_dodge) do
+    if hitter_data_dodge then
+        for k, v in pairs(hitter_data_dodge) do
             if v + dodge_duration + lag > time then
                 return true
             end
@@ -527,18 +550,16 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     local item_name = wielded_item:get_name()
 
     -- Process if the player is blocking with a tool or not.
-    if front and data_block and data_block.pool > 0 and data_block.time + data_block.duration + lag + abs(get_player_information(hitter_name).avg_jitter - get_player_information(name).avg_jitter) * 1000000 > time then
+    if front and data_block and data_block.pool > 0 and data_block.time + data_block.duration + lag + max(get_player_information(name).avg_jitter - get_player_information(hitter_name).avg_jitter, 0) * 1000000 > time then
         -- Block the damage and add it as wear to the tool.
         wielded_item:add_wear(((damage - full_punch_interval) / 75) * block_wear_mul)
         player:set_wielded_item(wielded_item)
         data_block.pool = data_block.pool - damage
 
-        local damage_texture_modifier = player:get_properties().damage_texture_modifier
-
-        if damage_texture_modifier ~= "" then
-            -- Disable the damage texture modifier on block.
-            player:set_properties{damage_texture_modifier = ""}
-            data_block.damage_texture_modifier = damage_texture_modifier
+        -- Remove block table if pool is zero or below.
+        if data_block.pool <= 0 then
+            player_data[name].block = nil
+            return true
         end
 
         player_data[name].block = data_block
@@ -561,12 +582,10 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         player:set_wielded_item(wielded_item)
         data_shield.pool = data_shield.pool - (damage + axe_wear)
 
-        local damage_texture_modifier = player:get_properties().damage_texture_modifier
-
-        if damage_texture_modifier ~= "" then
-            -- Disable the damage texture modifier on block.
-            player:set_properties{damage_texture_modifier = ""}
-            data_shield.damage_texture_modifier = damage_texture_modifier
+        -- Remove shield table if pool is zero or below.
+        if data_shield.pool <= 0 then
+            player_data[name].shield = nil
+            return true
         end
 
         player_data[name].shield = data_shield
