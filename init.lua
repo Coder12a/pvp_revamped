@@ -336,10 +336,15 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     end
 
     local hitter_name = hitter:get_player_name()
+    data_dodge = player_data[hitter_name].data_dodge
     
     -- Cancel any attack if the hitter is in dodge mode.
-    if player_data[hitter_name].data_dodge then
-        return true
+    if data_dodge then
+        for k, v in pairs(data_dodge) do
+            if v + dodge_duration + lag > time then
+                return true
+            end
+        end
     end
     
     local pos1 = hitter:get_pos()
