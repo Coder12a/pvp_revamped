@@ -576,7 +576,11 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     -- Process if the player is blocking with a shield or not.
     if data_shield and data_shield.pool > 0 and data_shield.name == item_name and (front or (re_yaw and re_yaw <= 1.570796 and re_yaw >= -2.356194)) then
         -- Block the damage and add it as wear to the tool.
-        local axe_wear = item.groups.shield_dmg or 0
+        local axe_wear = 0
+
+        if item and item.groups and item.groups.shield_dmg then
+            axe_wear = item.groups.shield_dmg
+        end
 
         wielded_item:add_wear((((damage - full_punch_interval) / 75) * block_wear_mul) + axe_wear)
         player:set_wielded_item(wielded_item)
