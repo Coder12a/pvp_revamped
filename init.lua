@@ -3,6 +3,12 @@ local torso_height = 0.75
 local leg_height = 0.45
 local knee_height = 0.35
 local block_duration = 100000
+local dodge_duration = 350000
+local dodge_cooldown = 1500000
+local dash_cooldown = 1500000
+local dodge_aerial_cooldown = 3000000
+local dash_aerial_cooldown = 3000000
+local dash_speed = 9.2
 local disarm_chance_mul = 2
 local leg_stagger_mul = 0.8
 local knee_stagger_mul = 1.5
@@ -39,6 +45,7 @@ local raycast = minetest.raycast
 local get_us_time = minetest.get_us_time
 local get_player_by_name = minetest.get_player_by_name
 local get_player_information = minetest.get_player_information
+local maxn = table.maxn
 local add = vector.add
 local multiply = vector.multiply
 local subtract = vector.subtract
@@ -50,6 +57,7 @@ local atan = math.atan
 local random = math.random
 local max = math.max
 local min = math.min
+local floor = math.floor
 local pi = math.pi
 
 minetest.register_on_mods_loaded(function()
@@ -136,31 +144,171 @@ minetest.register_on_mods_loaded(function()
 end)
 
 minetest.register_globalstep(function(dtime)
-    lag = dtime * 1000000
-    for k, v in pairs(player_data) do
-        if v.block then
-            -- Process player input data.
-            local player = get_player_by_name(k)
-            local controls = player:get_player_control()
+    lag = (dtime * 1000000) + dedicated_server_step
 
-            -- Check if a player is holding down the RMB key.
-            if controls.RMB then
+    for k, v in pairs(player_data) do
+        local server_lag = lag + get_player_information(k).avg_jitter * 1000000
+        
+        if v.block then
+            local player = get_player_by_name(k)
+
+            -- Check if the player is holding down the RMB key.
+            if floor(player:get_player_control_bits() / 256) % 2 == 1 then
                 -- Update the block time.
                 player_data[k].block.time = get_us_time()
             end
+
+            local block = v.block
+            
+            -- Remove the block table if it's past duration.
+            if block.time + block.duration + server_lag < get_us_time() then
+                player_data[k].block = nil
+            end
         end
+
         if v.stagger then
             local stagger = v.stagger
 
             -- Check if the stagger duration expired. 
-            if stagger.time + stagger.value < get_us_time() then
+            if stagger.time + stagger.value + server_lag < get_us_time() then
                 -- Restore the player's physics.
                 get_player_by_name(k):set_physics_override({speed = 1, jump = 1})
                 player_data[k].stagger = nil
             end
         end
+
+        if v.dodge then
+            -- Process the player's dodge table cooldown.
+            for j, l in pairs(v.dodge) do
+                -- Find if it's aerial or not.
+                if j > 4 and l + dodge_aerial_cooldown + server_lag < get_us_time() then
+                    player_data[k].dodge[j] = nil
+                elseif j < 5 and l + dodge_cooldown + server_lag < get_us_time() then
+                    player_data[k].dodge[j] = nil
+                end
+            end
+            
+            -- If this table contains no more dodges remove it.
+            if maxn(player_data[k].dodge) < 1 then
+                player_data[k].dodge = nil
+            end
+        end
+
+        if v.dash then
+            -- Process the player's dash table cooldown.
+            for j, l in pairs(v.dash) do
+                -- Find if it's aerial or not.
+                if j > 4 and l + dash_aerial_cooldown + server_lag < get_us_time() then
+                    player_data[k].dash[j] = nil
+                elseif j < 5 and l + dash_cooldown + server_lag < get_us_time() then
+                    player_data[k].dash[j] = nil
+                end
+            end
+
+            -- If this table contains no more dashes remove it.
+            if maxn(player_data[k].dash) < 1 then
+                player_data[k].dash = nil
+            end
+        end
     end
 end)
+
+if sscsm then
+    -- Register a sscsm for dodging and dashing.
+    sscsm.register({name = "pvp_revamped:movement",
+                    file = minetest.get_modpath("pvp_revamped") .. "/movement.lua"})
+
+    -- Helper function to check and set the dodge cooldown.
+    local function dodge(name, number)
+        local dodge_data = player_data[name]
+        
+        if not dodge_data.dodge then
+            dodge_data.dodge = {[number] = get_us_time()}
+        elseif dodge_data.dodge and not dodge_data.dodge[number] then
+            dodge_data.dodge[number] = get_us_time()
+        end
+    end
+
+    -- Channel for dodge request.
+    sscsm.register_on_com_receive("pvp_revamped:dodge", function(name, msg)
+        if msg and type(msg) == "string" then
+            local velocity = get_player_by_name(name):get_player_velocity().y
+            local aerial_points = 0
+
+            if velocity < 0.0 or velocity > 0.0 then
+                aerial_points = 4
+            end
+
+            if msg == "dodge_l" then
+                dodge(name, 1 + aerial_points)
+            elseif msg == "dodge_u" then
+                dodge(name, 2 + aerial_points)
+            elseif msg == "dodge_r" then
+                dodge(name, 3 + aerial_points)
+            elseif msg == "dodge_d" then
+                dodge(name, 4 + aerial_points)
+            else
+                return false
+            end
+        end
+    end)
+
+    -- Channel for dash request.
+    sscsm.register_on_com_receive("pvp_revamped:dash", function(name, msg)
+        if msg and type(msg) == "string" then
+            local player = get_player_by_name(name)
+            local yaw = player:get_look_horizontal()
+            local y = dash_speed * 0.5
+            local aerial_points = 0
+            local dash_key = 0
+            local x = 0
+            local z = 0
+
+            local velocity = player:get_player_velocity().y
+
+            if velocity < 0.0 or velocity > 0.0 then
+                aerial_points = 4
+            end
+
+            if msg == "dash_l" then
+                x = -dash_speed
+                dash_key = 1 + aerial_points
+            elseif msg == "dash_u" then
+                z = dash_speed
+                dash_key = 2 + aerial_points
+            elseif msg == "dash_r" then
+                x = dash_speed
+                dash_key = 3 + aerial_points
+            elseif msg == "dash_d" then
+                z = -dash_speed
+                dash_key = 4 + aerial_points
+            else
+                return false
+            end
+
+            local dash_data = player_data[name]
+
+            local function dash()
+                local co = cos(yaw)
+                local si = sin(yaw)
+                local re_x = co * x - si * z
+                local re_z = si * x + co * z
+
+                player:add_player_velocity({x = re_x, y = y, z = re_z})
+            end
+
+            if not dash_data.dash then
+                dash()
+
+                dash_data.dash = {[dash_key] = get_us_time()}
+            elseif dash_data.dash and not dash_data.dash[dash_key] then
+                dash()
+
+                dash_data.dash[dash_key] = get_us_time()
+            end
+        end
+    end)
+end
 
 -- Create an empty data sheet for the player.
 minetest.register_on_joinplayer(function(player)
@@ -174,9 +322,28 @@ end)
 
 -- Do the damage calculations when the player gets hit.
 minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, tool_capabilities, dir, damage)
+    local name = player:get_player_name()
+    local data_dodge = player_data[name].data_dodge
+    local time = get_us_time()
+
+    -- If the player is dodging return true.
+    if data_dodge then
+        for k, v in pairs(data_dodge) do
+            if v + dodge_duration + lag > time then
+                return true
+            end
+        end
+    end
+
+    local hitter_name = hitter:get_player_name()
+    
+    -- Cancel any attack if the hitter is in dodge mode.
+    if player_data[hitter_name].data_dodge then
+        return true
+    end
+    
     local pos1 = hitter:get_pos()
     local pos2 = player:get_pos()
-    local name = player:get_player_name()
     local hitter_pos = {x = pos1.x, y = pos1.y, z = pos1.z}
     local item = registered_tools[hitter:get_wielded_item():get_name()]
     local range = 4
@@ -233,6 +400,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
                 local re_x = co * x - si * z
                 local re_z = si * x + co * z
                 local dist = distance(newpos, {x = re_x, y = y, z = re_z})
+                
                 if dist < past_distance or past_distance == -1 then
                     past_distance = dist
                     near_part = point.part
@@ -345,7 +513,6 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     damage = max(damage, 0.5)
 
     -- Remove the hitter's blocking data.
-    local hitter_name = hitter:get_player_name()
     player_data[hitter_name].block = nil
     player_data[hitter_name].shield = nil
 
@@ -355,7 +522,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     local item_name = wielded_item:get_name()
 
     -- Process if the player is blocking with a tool or not.
-    if front and data_block and data_block.pool > 0 and data_block.time + data_block.duration + lag + dedicated_server_step + abs(get_player_information(hitter_name).avg_jitter - get_player_information(name).avg_jitter) * 1000000 > get_us_time() then
+    if front and data_block and data_block.pool > 0 and data_block.time + data_block.duration + lag + abs(get_player_information(hitter_name).avg_jitter - get_player_information(name).avg_jitter) * 1000000 > time then
         -- Block the damage and add it as wear to the tool.
         wielded_item:add_wear(((damage - full_punch_interval) / 75) * block_wear_mul)
         player:set_wielded_item(wielded_item)
@@ -436,7 +603,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         player:set_physics_override({speed = speed, jump = speed})
 
         data_stagger = {}
-        data_stagger.time = get_us_time()
+        data_stagger.time = time
         data_stagger.value = (1 / speed) * 500000
         player_data[name].stagger = data_stagger
     end
