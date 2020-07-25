@@ -32,8 +32,8 @@ local velocity_dmg_mul = 0.15
 local optimal_distance_dmg_mul = 0.2
 local maximum_distance_dmg_mul = 0.1
 local optimal_distance_mul = 0.5
-local lag = 0
 local dedicated_server_step = (tonumber(minetest.settings:get("dedicated_server_step")) or 0.1) * 1000000
+local lag = 0
 local player_data = {}
 
 local hit_points = {{x = 0.3, y = 1.2, z = 0, part = 1}, 
@@ -59,6 +59,8 @@ local max = math.max
 local min = math.min
 local floor = math.floor
 local pi = math.pi
+local rad90 = pi * 0.5
+local rad360 = pi * 2
 
 minetest.register_on_mods_loaded(function()
     local max_armor_use
@@ -483,20 +485,20 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         end
 
         -- Get the yaw from both the player and intersection point.
-        local yaw2 = atan(newpos.z / newpos.x) + pi * 0.5
+        local yaw2 = atan(newpos.z / newpos.x) + rad90
         
         if hit_point.x >= pos2.x then
             yaw2 = yaw2 + pi
         end
 
-        re_yaw = (pi * 2) - (yaw - yaw2)
+        re_yaw = rad360 - (yaw - yaw2)
 
         if re_yaw < 0 then
-            re_yaw = (pi * 2) - re_yaw
+            re_yaw = rad360 - re_yaw
         end
 
-        if re_yaw > (pi * 2) then
-            re_yaw = re_yaw - (pi * 2)
+        if re_yaw > rad360 then
+            re_yaw = re_yaw - rad360
         end
 
         if (re_yaw <= 0.7853982 and re_yaw >= 0) or (re_yaw <= 6.283185 and re_yaw >= 5.497787) then
