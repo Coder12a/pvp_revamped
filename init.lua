@@ -1,7 +1,7 @@
 local head_height = 1.35
 local torso_height = 0.75
 local leg_height = 0.45
-local knee_height = 0.35
+local knee_height = 0.375
 local block_duration = 100000
 local dodge_duration = 350000
 local dodge_cooldown = 1500000
@@ -659,7 +659,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     -- Process if the player was hit in the leg.
     if leg then
         -- Stagger the player.
-        local speed = min(1 / damage * leg_stagger_mul, 0.1)
+        local speed = min(1 / max(damage - hp, 1) * leg_stagger_mul, 0.1)
         local data_stagger = player_data[name].stagger
 
         if not data_stagger or data_stagger.value > speed then
@@ -667,7 +667,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         end
     elseif knee then
         -- Stagger the player.
-        local speed = min(1 / damage * knee_stagger_mul, 0.1)
+        local speed = min(1 / max(damage - hp, 1.5) * knee_stagger_mul, 0.1)
         local data_stagger = player_data[name].stagger
 
         if data_stagger then
