@@ -1,4 +1,4 @@
-local head_height = 1.2
+local head_height = 1.35
 local torso_height = 0.75
 local leg_height = 0.45
 local knee_height = 0.35
@@ -32,7 +32,6 @@ local velocity_dmg_mul = 0.15
 local optimal_distance_dmg_mul = 0.2
 local maximum_distance_dmg_mul = 0.1
 local optimal_distance_mul = 0.5
-local dedicated_server_step = (tonumber(minetest.settings:get("dedicated_server_step")) or 0.1) * 1000000
 local lag = 0
 local player_data = {}
 
@@ -97,18 +96,14 @@ minetest.register_on_mods_loaded(function()
                     local time = get_us_time()
                     local name = user:get_player_name()
                     local data = player_data[name].block
-                    local damage_texture_modifier = user:get_properties().damage_texture_modifier
 
                     -- Prevent spam blocking.
                     if not data or time - data.time > full_block_interval then
                         data = {pool = block_pool, time = time, duration = duration}
                     end
 
-                    if data and damage_texture_modifier ~= "" then
-                        -- Disable the damage texture modifier on tool block.
-                        user:set_properties{damage_texture_modifier = ""}
-                        data.damage_texture_modifier = damage_texture_modifier
-                    end
+                    -- Disable the damage texture modifier on tool block.
+                    user:set_properties{damage_texture_modifier = ""}
 
                     player_data[name].block = data
                 end
@@ -141,15 +136,11 @@ minetest.register_on_mods_loaded(function()
                 local block_action = function(user)
                     local name = user:get_player_name()
                     local data = player_data[name].shield
-                    local damage_texture_modifier = user:get_properties().damage_texture_modifier
 
                     data = {name = k, pool = block_pool}
                     
-                    if damage_texture_modifier ~= "" then
-                        -- Disable the damage texture modifier on shield block.
-                        user:set_properties{damage_texture_modifier = ""}
-                        data.damage_texture_modifier = damage_texture_modifier
-                    end
+                    -- Disable the damage texture modifier on shield block.
+                    user:set_properties{damage_texture_modifier = ""}
 
                     player_data[name].shield = data
                 end
@@ -167,14 +158,13 @@ minetest.register_on_mods_loaded(function()
 end)
 
 minetest.register_globalstep(function(dtime)
-    lag = (dtime * 1000000) + dedicated_server_step
+    lag = dtime * 1000000
 
     for k, v in pairs(player_data) do
         local server_lag = lag + get_player_information(k).avg_jitter * 1000000
+        local player = get_player_by_name(k)
         
         if v.block then
-            local player = get_player_by_name(k)
-
             -- Check if the player is holding down the RMB key.
             if floor(player:get_player_control_bits() / 256) % 2 == 1 then
                 -- Update the block time.
@@ -186,7 +176,7 @@ minetest.register_globalstep(function(dtime)
             -- Remove the block table if it's past duration.
             if block.time + block.duration + server_lag < get_us_time() then
                 -- Revert the damage texture modifier.
-                player:set_properties{damage_texture_modifier = player_data[k].block.damage_texture_modifier}
+                player:set_properties{damage_texture_modifier = player_data[k].damage_texture_modifier}
                 player_data[k].block = nil
             end
         end
@@ -203,6 +193,8 @@ minetest.register_globalstep(function(dtime)
         end
 
         if v.dodge then
+            local active_dodges = 0
+            
             -- Process the player's dodge table cooldown.
             for j, l in pairs(v.dodge) do
                 -- Find if it's aerial or not.
@@ -210,7 +202,14 @@ minetest.register_globalstep(function(dtime)
                     player_data[k].dodge[j] = nil
                 elseif j < 5 and l + dodge_cooldown + server_lag < get_us_time() then
                     player_data[k].dodge[j] = nil
+                elseif l + dodge_duration + server_lag > get_us_time() then
+                    active_dodges = active_dodges + 1
                 end
+            end
+
+            if active_dodges < 1 and player:get_properties().damage_texture_modifier == "" then
+                -- Revert the damage texture modifier.
+                player:set_properties{damage_texture_modifier = player_data[k].damage_texture_modifier}
             end
             
             -- If this table contains no more dodges remove it.
@@ -244,20 +243,23 @@ if sscsm then
                     file = minetest.get_modpath("pvp_revamped") .. "/movement.lua"})
 
     -- Helper function to check and set the dodge cooldown.
-    local function dodge(name, number)
+    local function dodge(name, player, number)
         local dodge_data = player_data[name]
         
         if not dodge_data.dodge then
             dodge_data.dodge = {[number] = get_us_time()}
+            player:set_properties{damage_texture_modifier = ""}
         elseif dodge_data.dodge and not dodge_data.dodge[number] then
             dodge_data.dodge[number] = get_us_time()
+            player:set_properties{damage_texture_modifier = ""}
         end
     end
 
     -- Channel for dodge request.
     sscsm.register_on_com_receive("pvp_revamped:dodge", function(name, msg)
         if msg and type(msg) == "string" then
-            local velocity = get_player_by_name(name):get_player_velocity().y
+            local player = get_player_by_name(name)
+            local velocity = player:get_player_velocity().y
             local aerial_points = 0
 
             if velocity < 0.0 or velocity > 0.0 then
@@ -265,13 +267,13 @@ if sscsm then
             end
 
             if msg == "dodge_l" then
-                dodge(name, 1 + aerial_points)
+                dodge(name, player, 1 + aerial_points)
             elseif msg == "dodge_u" then
-                dodge(name, 2 + aerial_points)
+                dodge(name, player, 2 + aerial_points)
             elseif msg == "dodge_r" then
-                dodge(name, 3 + aerial_points)
+                dodge(name, player, 3 + aerial_points)
             elseif msg == "dodge_d" then
-                dodge(name, 4 + aerial_points)
+                dodge(name, player, 4 + aerial_points)
             else
                 return false
             end
@@ -337,7 +339,7 @@ end
 
 -- Create an empty data sheet for the player.
 minetest.register_on_joinplayer(function(player)
-    player_data[player:get_player_name()] = {}
+    player_data[player:get_player_name()] = {damage_texture_modifier = player:get_properties().damage_texture_modifier}
 end)
 
 -- Clear up memory if the player leaves.
@@ -584,7 +586,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         return true
     elseif data_block then
         -- Revert the damage texture modifier.
-        player:set_properties{damage_texture_modifier = player_data[name].block.damage_texture_modifier}
+        player:set_properties{damage_texture_modifier = player_data[name].damage_texture_modifier}
         -- Block attempt failed.
         player_data[name].block = nil
     end
@@ -614,7 +616,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         return true
     elseif data_shield then
         -- Revert the damage texture modifier.
-        player:set_properties{damage_texture_modifier = player_data[name].shield.damage_texture_modifier}
+        player:set_properties{damage_texture_modifier = player_data[name].damage_texture_modifier}
         -- Shield block attempt failed.
         player_data[name].shield = nil
     end
