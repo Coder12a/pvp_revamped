@@ -359,7 +359,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     end
 
     local hitter_name = hitter:get_player_name()
-    hitter_data_dodge = player_data[hitter_name].data_dodge
+    local hitter_data_dodge = player_data[hitter_name].data_dodge
     
     -- Cancel any attack if the hitter is in dodge mode.
     if hitter_data_dodge then
@@ -377,6 +377,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     local range = 4
     local yaw = player:get_look_horizontal()
     local front
+    local side
     local arm
     local leg
     local knee
@@ -483,27 +484,42 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
 
         -- Get the yaw from both the player and intersection point.
         local yaw2 = atan(newpos.z / newpos.x) + pi * 0.5
+        
         if hit_point.x >= pos2.x then
             yaw2 = yaw2 + pi
         end
 
-        re_yaw = yaw - yaw2
+        re_yaw = (pi * 2) - (yaw - yaw2)
 
-        if re_yaw <= 0.7853982 and re_yaw >= -0.7853982 then
+        if re_yaw < 0 then
+            re_yaw = (pi * 2) - re_yaw
+        end
+
+        if re_yaw > (pi * 2) then
+            re_yaw = re_yaw - (pi * 2)
+        end
+
+        if (re_yaw <= 0.7853982 and re_yaw >= 0) or (re_yaw <= 6.283185 and re_yaw >= 5.497787) then
             -- Hit on the front.
             front = true
             if front_dmg_mul then
                 damage = damage * front_dmg_mul
             end
-        elseif side_dmg_mul and re_yaw <= -0.7853982 and re_yaw >= -2.356194 then
+        elseif re_yaw <= 2.356194 then
             -- Hit on the left-side.
-            damage = damage * side_dmg_mul
-        elseif back_dmg_mul and re_yaw <= -2.356194 and re_yaw >= -3.926991 then
+            side = true
+            if side_dmg_mul then
+                damage = damage * side_dmg_mul
+            end
+        elseif back_dmg_mul and re_yaw <= 3.926991 then
             -- Hit on the back-side.
             damage = damage * back_dmg_mul
-        elseif side_dmg_mul then
+        else
             -- Hit on the right-side.
-            damage = damage * side_dmg_mul
+            side = true
+            if side_dmg_mul then
+                damage = damage * side_dmg_mul
+            end
         end
         
     end
@@ -574,7 +590,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     local data_shield = player_data[name].shield
 
     -- Process if the player is blocking with a shield or not.
-    if data_shield and data_shield.pool > 0 and data_shield.name == item_name and (front or (re_yaw and re_yaw <= 1.570796 and re_yaw >= -2.356194)) then
+    if data_shield and data_shield.pool > 0 and data_shield.name == item_name and (front or side) then
         -- Block the damage and add it as wear to the tool.
         local axe_wear = 0
 
