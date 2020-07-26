@@ -477,13 +477,17 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         local dist = distance(hitter_pos, pos2)
         local optimal_range = range * optimal_distance_mul
         local dist_rounded = dist + 0.5 - (dist + 0.5) % 1
+
+        -- If the distance rounded is outside the range skip.
+        if dist_rounded <= range + 1 then
         
-        -- Add or remove damage based on the distance.
-        -- Full punches are not affected by maximum distance.
-        if not full_punch and optimal_distance_mul and maximum_distance_dmg_mul and dist_rounded > optimal_range then
-            damage = damage - range * maximum_distance_dmg_mul
-        elseif optimal_distance_mul and optimal_distance_dmg_mul and dist_rounded < optimal_range then
-            damage = damage + optimal_range - dist_rounded * optimal_distance_dmg_mul
+            -- Add or remove damage based on the distance.
+            -- Full punches are not affected by maximum distance.
+            if not full_punch and optimal_distance_mul and maximum_distance_dmg_mul and dist_rounded > optimal_range then
+                damage = damage - range * maximum_distance_dmg_mul
+            elseif optimal_distance_mul and optimal_distance_dmg_mul and dist_rounded < optimal_range then
+                damage = damage + optimal_range - dist_rounded * optimal_distance_dmg_mul
+            end
         end
 
         -- Get the yaw from both the player and intersection point.
