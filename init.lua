@@ -36,7 +36,7 @@ local projectile_full_throw_mul = 2
 local projectile_speed_mul = 3
 local projectile_dmg_mul = 0.5
 local projectile_step = 0.15
-local projectile_radius = 2
+local projectile_dist = 5
 local projectile_throw_style_dip = 1
 local projectile_throw_style_spinning = 2
 local projectile_gravity = -10
@@ -194,12 +194,22 @@ minetest.register_entity("pvp_revamped:projectile", {
                 return
             end
 
-            for _, target in pairs(get_objects_inside_radius(object:get_pos(), projectile_radius)) do
-                if target:get_armor_groups().fleshy then
-                    target:punch(get_player_by_name(self.owner), nil, tool_capabilities, nil)
-                    self:die()
-                    
-                    return
+            local dir = vector.normalize(self.object:get_velocity())
+            local pos = self.object:get_pos()
+            local p1 = vector.add(pos, dir)
+            local p2 = vector.add(pos, vector.multiply(dir, projectile_dist))
+            local ray = minetest.raycast(p1, p2)
+
+            for pointed_thing in ray do
+                if pointed_thing.type == "object" then
+                    local obj = pointed_thing.ref
+
+                    if obj:get_armor_groups().fleshy then
+                        obj:punch(get_player_by_name(self.owner), nil, tool_capabilities)
+                        self:die()
+                        
+                        return
+                    end
                 end
             end
 
