@@ -419,7 +419,8 @@ minetest.register_globalstep(function(dtime)
                     local throw_speed = tool_capabilities.throw_speed
                     local damage = tool_capabilities.damage_groups.fleshy
                     local time = get_us_time()
-                    local full_throw = throw_data.time + tool_capabilities.full_throw 
+                    local full_throw = throw_data.time + tool_capabilities.full_throw
+                    local spin
 
                     if full_throw > time then
                         local re = (full_throw - time) / 200000
@@ -430,8 +431,12 @@ minetest.register_globalstep(function(dtime)
                         end
                     end
 
+                    if tool_capabilities.throw_style == projectile_throw_style_spinning then
+                        spin = throw_speed
+                    end
+
                     ent:set_item(player:get_player_name(), throw_data.item)
-                    ent:throw(player, throw_speed, {x = 0, y = projectile_gravity, z = 0}, damage * projectile_dmg_mul)
+                    ent:throw(player, throw_speed, {x = 0, y = projectile_gravity, z = 0}, damage * projectile_dmg_mul, spin)
                 end
 
                 player_data[k].throw = nil
