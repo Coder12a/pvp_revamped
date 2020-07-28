@@ -599,11 +599,6 @@ minetest.register_on_joinplayer(function(player)
     player_data[player:get_player_name()] = {damage_texture_modifier = player:get_properties().damage_texture_modifier}
 end)
 
--- Clear up memory if the player leaves.
-minetest.register_on_leaveplayer(function(player)
-    player_data[player:get_player_name()] = nil
-end)
-
 -- Helper function to drop an item.
 local function drop(player, item, pos)
     if not pos then
@@ -617,15 +612,28 @@ local function drop(player, item, pos)
     end
 end
 
+-- Clear up memory if the player leaves.
+-- Drop any item the player is about to throw on leave.
+minetest.register_on_leaveplayer(function(player)
+    local name = player:get_player_name()
+    local throw_data = player_data[name].throw
+    
+    if throw_data then
+        drop(player, throw_data.item)
+        
+        player_data[name].throw = nil
+    end
+
+    player_data[name] = nil
+end)
+
 -- Drop any item the player is about to throw on death.
 minetest.register_on_dieplayer(function(player)
     local name = player:get_player_name()
     local throw_data = player_data[name].throw
-    minetest.log("1")
     
     if throw_data then
         drop(player, throw_data.item)
-        minetest.log(throw_data.name)
         
         player_data[name].throw = nil
     end
