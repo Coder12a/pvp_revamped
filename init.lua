@@ -728,137 +728,141 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     local _dir = hitter:get_look_dir()
     local hit_pos1 = add(hitter_pos, _dir)
     local hit_pos2 = add(hit_pos1, multiply(_dir, range))
-    local ray = raycast(hit_pos1, hit_pos2):next()
+    local ray = raycast(hit_pos1, hit_pos2)
 
-    if ray then
-        local hit_point = ray.intersection_point
-        local newpos = subtract(hit_point, pos2)
-        local y1 = hit_point.y
-        local y2 = pos2.y
+    for pointed_thing in ray do
+        if pointed_thing.type == "object" and pointed_thing.ref:is_player() and pointed_thing.ref:get_player_name() == name then
+            local hit_point = pointed_thing.intersection_point
+            local newpos = subtract(hit_point, pos2)
+            local y1 = hit_point.y
+            local y2 = pos2.y
 
-        if head_height and head_dmg_mul and y1 > y2 + head_height then
-            -- If the player was hit in the head add extra damage.
-            damage = damage * head_dmg_mul
-        elseif torso_height and y1 > y2 + torso_height then
-            -- Find if the player was hit in the torso or arm.
-            local near_part = 0
-            local past_distance = -1
+            if head_height and head_dmg_mul and y1 > y2 + head_height then
+                -- If the player was hit in the head add extra damage.
+                damage = damage * head_dmg_mul
+            elseif torso_height and y1 > y2 + torso_height then
+                -- Find if the player was hit in the torso or arm.
+                local near_part = 0
+                local past_distance = -1
 
-            for _, point in pairs(hit_points) do
-                local x = point.x
-                local y = point.y
-                local z = point.z
-                local co = cos(yaw)
-                local si = sin(yaw)
-                local re_x = co * x - si * z
-                local re_z = si * x + co * z
-                local dist = distance(newpos, {x = re_x, y = y, z = re_z})
-                
-                if dist < past_distance or past_distance == -1 then
-                    past_distance = dist
-                    near_part = point.part
+                for _, point in pairs(hit_points) do
+                    local x = point.x
+                    local y = point.y
+                    local z = point.z
+                    local co = cos(yaw)
+                    local si = sin(yaw)
+                    local re_x = co * x - si * z
+                    local re_z = si * x + co * z
+                    local dist = distance(newpos, {x = re_x, y = y, z = re_z})
+                    
+                    if dist < past_distance or past_distance == -1 then
+                        past_distance = dist
+                        near_part = point.part
+                    end
+                end
+
+                if near_part == 1 then
+                    -- Hit in the arm.
+                    arm = true
+
+                    if arm_dmg_mul then
+                        damage = damage * arm_dmg_mul
+                    end
+                elseif torso_dmg_mul then
+                    -- Hit in the torso.
+                    damage = damage * torso_dmg_mul
+                end
+            elseif leg_height and y1 > y2 + leg_height then
+                -- Hit in the leg.
+                leg = true
+
+                if leg_dmg_mul then
+                    damage = damage * leg_dmg_mul
+                end
+            elseif knee_height and y1 > y2 + knee_height then
+                -- Hit in the knee.
+                knee = true
+
+                if leg_dmg_mul then
+                    damage = damage * leg_dmg_mul
+                end
+            else
+                -- Hit in the lower leg.
+                leg = true
+
+                if leg_dmg_mul then
+                    damage = damage * leg_dmg_mul
                 end
             end
 
-            if near_part == 1 then
-                -- Hit in the arm.
-                arm = true
+            local dist = distance(hitter_pos, pos2)
+            local optimal_range = range * optimal_distance_mul
+            local dist_rounded = dist + 0.5 - (dist + 0.5) % 1
 
-                if arm_dmg_mul then
-                    damage = damage * arm_dmg_mul
+            -- If the distance rounded is outside the range skip.
+            if dist_rounded <= range + 1 then
+            
+                -- Add or remove damage based on the distance.
+                -- Full punches are not affected by maximum distance.
+                if not full_punch and optimal_distance_mul and maximum_distance_dmg_mul and dist_rounded > optimal_range then
+                    damage = damage - range * maximum_distance_dmg_mul
+                elseif optimal_distance_mul and optimal_distance_dmg_mul and dist_rounded < optimal_range then
+                    damage = damage + optimal_range - dist_rounded * optimal_distance_dmg_mul
                 end
-            elseif torso_dmg_mul then
-                -- Hit in the torso.
-                damage = damage * torso_dmg_mul
             end
-        elseif leg_height and y1 > y2 + leg_height then
-            -- Hit in the leg.
-            leg = true
 
-            if leg_dmg_mul then
-                damage = damage * leg_dmg_mul
+            -- Get the yaw from both the player and intersection point.
+            local yaw2 = atan(newpos.z / newpos.x) + rad90
+            
+            if hit_point.x >= pos2.x then
+                yaw2 = yaw2 + pi
             end
-        elseif knee_height and y1 > y2 + knee_height then
-            -- Hit in the knee.
-            knee = true
 
-            if leg_dmg_mul then
-                damage = damage * leg_dmg_mul
-            end
-        else
-            -- Hit in the lower leg.
-            leg = true
+            re_yaw = rad360 - (yaw - yaw2)
 
-            if leg_dmg_mul then
-                damage = damage * leg_dmg_mul
+            if re_yaw < 0 then
+                re_yaw = rad360 - re_yaw
             end
+
+            if re_yaw > rad360 then
+                re_yaw = re_yaw - rad360
+            end
+
+            if (re_yaw <= 0.7853982 and re_yaw >= 0) or (re_yaw <= 6.283185 and re_yaw >= 5.497787) then
+                -- Hit on the front.
+                front = true
+
+                if front_dmg_mul then
+                    damage = damage * front_dmg_mul
+                end
+            elseif re_yaw <= 2.356194 then
+                -- Hit on the left-side.
+                side = true
+
+                if side_dmg_mul then
+                    damage = damage * side_dmg_mul
+                end
+            elseif back_dmg_mul and re_yaw <= 3.926991 then
+                -- Hit on the back-side.
+                damage = damage * back_dmg_mul
+            else
+                -- Hit on the right-side.
+                side = true
+
+                if side_dmg_mul then
+                    damage = damage * side_dmg_mul
+                end
+            end
+
+            -- You can only hit the knee-caps in the front.
+            if side and knee then
+                knee = nil
+                leg = true
+            end
+
+            -- End the for loop we got what we come for.
+            break
         end
-
-        local dist = distance(hitter_pos, pos2)
-        local optimal_range = range * optimal_distance_mul
-        local dist_rounded = dist + 0.5 - (dist + 0.5) % 1
-
-        -- If the distance rounded is outside the range skip.
-        if dist_rounded <= range + 1 then
-        
-            -- Add or remove damage based on the distance.
-            -- Full punches are not affected by maximum distance.
-            if not full_punch and optimal_distance_mul and maximum_distance_dmg_mul and dist_rounded > optimal_range then
-                damage = damage - range * maximum_distance_dmg_mul
-            elseif optimal_distance_mul and optimal_distance_dmg_mul and dist_rounded < optimal_range then
-                damage = damage + optimal_range - dist_rounded * optimal_distance_dmg_mul
-            end
-        end
-
-        -- Get the yaw from both the player and intersection point.
-        local yaw2 = atan(newpos.z / newpos.x) + rad90
-        
-        if hit_point.x >= pos2.x then
-            yaw2 = yaw2 + pi
-        end
-
-        re_yaw = rad360 - (yaw - yaw2)
-
-        if re_yaw < 0 then
-            re_yaw = rad360 - re_yaw
-        end
-
-        if re_yaw > rad360 then
-            re_yaw = re_yaw - rad360
-        end
-
-        if (re_yaw <= 0.7853982 and re_yaw >= 0) or (re_yaw <= 6.283185 and re_yaw >= 5.497787) then
-            -- Hit on the front.
-            front = true
-
-            if front_dmg_mul then
-                damage = damage * front_dmg_mul
-            end
-        elseif re_yaw <= 2.356194 then
-            -- Hit on the left-side.
-            side = true
-
-            if side_dmg_mul then
-                damage = damage * side_dmg_mul
-            end
-        elseif back_dmg_mul and re_yaw <= 3.926991 then
-            -- Hit on the back-side.
-            damage = damage * back_dmg_mul
-        else
-            -- Hit on the right-side.
-            side = true
-
-            if side_dmg_mul then
-                damage = damage * side_dmg_mul
-            end
-        end
-
-        -- You can only hit the knee-caps in the front.
-        if side and knee then
-            knee = nil
-            leg = true
-        end
-        
     end
 
     if elevated_dmg_mul and pos1.y > pos2.y then
