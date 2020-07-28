@@ -32,6 +32,14 @@ local velocity_dmg_mul = 0.15
 local optimal_distance_dmg_mul = 0.2
 local maximum_distance_dmg_mul = 0.1
 local optimal_distance_mul = 0.5
+local projectile_full_throw_mul = 2
+local projectile_speed_mul = 3
+local projectile_dmg_mul = 0.5
+local projectile_step = 0.15
+local projectile_radius = 2
+local projectile_throw_style_dip = 1
+local projectile_throw_style_spinning = 2
+local projectile_gravity = -10
 local lag = 0
 local player_data = {}
 
@@ -44,11 +52,17 @@ local raycast = minetest.raycast
 local get_us_time = minetest.get_us_time
 local get_player_by_name = minetest.get_player_by_name
 local get_player_information = minetest.get_player_information
+local serialize = minetest.serialize
+local deserialize = minetest.deserialize
+local add_item = minetest.add_item
+local add_entity = minetest.add_entity
+local get_objects_inside_radius = minetest.get_objects_inside_radius
 local maxn = table.maxn
 local add = vector.add
 local multiply = vector.multiply
 local subtract = vector.subtract
 local distance = vector.distance
+local normalize = vector.normalize
 local cos = math.cos
 local sin = math.sin
 local abs = math.abs
@@ -57,9 +71,166 @@ local random = math.random
 local max = math.max
 local min = math.min
 local floor = math.floor
+local asin = math.asin
 local pi = math.pi
+local rad45 = pi * 0.25
 local rad90 = pi * 0.5
 local rad360 = pi * 2
+
+-- Entity for thrown items.
+minetest.register_entity("pvp_revamped:projectile", {
+	initial_properties = {
+        collisionbox = {-0.3, -0.3, -0.3, 0.3, 0.3, 0.3},
+        visual_size = {x = 0.4, y = 0.4, z = 0.4},
+        visual = "wielditem",
+        textures = {""},
+        physical = true,
+        collide_with_objects = false,
+        static_save = false,
+        is_visible = false
+    },
+    timer = 0,
+    spin_rate = 0,
+    itemstring = "",
+    owner = "",
+    tool_capabilities = nil,
+
+    set_item = function(self, owner, item)
+        local stack = ItemStack(item or self.itemstring)
+        
+        self.itemstring = stack:to_string()
+       
+        if self.itemstring == "" then
+			return
+		end
+        
+        local itemname = stack:is_known() and stack:get_name() or "unknown"
+        local tool_capabilities = registered_tools[stack:get_name()].tool_capabilities
+        
+        self.object:set_properties({
+            is_visible = true,
+			visual = "wielditem",
+			textures = {itemname}
+        })
+
+        if owner then
+            self.owner = owner
+        end
+
+        self.tool_capabilities = tool_capabilities
+    end,
+
+    throw = function(self, user, speed, acceleration, damage, spin_rate)
+        local obj = self.object
+        local pos = obj:get_pos()
+        local velocity = multiply(user:get_look_dir(), speed)
+
+        obj:set_velocity(velocity)
+        obj:set_acceleration(acceleration)
+        obj:set_rotation({x = 0, y = user:get_look_horizontal() + rad90, z = asin(-normalize(velocity).y) + rad45})
+
+        if not damage and self.tool_capabilities and self.tool_capabilities.damage_groups and self.tool_capabilities.damage_groups.fleshy then
+            self.tool_capabilities.damage_groups.fleshy = self.tool_capabilities.damage_groups.fleshy * projectile_dmg_mul
+        elseif damage and self.tool_capabilities and self.tool_capabilities.damage_groups and self.tool_capabilities.damage_groups.fleshy then
+            self.tool_capabilities.damage_groups.fleshy = damage
+        end
+
+        if spin_rate then
+            self.spin_rate = spin_rate
+        end
+
+        self.timer = -1 / speed
+    end,
+    
+    get_staticdata = function(self)
+        return serialize({
+            itemstring = self.itemstring,
+            owner = self.owner,
+            tool_capabilities = self.tool_capabilities,
+            spin_rate = self.spin_rate
+        })
+    end,
+    
+    on_activate = function(self, staticdata)
+        self.object:set_armor_groups({immortal = 1})
+        
+        local data = deserialize(staticdata)
+        
+        if data and type(data) == "table" then
+            self.itemstring = data.itemstring
+            self.owner = data.owner
+            self.tool_capabilities = data.tool_capabilities
+            self.spin_rate = spin_rate
+        end
+
+        self.timer = 0
+
+        self:set_item()
+    end,
+
+    on_step = function(self, dtime)
+        local tool_capabilities = self.tool_capabilities
+        local throw_style = tool_capabilities.throw_style
+        local object = self.object
+
+        self.timer = self.timer + dtime
+
+        if throw_style and throw_style == projectile_throw_style_spinning then
+            local old_rotation = object:get_rotation()
+
+            object:set_rotation({x = old_rotation.x, y = old_rotation.y, z = old_rotation.z + self.spin_rate})
+        elseif throw_style and throw_style == projectile_throw_style_dip then
+            local old_rotation = object:get_rotation()
+
+            object:set_rotation({x = old_rotation.x, y = old_rotation.y, z = asin(-normalize(object:get_velocity()).y) + tool_capabilities.flip})
+        end
+
+        if self.timer >= projectile_step then
+            local velocity = object:get_velocity()
+            
+            if velocity.y == 0 or velocity.x == 0 and velocity.z == 0 then
+                self:die()
+
+                return
+            end
+
+            for _, target in pairs(get_objects_inside_radius(object:get_pos(), projectile_radius)) do
+                if target:get_armor_groups().fleshy then
+                    target:punch(get_player_by_name(self.owner), nil, tool_capabilities, nil)
+                    self:die()
+                    
+                    return
+                end
+            end
+
+            self.timer = 0
+        end
+    end,
+
+    on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir, damage)
+        -- If this item was punched drop it.
+        if puncher and puncher:is_player() and puncher:get_player_name() ~= self.owner then
+            self:die()
+        end
+    end,
+
+    die = function(self, pos)
+        -- On death drop the item.
+        if not pos then
+            pos = self.object:get_pos()
+        end
+
+        local obj = add_item(pos, self.itemstring)
+
+        if obj then
+            obj:get_luaentity().collect = true
+
+            obj:set_velocity(self.object:get_velocity())
+        end
+
+        self.object:remove()
+    end
+})
 
 minetest.register_on_mods_loaded(function()
     local max_armor_use
@@ -70,11 +241,41 @@ minetest.register_on_mods_loaded(function()
                 -- Get the max armor_use.
                 max_armor_use = v.groups.armor_use
             end
-        elseif v.tool_capabilities and v.tool_capabilities.groupcaps and v.tool_capabilities.groupcaps.choppy then
-            -- Compute the damage an axe would do to a shield.
-            local choppy = v.tool_capabilities.groupcaps.choppy
+        end
 
-            minetest.override_item(k, {groups = {shield_dmg = (choppy.uses * choppy.maxlevel) * shield_axe_dmg_mul}})
+        if v.tool_capabilities and v.tool_capabilities.groupcaps and v.tool_capabilities.groupcaps.choppy then
+            -- Compute the damage an axe would do to a shield.
+            local tool_capabilities = v.tool_capabilities
+            local choppy = tool_capabilities.groupcaps.choppy
+            local uxml = choppy.uses * choppy.maxlevel
+
+            tool_capabilities.damage_groups.shield_dmg = uxml * shield_axe_dmg_mul
+            tool_capabilities.throw_style = projectile_throw_style_spinning
+
+            minetest.override_item(k, {tool_capabilities = tool_capabilities})
+        end
+
+        if v.tool_capabilities and v.tool_capabilities.full_punch_interval then
+            -- Calculate the time it takes to fully throw an item at max velocity and damage.
+            local tool_capabilities = v.tool_capabilities
+
+            tool_capabilities.full_throw = (v.tool_capabilities.full_punch_interval * projectile_full_throw_mul) * 1000000
+            
+            minetest.override_item(k, {tool_capabilities = tool_capabilities})
+        end
+
+        if v.tool_capabilities then
+            -- Calculate the item throw speed.
+            local tool_capabilities = v.tool_capabilities
+            local range = 4
+
+            if v.tool_capabilities.range then
+                range = v.tool_capabilities.range
+            end
+
+            tool_capabilities.throw_speed = range * projectile_speed_mul
+
+            minetest.override_item(k, {tool_capabilities = tool_capabilities})
         end
     end
 
@@ -83,13 +284,14 @@ minetest.register_on_mods_loaded(function()
             -- Block feature for tools with combat ability.
             local tool_capabilities = v.tool_capabilities
             local full_punch_interval = tool_capabilities.full_punch_interval
-            local punch_number = abs(tool_capabilities.damage_groups.fleshy - full_punch_interval)
+            local punch_number = max(tool_capabilities.damage_groups.fleshy - full_punch_interval, 0.1)
             local block_pool = punch_number * block_pool_mul
             local full_block_interval = (full_punch_interval * block_interval_mul) * 1000000
             local duration = block_duration + (punch_number * block_duration_mul)
             local old_on_secondary_use = v.on_secondary_use
             local old_on_place = v.on_place
-
+            local old_on_drop = v.on_drop
+            
             if block_pool > 0 then
                 -- Allow the tool to block damage.
                 local block_action = function(user)
@@ -110,10 +312,27 @@ minetest.register_on_mods_loaded(function()
 
                 minetest.override_item(k, {on_secondary_use = function(itemstack, user, pointed_thing)
                     block_action(user)
+
                     return old_on_secondary_use(itemstack, user, pointed_thing)
                 end, on_place = function(itemstack, placer, pointed_thing)
                     block_action(placer)
+
                     return old_on_place(itemstack, placer, pointed_thing)
+                end, on_drop = function(itemstack, dropper, pos)
+                    local name = itemstack:get_name()
+                    local player_name = dropper:get_player_name()
+                    local control_bits = dropper:get_player_control_bits()
+                    local throw_data = player_data[player_name].throw
+
+                    -- If in the process of throwing, either LMB, RMB, or item name is not the same then return the old function.
+                    if throw_data or dropper:get_wielded_item():get_name() ~= name or (floor(control_bits / 128) % 2 ~= 1 and floor(control_bits / 256) % 2 ~= 1) then 
+                        return old_on_drop(itemstack, dropper, pos)
+                    end
+
+                    throw_data = {name = name, time = get_us_time(), item = itemstack:take_item(), tool_capabilities = registered_tools[name].tool_capabilities}
+                    player_data[player_name].throw = throw_data
+
+                    return itemstack
                 end})
             end
         elseif max_armor_use and v.groups and v.groups.armor_shield then
@@ -147,9 +366,11 @@ minetest.register_on_mods_loaded(function()
 
                 minetest.override_item(k, {on_secondary_use = function(itemstack, user, pointed_thing)
                     block_action(user)
+
                     return old_on_secondary_use(itemstack, user, pointed_thing)
                 end, on_place = function(itemstack, placer, pointed_thing)
                     block_action(placer)
+
                     return old_on_place(itemstack, placer, pointed_thing)
                 end})
             end
@@ -163,7 +384,7 @@ minetest.register_globalstep(function(dtime)
     for k, v in pairs(player_data) do
         local server_lag = lag + get_player_information(k).avg_jitter * 1000000
         local player = get_player_by_name(k)
-        
+
         if v.block then
             -- Check if the player is holding down the RMB key.
             if floor(player:get_player_control_bits() / 256) % 2 == 1 then
@@ -178,6 +399,42 @@ minetest.register_globalstep(function(dtime)
                 -- Revert the damage texture modifier.
                 player:set_properties{damage_texture_modifier = player_data[k].damage_texture_modifier}
                 player_data[k].block = nil
+            end
+        end
+
+        if v.throw then
+            local control_bits = player:get_player_control_bits()
+            
+            if floor(control_bits / 128) % 2 ~= 1 and floor(control_bits / 256) % 2 ~= 1 then
+                local pos = player:get_pos()
+
+                pos.y = pos.y + player:get_properties().eye_height
+                
+                local obj = add_entity(pos, "pvp_revamped:projectile")
+                local ent = obj:get_luaentity()
+
+                if ent then
+                    local throw_data = v.throw
+                    local tool_capabilities = throw_data.tool_capabilities
+                    local throw_speed = tool_capabilities.throw_speed
+                    local damage = tool_capabilities.damage_groups.fleshy
+                    local time = get_us_time()
+                    local full_throw = throw_data.time + tool_capabilities.full_throw 
+
+                    if full_throw > time then
+                        local re = (full_throw - time) / 200000
+
+                        if re > 0.5 then
+                            damage = tool_capabilities.damage_groups.fleshy - re
+                            throw_speed = throw_speed - re
+                        end
+                    end
+
+                    ent:set_item(player:get_player_name(), throw_data.item)
+                    ent:throw(player, throw_speed, {x = 0, y = projectile_gravity, z = 0}, damage * projectile_dmg_mul)
+                end
+
+                player_data[k].throw = nil
             end
         end
 
@@ -347,6 +604,46 @@ minetest.register_on_leaveplayer(function(player)
     player_data[player:get_player_name()] = nil
 end)
 
+-- Helper function to drop an item.
+local function drop(player, item, pos)
+    if not pos then
+        pos = player:get_pos()
+    end
+
+    local obj = add_item(pos, item)
+
+    if obj then
+        obj:get_luaentity().collect = true
+    end
+end
+
+-- Drop any item the player is about to throw on death.
+minetest.register_on_dieplayer(function(player)
+    local name = player:get_player_name()
+    local throw_data = player_data[name].throw
+    minetest.log("1")
+    
+    if throw_data then
+        drop(player, throw_data.item)
+        minetest.log(throw_data.name)
+        
+        player_data[name].throw = nil
+    end
+end)
+
+-- Drop any item the player is about to throw on shutdown.
+minetest.register_on_shutdown(function()
+    for k, v in pairs(player_data) do
+        local throw_data = v.throw
+
+        if throw_data then
+            drop(player, throw_data.item)
+
+            player_data[k].throw = nil
+        end
+    end
+end)
+
 -- Do the damage calculations when the player gets hit.
 minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, tool_capabilities, dir, damage)
     local name = player:get_player_name()
@@ -510,12 +807,14 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         if (re_yaw <= 0.7853982 and re_yaw >= 0) or (re_yaw <= 6.283185 and re_yaw >= 5.497787) then
             -- Hit on the front.
             front = true
+
             if front_dmg_mul then
                 damage = damage * front_dmg_mul
             end
         elseif re_yaw <= 2.356194 then
             -- Hit on the left-side.
             side = true
+
             if side_dmg_mul then
                 damage = damage * side_dmg_mul
             end
@@ -525,9 +824,16 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         else
             -- Hit on the right-side.
             side = true
+
             if side_dmg_mul then
                 damage = damage * side_dmg_mul
             end
+        end
+
+        -- You can only hit the knee-caps in the front.
+        if side and knee then
+            knee = nil
+            leg = true
         end
         
     end
@@ -602,8 +908,8 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         -- Block the damage and add it as wear to the tool.
         local axe_wear = 0
 
-        if item and item.groups and item.groups.shield_dmg then
-            axe_wear = item.groups.shield_dmg
+        if tool_capabilities and tool_capabilities.damage_groups and tool_capabilities.damage_groups.shield_dmg then
+            axe_wear = tool_capabilities.damage_groups.shield_dmg
         end
 
         wielded_item:add_wear((((damage - full_punch_interval) / 75) * block_wear_mul) + axe_wear)
@@ -641,7 +947,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         -- Disarm the player if chance equals zero.
         if chance and chance <= 0 then
             local drop_item = wielded_item:take_item()
-            local obj = minetest.add_item(pos2, drop_item)
+            local obj = add_item(pos2, drop_item)
 
             if obj then
                 obj:get_luaentity().collect = true
