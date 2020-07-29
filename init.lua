@@ -498,7 +498,10 @@ minetest.register_globalstep(function(dtime)
                 -- Revert the damage texture modifier.
                 player:set_properties{damage_texture_modifier = player_data[k].damage_texture_modifier}
             end
-            
+
+            -- Store the dodge amount for later use.
+            player_data[k].active_dodges = active_dodges
+
             -- If this table contains no more dodges remove it.
             if maxn(player_data[k].dodge) < 1 then
                 player_data[k].dodge = nil
@@ -535,9 +538,11 @@ if sscsm then
         
         if not dodge_data.dodge then
             dodge_data.dodge = {[number] = get_us_time()}
+            dodge_data.active_dodges = dodge_data.active_dodges + 1
             player:set_properties{damage_texture_modifier = ""}
         elseif dodge_data.dodge and not dodge_data.dodge[number] then
             dodge_data.dodge[number] = get_us_time()
+            dodge_data.active_dodges = dodge_data.active_dodges + 1
             player:set_properties{damage_texture_modifier = ""}
         end
     end
@@ -626,7 +631,8 @@ end
 
 -- Create an empty data sheet for the player.
 minetest.register_on_joinplayer(function(player)
-    player_data[player:get_player_name()] = {damage_texture_modifier = player:get_properties().damage_texture_modifier}
+    player_data[player:get_player_name()] = {damage_texture_modifier = player:get_properties().damage_texture_modifier,
+                                                active_dodges = 0}
 end)
 
 -- Helper function to drop an item.
@@ -685,28 +691,17 @@ end)
 -- Do the damage calculations when the player gets hit.
 minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, tool_capabilities, dir, damage)
     local name = player:get_player_name()
-    local data_dodge = player_data[name].data_dodge
-    local time = get_us_time()
 
     -- If the player is dodging return true.
-    if data_dodge then
-        for k, v in pairs(data_dodge) do
-            if v + dodge_duration + lag > time then
-                return true
-            end
-        end
+    if player_data[name].active_dodges > 0 then
+        return true
     end
 
     local hitter_name = hitter:get_player_name()
-    local hitter_data_dodge = player_data[hitter_name].data_dodge
     
     -- Cancel any attack if the hitter is in dodge mode.
-    if hitter_data_dodge then
-        for k, v in pairs(hitter_data_dodge) do
-            if v + dodge_duration + lag > time then
-                return true
-            end
-        end
+    if player_data[hitter_name].active_dodges > 0 then
+        return true
     end
     
     local pos1 = hitter:get_pos()
@@ -1001,7 +996,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         player:set_physics_override({speed = speed, jump = speed})
 
         data_stagger = {}
-        data_stagger.time = time
+        data_stagger.time = get_us_time()
         data_stagger.value = (1 / speed) * 500000
         player_data[name].stagger = data_stagger
     end
