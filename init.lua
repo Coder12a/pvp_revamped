@@ -456,7 +456,7 @@ minetest.register_globalstep(function(dtime)
                     end
 
                     ent:set_item(player:get_player_name(), throw_data.item)
-                    ent:throw(player, throw_speed, {x = 0, y = projectile_gravity, z = 0}, damage * projectile_dmg_mul, spin)
+                    ent:throw(player, throw_speed, {x = 0, y = projectile_gravity, z = 0}, max(damage * projectile_dmg_mul, 0.1), spin)
                 end
 
                 player_data[k].throw = nil
@@ -907,7 +907,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     end
 
     -- If damage is at or below zero set it to a default value.
-    damage = max(damage, 0.5)
+    damage = max(damage, 0.1)
 
     -- Remove the hitter's blocking data.
     player_data[hitter_name].block = nil
