@@ -106,11 +106,16 @@ minetest.register_entity("pvp_revamped:projectile", {
         
         local itemname = stack:is_known() and stack:get_name() or "unknown"
         local tool_capabilities = registered_tools[stack:get_name()].tool_capabilities
-        
+        local max_count = stack:get_stack_max()
+		local count = math.min(stack:get_count(), max_count)
+		local size = 0.2 + 0.1 * (count / max_count) ^ (1 / 3)
+
         self.object:set_properties({
             is_visible = true,
 			visual = "wielditem",
-			textures = {itemname}
+            textures = {itemname},
+            visual_size = {x = size, y = size},
+			collisionbox = {-size, -size, -size, size, size, size}
         })
 
         if owner then
@@ -934,8 +939,6 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         player_data[name].block = data_block
         return true
     elseif data_block then
-        -- Revert the damage texture modifier.
-        player:set_properties{damage_texture_modifier = player_data[name].damage_texture_modifier}
         -- Block attempt failed.
         player_data[name].block = nil
     end
@@ -964,8 +967,6 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         player_data[name].shield = data_shield
         return true
     elseif data_shield then
-        -- Revert the damage texture modifier.
-        player:set_properties{damage_texture_modifier = player_data[name].damage_texture_modifier}
         -- Shield block attempt failed.
         player_data[name].shield = nil
     end
@@ -1027,6 +1028,11 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         else
             set_stagger_data(speed)
         end
+    end
+
+    if player:get_properties().damage_texture_modifier == "" then
+        -- Revert the damage texture modifier.
+        player:set_properties{damage_texture_modifier = player_data[name].damage_texture_modifier}
     end
 
     -- Damage the player.
