@@ -34,12 +34,13 @@ local maximum_distance_dmg_mul = 0.1
 local optimal_distance_mul = 0.5
 local projectile_full_throw_mul = 2
 local projectile_speed_mul = 3
+local projectile_gravity = -10
 local projectile_dmg_mul = 0.5
+local projectile_velocity_dmg_mul = 0.1
 local projectile_step = 0.15
 local projectile_dist = 5
 local projectile_throw_style_dip = 1
 local projectile_throw_style_spinning = 2
-local projectile_gravity = -10
 local lag = 0
 local player_data = {}
 
@@ -56,7 +57,6 @@ local serialize = minetest.serialize
 local deserialize = minetest.deserialize
 local add_item = minetest.add_item
 local add_entity = minetest.add_entity
-local get_objects_inside_radius = minetest.get_objects_inside_radius
 local maxn = table.maxn
 local add = vector.add
 local multiply = vector.multiply
@@ -194,17 +194,27 @@ minetest.register_entity("pvp_revamped:projectile", {
                 return
             end
 
-            local dir = vector.normalize(self.object:get_velocity())
-            local pos = self.object:get_pos()
-            local p1 = vector.add(pos, dir)
-            local p2 = vector.add(pos, vector.multiply(dir, projectile_dist))
-            local ray = minetest.raycast(p1, p2)
+            local dir = normalize(velocity)
+            local pos = object:get_pos()
+            local p1 = add(pos, dir)
+            local p2 = add(pos, multiply(dir, projectile_dist))
+            local ray = raycast(p1, p2)
 
             for pointed_thing in ray do
                 if pointed_thing.type == "object" then
                     local obj = pointed_thing.ref
 
                     if obj:get_armor_groups().fleshy then
+                        -- Add up the velocity damage.
+                        if projectile_velocity_dmg_mul and tool_capabilities.damage_groups and tool_capabilities.damage_groups.fleshy then
+                            local vv = abs(velocity.x) + abs(velocity.y) + abs(velocity.z)
+
+                            if vv > 0 then
+                                -- Give a damage bonus based on the tool's velocity.
+                                tool_capabilities.damage_groups.fleshy = tool_capabilities.damage_groups.fleshy + vv * projectile_velocity_dmg_mul
+                            end
+                        end
+
                         obj:punch(get_player_by_name(self.owner), nil, tool_capabilities)
                         self:die()
                         
@@ -880,6 +890,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     if full_punch and velocity_dmg_mul then
         local v1 = hitter:get_player_velocity()
         local vv
+
         if front then
             -- Ignore the victim's speed if you hit them in the front.
             vv = abs(v1.x) + abs(v1.y) + abs(v1.z)
@@ -888,6 +899,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
             local v2 = player:get_player_velocity()
             vv = abs(v1.x) - abs(v2.x) + abs(v1.y) - abs(v2.y) + abs(v1.z) - abs(v2.z)
         end
+
         if vv > 0 then
             -- Give a damage bonus to the aggressor based on how fast they are running.
             damage = damage + vv * velocity_dmg_mul
