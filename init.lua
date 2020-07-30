@@ -39,6 +39,9 @@ local projectile_dmg_mul = 0.5
 local projectile_velocity_dmg_mul = 0.1
 local projectile_step = 0.15
 local projectile_dist = 5
+local projectile_spinning_gravity_mul = 0.5
+local projectile_dip_gravity_mul = 1.2
+local projectile_dip_velocity_dmg_mul = {x = 1, y = 2, z = 1}
 local projectile_throw_style_dip = 1
 local projectile_throw_style_spinning = 2
 local lag = 0
@@ -225,7 +228,13 @@ minetest.register_entity("pvp_revamped:projectile", {
                     if obj:get_armor_groups().fleshy then
                         -- Add up the velocity damage.
                         if projectile_velocity_dmg_mul and tool_capabilities.damage_groups and tool_capabilities.damage_groups.fleshy then
-                            local vv = abs(velocity.x) + abs(velocity.y) + abs(velocity.z)
+                            local vv
+                            
+                            if throw_style and throw_style == projectile_throw_style_dip then
+                                vv = abs(velocity.x * projectile_dip_velocity_dmg_mul.x) + abs(velocity.y * projectile_dip_velocity_dmg_mul.y) + abs(velocity.z * projectile_dip_velocity_dmg_mul.z)
+                            else
+                                vv = abs(velocity.x) + abs(velocity.y) + abs(velocity.z)
+                            end
 
                             if vv > 0 then
                                 -- Give a damage bonus based on the tool's velocity.
@@ -460,6 +469,7 @@ minetest.register_globalstep(function(dtime)
                     local damage = tool_capabilities.damage_groups.fleshy
                     local time = get_us_time()
                     local full_throw = throw_data.time + tool_capabilities.full_throw
+                    local gravity = projectile_gravity
                     local spin
 
                     if full_throw > time then
@@ -473,10 +483,13 @@ minetest.register_globalstep(function(dtime)
 
                     if throw_style == projectile_throw_style_spinning then
                         spin = throw_speed
+                        gravity = gravity * projectile_spinning_gravity_mul
+                    elseif throw_style == projectile_throw_style_dip then
+                        gravity = gravity * projectile_dip_gravity_mul
                     end
 
                     ent:set_item(name, throw_data.item)
-                    ent:throw(player, throw_speed, {x = 0, y = projectile_gravity, z = 0}, max(damage * projectile_dmg_mul, 0.1), throw_style, spin)
+                    ent:throw(player, throw_speed, {x = 0, y = gravity, z = 0}, max(damage * projectile_dmg_mul, 0.1), throw_style, spin)
                 end
 
                 player_data[k].throw = nil
