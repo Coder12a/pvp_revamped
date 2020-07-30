@@ -340,9 +340,15 @@ minetest.register_on_mods_loaded(function()
             
             if block_pool > 0 then
                 -- Allow the tool to block damage.
-                local block_action = function(user)
-                    local time = get_us_time()
+                local function block_action(user)
                     local name = user:get_player_name()
+
+                    -- Cancel if the player is throwing something.
+                    if player_data[name].throw then
+                        return
+                    end
+
+                    local time = get_us_time()
                     local data = player_data[name].block
 
                     -- Prevent spam blocking.
@@ -398,8 +404,14 @@ minetest.register_on_mods_loaded(function()
 
             if block_pool > 0 then
                 -- Allow the shield to block damage.
-                local block_action = function(user)
+                local function block_action(user)
                     local name = user:get_player_name()
+
+                    -- Cancel if the player is throwing something.
+                    if player_data[name].throw then
+                        return
+                    end
+
                     local data = player_data[name].shield
 
                     data = {name = k, pool = block_pool}
@@ -719,16 +731,19 @@ end)
 -- Do the damage calculations when the player gets hit.
 minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, tool_capabilities, dir, damage)
     local name = player:get_player_name()
+    local victim_data = player_data[name]
 
     -- If the player is dodging return true.
-    if player_data[name].active_dodges > 0 then
+    if victim_data.active_dodges > 0 then
         return true
     end
 
     local hitter_name = hitter:get_player_name()
+    local hitter_data = player_data[hitter_name]
     
     -- Cancel any attack if the hitter is in dodge mode.
-    if player_data[hitter_name].active_dodges > 0 then
+    -- Or if the hitter is in the process of throwing.
+    if hitter_data.active_dodges > 0 or hitter_data.throw then
         return true
     end
     
@@ -938,16 +953,18 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     damage = max(damage, 0.1)
 
     -- Remove the hitter's blocking data.
-    player_data[hitter_name].block = nil
-    player_data[hitter_name].shield = nil
+    hitter_data.block = nil
+    hitter_data.shield = nil
+    player_data[hitter_name] = hitter_data
 
-    local data_block = player_data[name].block
+    local data_throw = victim_data.throw
+    local data_block = victim_data.block
     local hp = player:get_hp()
     local wielded_item = player:get_wielded_item()
     local item_name = wielded_item:get_name()
 
     -- Process if the player is blocking with a tool or not.
-    if front and data_block and data_block.pool > 0 and data_block.time + data_block.duration + lag + max(get_player_information(name).avg_jitter - get_player_information(hitter_name).avg_jitter, 0) * 1000000 > time then
+    if front and not data_throw and data_block and data_block.pool > 0 and data_block.time + data_block.duration + lag + max(get_player_information(name).avg_jitter - get_player_information(hitter_name).avg_jitter, 0) * 1000000 > time then
         -- Block the damage and add it as wear to the tool.
         wielded_item:add_wear(((damage - full_punch_interval) / 75) * block_wear_mul)
         player:set_wielded_item(wielded_item)
@@ -955,21 +972,21 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
 
         -- Remove block table if pool is zero or below.
         if data_block.pool <= 0 then
-            player_data[name].block = nil
+            victim_data.block = nil
             return true
         end
 
-        player_data[name].block = data_block
+        victim_data.block = data_block
         return true
     elseif data_block then
         -- Block attempt failed.
-        player_data[name].block = nil
+        victim_data.block = nil
     end
 
-    local data_shield = player_data[name].shield
+    local data_shield = victim_data.shield
 
     -- Process if the player is blocking with a shield or not.
-    if data_shield and data_shield.pool > 0 and data_shield.name == item_name and (front or side) then
+    if data_shield and not data_throw and data_shield.pool > 0 and data_shield.name == item_name and (front or side) then
         -- Block the damage and add it as wear to the tool.
         local axe_wear = 0
 
@@ -983,15 +1000,15 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
 
         -- Remove shield table if pool is zero or below.
         if data_shield.pool <= 0 then
-            player_data[name].shield = nil
+            victim_data.shield = nil
             return true
         end
 
-        player_data[name].shield = data_shield
+        victim_data.shield = data_shield
         return true
     elseif data_shield then
         -- Shield block attempt failed.
-        player_data[name].shield = nil
+        victim_data.shield = nil
     end
 
     -- Process if the player was hit in the arm.
@@ -1026,14 +1043,14 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         data_stagger = {}
         data_stagger.time = get_us_time()
         data_stagger.value = (1 / speed) * 500000
-        player_data[name].stagger = data_stagger
+        victim_data.stagger = data_stagger
     end
 
     -- Process if the player was hit in the leg.
     if leg then
         -- Stagger the player.
         local speed = min(1 / max(damage - hp, 1) * leg_stagger_mul, 0.1)
-        local data_stagger = player_data[name].stagger
+        local data_stagger = victim_data.stagger
 
         if not data_stagger or data_stagger.value > speed then
             set_stagger_data(speed)
@@ -1041,7 +1058,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     elseif knee then
         -- Stagger the player.
         local speed = min(1 / max(damage - hp, 1.5) * knee_stagger_mul, 0.1)
-        local data_stagger = player_data[name].stagger
+        local data_stagger = victim_data.stagger
 
         if data_stagger then
             -- Add the original value and update all stagger data.
@@ -1055,8 +1072,11 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
 
     if player:get_properties().damage_texture_modifier == "" then
         -- Revert the damage texture modifier.
-        player:set_properties{damage_texture_modifier = player_data[name].damage_texture_modifier}
+        player:set_properties{damage_texture_modifier = victim_data.damage_texture_modifier}
     end
+
+    -- Save new player data to the table.
+    player_data[name] = victim_data
 
     -- Damage the player.
     player:set_hp(hp - damage, "punch")
