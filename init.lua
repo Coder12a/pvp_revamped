@@ -91,11 +91,13 @@ minetest.register_entity("pvp_revamped:projectile", {
     },
     timer = 0,
     spin_rate = 0,
+    throw_style = 0,
     itemstring = "",
     owner = "",
     tool_capabilities = nil,
 
     set_item = function(self, owner, item)
+        -- Get the stack from item or itemstring.
         local stack = ItemStack(item or self.itemstring)
         
         self.itemstring = stack:to_string()
@@ -105,11 +107,13 @@ minetest.register_entity("pvp_revamped:projectile", {
 		end
         
         local itemname = stack:is_known() and stack:get_name() or "unknown"
+        -- Get the name of the stack item.
         local tool_capabilities = registered_tools[stack:get_name()].tool_capabilities
         local max_count = stack:get_stack_max()
 		local count = math.min(stack:get_count(), max_count)
-		local size = 0.2 + 0.1 * (count / max_count) ^ (1 / 3)
-
+        local size = 0.2 + 0.1 * (count / max_count) ^ (1 / 3)
+        
+        -- Set the entity properties.
         self.object:set_properties({
             is_visible = true,
 			visual = "wielditem",
@@ -125,15 +129,17 @@ minetest.register_entity("pvp_revamped:projectile", {
         self.tool_capabilities = tool_capabilities
     end,
 
-    throw = function(self, user, speed, acceleration, damage, spin_rate)
+    throw = function(self, user, speed, acceleration, damage, throw_style, spin_rate)
         local obj = self.object
         local pos = obj:get_pos()
         local velocity = multiply(user:get_look_dir(), speed)
 
+        -- Set the entities speed and gravity.
         obj:set_velocity(velocity)
         obj:set_acceleration(acceleration)
         obj:set_rotation({x = 0, y = user:get_look_horizontal() + rad90, z = asin(-normalize(velocity).y) + rad45})
 
+        -- If no damage value, auto set the damage times projectile_dmg_mul.
         if not damage and self.tool_capabilities and self.tool_capabilities.damage_groups and self.tool_capabilities.damage_groups.fleshy then
             self.tool_capabilities.damage_groups.fleshy = self.tool_capabilities.damage_groups.fleshy * projectile_dmg_mul
         elseif damage and self.tool_capabilities and self.tool_capabilities.damage_groups and self.tool_capabilities.damage_groups.fleshy then
@@ -144,6 +150,7 @@ minetest.register_entity("pvp_revamped:projectile", {
             self.spin_rate = spin_rate
         end
 
+        self.throw_style = throw_style
         self.timer = -1 / speed
     end,
     
@@ -152,6 +159,7 @@ minetest.register_entity("pvp_revamped:projectile", {
             itemstring = self.itemstring,
             owner = self.owner,
             tool_capabilities = self.tool_capabilities,
+            throw_style = self.throw_style,
             spin_rate = self.spin_rate
         })
     end,
@@ -165,7 +173,8 @@ minetest.register_entity("pvp_revamped:projectile", {
             self.itemstring = data.itemstring
             self.owner = data.owner
             self.tool_capabilities = data.tool_capabilities
-            self.spin_rate = spin_rate
+            self.throw_style = data.throw_style
+            self.spin_rate = data.spin_rate
         end
 
         self.timer = 0
@@ -175,24 +184,28 @@ minetest.register_entity("pvp_revamped:projectile", {
 
     on_step = function(self, dtime)
         local tool_capabilities = self.tool_capabilities
-        local throw_style = tool_capabilities.throw_style
+        local throw_style = self.throw_style
         local object = self.object
 
         self.timer = self.timer + dtime
 
+        -- Two different throwing styles.
         if throw_style and throw_style == projectile_throw_style_spinning then
+            -- This style has the item spining at a fixed rate.
             local old_rotation = object:get_rotation()
 
             object:set_rotation({x = old_rotation.x, y = old_rotation.y, z = old_rotation.z + self.spin_rate})
         elseif throw_style and throw_style == projectile_throw_style_dip then
+            -- This style gives the item a bullet drop effect.
             local old_rotation = object:get_rotation()
 
-            object:set_rotation({x = old_rotation.x, y = old_rotation.y, z = asin(-normalize(object:get_velocity()).y) + tool_capabilities.flip})
+            object:set_rotation({x = old_rotation.x, y = old_rotation.y, z = asin(-normalize(object:get_velocity()).y) + rad45})
         end
 
         if self.timer >= projectile_step then
             local velocity = object:get_velocity()
             
+            -- If there is no velocity then drop the item.
             if velocity.y == 0 or velocity.x == 0 and velocity.z == 0 then
                 self:die()
 
@@ -275,7 +288,6 @@ minetest.register_on_mods_loaded(function()
             local uxml = choppy.uses * choppy.maxlevel
 
             tool_capabilities.damage_groups.shield_dmg = uxml * shield_axe_dmg_mul
-            tool_capabilities.throw_style = projectile_throw_style_spinning
 
             minetest.override_item(k, {tool_capabilities = tool_capabilities})
         end
@@ -430,6 +442,7 @@ minetest.register_globalstep(function(dtime)
         if v.throw then
             local control_bits = player:get_player_control_bits()
             
+            -- If neither LMB or RMB is down then throw the item.
             if floor(control_bits / 128) % 2 ~= 1 and floor(control_bits / 256) % 2 ~= 1 then
                 local pos = player:get_pos()
 
@@ -439,6 +452,8 @@ minetest.register_globalstep(function(dtime)
                 local ent = obj:get_luaentity()
 
                 if ent then
+                    local name = player:get_player_name()
+                    local throw_style = player_data[name].throw_style
                     local throw_data = v.throw
                     local tool_capabilities = throw_data.tool_capabilities
                     local throw_speed = tool_capabilities.throw_speed
@@ -456,12 +471,12 @@ minetest.register_globalstep(function(dtime)
                         end
                     end
 
-                    if tool_capabilities.throw_style == projectile_throw_style_spinning then
+                    if throw_style == projectile_throw_style_spinning then
                         spin = throw_speed
                     end
 
-                    ent:set_item(player:get_player_name(), throw_data.item)
-                    ent:throw(player, throw_speed, {x = 0, y = projectile_gravity, z = 0}, max(damage * projectile_dmg_mul, 0.1), spin)
+                    ent:set_item(name, throw_data.item)
+                    ent:throw(player, throw_speed, {x = 0, y = projectile_gravity, z = 0}, max(damage * projectile_dmg_mul, 0.1), throw_style, spin)
                 end
 
                 player_data[k].throw = nil
@@ -723,11 +738,11 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         range = item.range
     end
 
-    -- Get whether this was a full punch.
+    -- Get whether this is a full punch.
     if tool_capabilities and time_from_last_punch >= tool_capabilities.full_punch_interval then
         full_punch = true
         full_punch_interval = tool_capabilities.full_punch_interval
-    elseif tool_capabilities then
+    elseif tool_capabilities and tool_capabilities.full_punch_interval then
         full_punch_interval = tool_capabilities.full_punch_interval
     end
 
@@ -1035,3 +1050,34 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
 
     return true
 end)
+
+-- Cmd for changing the way you throw items.
+minetest.register_chatcommand("throw_style", {
+    params = "[<style>]: Change how you throw an item.",
+    description = "Change how you throw an item. Accepted values are [none|spin|dip]",
+    privs = {
+        interact = true,
+    },
+    func = function(name, param)
+        -- Check the given param.
+        if param == "none" then
+        -- Set the style to none.
+        player_data[name].throw_style = nil
+        
+        return true, "Throw style set to none."
+        elseif param == "spin" then
+        -- Give the item a little spin.
+        player_data[name].throw_style = projectile_throw_style_spinning
+
+        return true, "Throw style set to spin."
+        elseif param == "dip" then
+        -- Bullet drop.
+        player_data[name].throw_style = projectile_throw_style_dip
+
+        return true, "Throw style set to dip."
+        end
+
+        -- throw_style cmd help.
+        return false, "Only parameters: 'none', 'spin', and 'dip' are accepted."
+    end
+})
