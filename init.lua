@@ -4,11 +4,15 @@ local leg_height = 0.45
 local knee_height = 0.375
 local block_duration = 100000
 local dodge_duration = 350000
+local barrel_roll_duration = 500000
 local dodge_cooldown = 1500000
-local dash_cooldown = 1500000
-local dodge_aerial_cooldown = 3000000
-local dash_aerial_cooldown = 3000000
+local barrel_roll_cooldown = 5000000
+local dash_cooldown = 2000000
+local dodge_aerial_cooldown = 5000000
+local barrel_roll_aerial_cooldown = 10000000
+local dash_aerial_cooldown = 4000000
 local dash_speed = 9.2
+local barrel_roll_speed = 1
 local disarm_chance_mul = 2
 local leg_stagger_mul = 0.8
 local knee_stagger_mul = 1.5
@@ -34,13 +38,13 @@ local lower_elevation_dmg_mul = 0.9
 local velocity_dmg_mul = 0.15
 local optimal_distance_dmg_mul = 0.2
 local maximum_distance_dmg_mul = 0.1
-local optimal_distance_mul = 0.5
+local optimal_distance_mul = 0.625
 local projectile_full_throw_mul = 2
 local projectile_half_throw_mul = 0.000005
 local projectile_speed_mul = 3
 local projectile_gravity = -10
 local projectile_dmg_mul = 0.5
-local projectile_velocity_dmg_mul = 0.1
+local projectile_velocity_dmg_mul = 0.01
 local projectile_step = 0.15
 local projectile_dist = 5
 local projectile_spinning_gravity_mul = 0.5
@@ -524,7 +528,7 @@ minetest.register_globalstep(function(dtime)
                 local ent = obj:get_luaentity()
 
                 if ent then
-                    local name = player:get_player_name()
+                    local name = k
                     local throw_style = player_persistent_data[name].throw_style
                     local throw_data = v.throw
                     local tool_capabilities = throw_data.tool_capabilities
@@ -569,6 +573,47 @@ minetest.register_globalstep(function(dtime)
                 -- Restore the player's physics.
                 get_player_by_name(k):set_physics_override({speed = 1, jump = 1})
                 v.stagger = nil
+            end
+
+            active = true
+        end
+
+        if v.barrel_roll then
+            local active_barrel_rolls = nil
+            
+            -- Process the player's barrel_roll table cooldown.
+            for j, l in pairs(v.barrel_roll) do
+                -- Find if it's aerial or not.
+                if j > 4 and l.time + barrel_roll_aerial_cooldown + server_lag < get_us_time() then
+                    v.barrel_roll[j] = nil
+                elseif j < 5 and l.time + barrel_roll_cooldown + server_lag < get_us_time() then
+                    v.barrel_roll[j] = nil
+                elseif l.time + barrel_roll_duration + server_lag > get_us_time() then
+
+                    local yaw = player:get_look_horizontal()
+                    local co = cos(yaw)
+                    local si = sin(yaw)
+                    local x = l.x
+                    local z = l.z
+                    local re_x = co * x - si * z
+                    local re_z = si * x + co * z
+
+                    player:add_player_velocity({x = re_x, y = 0, z = re_z})
+                    active_barrel_rolls = true
+                end
+            end
+
+            if not active_barrel_rolls and player:get_properties().damage_texture_modifier == "" then
+                -- Revert the damage texture modifier.
+                player:set_properties{damage_texture_modifier = player_persistent_data[k].damage_texture_modifier}
+            end
+
+            -- Store the barrel_roll amount for later use.
+            player_persistent_data[k].active_barrel_rolls = active_barrel_rolls
+
+            -- If this table contains no more barrel_rolls remove it.
+            if maxn(v.barrel_roll) < 1 then
+                v.barrel_roll = nil
             end
 
             active = true
@@ -656,34 +701,92 @@ if sscsm then
             local aerial_points = 0
 
             if velocity < 0.0 or velocity > 0.0 then
+                aerial_points = 1
+            end
+
+            if msg == "dodge" then
+                dodge(name, player, 1 + aerial_points)
+            else
+                return false
+            end
+        end
+    end)
+    
+    -- Helper function to check and set the barrel_roll cooldown.
+    local function barrel_roll(name, player, number, x, z)
+        local barrel_roll_data = get_player_data(player, name)
+
+        if not barrel_roll_data.barrel_roll then
+            barrel_roll_data.barrel_roll = {[number] = {time = get_us_time(), x = x, z = z}}
+            player:set_properties{damage_texture_modifier = ""}
+        elseif barrel_roll_data.barrel_roll and not barrel_roll_data.barrel_roll[number] then
+            barrel_roll_data.barrel_roll[number] = {time = get_us_time(), x = x, z = z}
+            player:set_properties{damage_texture_modifier = ""}
+        else
+            return
+        end
+
+        local yaw = player:get_look_horizontal()
+        local co = cos(yaw)
+        local si = sin(yaw)
+        local re_x = co * x - si * z
+        local re_z = si * x + co * z
+
+        player:add_player_velocity({x = re_x, y = 0, z = re_z})
+    end
+
+    -- Channel for barrel_roll request.
+    sscsm.register_on_com_receive("pvp_revamped:barrel_roll", function(name, msg)
+        if msg and type(msg) == "string" then
+            local player = get_player_by_name(name)
+            local yaw = player:get_look_horizontal()
+            local velocity = player:get_player_velocity().y
+            local aerial_points = 0
+
+            if velocity < 0.0 or velocity > 0.0 then
                 aerial_points = 4
             end
 
-            if msg == "dodge_l" then
-                dodge(name, player, 1 + aerial_points)
-            elseif msg == "dodge_u" then
-                dodge(name, player, 2 + aerial_points)
-            elseif msg == "dodge_r" then
-                dodge(name, player, 3 + aerial_points)
-            elseif msg == "dodge_d" then
-                dodge(name, player, 4 + aerial_points)
+            if msg == "barrel_roll_l" then
+                barrel_roll(name, player, 1 + aerial_points, -barrel_roll_speed, 0)
+            elseif msg == "barrel_roll_u" then
+                barrel_roll(name, player, 2 + aerial_points, 0, barrel_roll_speed)
+            elseif msg == "barrel_roll_r" then
+                barrel_roll(name, player, 3 + aerial_points, barrel_roll_speed, 0)
+            elseif msg == "barrel_roll_d" then
+                barrel_roll(name, player, 4 + aerial_points, 0, -barrel_roll_speed)
             else
                 return false
             end
         end
     end)
 
+    local function dash(player, name, dash_key, x, y, z)
+        local dash_data = get_player_data(player, name)
+        
+        if not dash_data.dash then
+            dash_data.dash = {[dash_key] = get_us_time()}
+        elseif dash_data.dash and not dash_data.dash[dash_key] then
+            dash_data.dash[dash_key] = get_us_time()
+        else
+            return 
+        end
+        
+        local yaw = player:get_look_horizontal()
+        local co = cos(yaw)
+        local si = sin(yaw)
+        local re_x = co * x - si * z
+        local re_z = si * x + co * z
+
+        player:add_player_velocity({x = re_x, y = y, z = re_z})
+    end
+
     -- Channel for dash request.
     sscsm.register_on_com_receive("pvp_revamped:dash", function(name, msg)
         if msg and type(msg) == "string" then
             local player = get_player_by_name(name)
-            local yaw = player:get_look_horizontal()
             local y = dash_speed * 0.5
             local aerial_points = 0
-            local dash_key = 0
-            local x = 0
-            local z = 0
-
             local velocity = player:get_player_velocity().y
 
             if velocity < 0.0 or velocity > 0.0 then
@@ -691,40 +794,15 @@ if sscsm then
             end
 
             if msg == "dash_l" then
-                x = -dash_speed
-                dash_key = 1 + aerial_points
+                dash(player, name, 1 + aerial_points, -dash_speed, y, 0)
             elseif msg == "dash_u" then
-                z = dash_speed
-                dash_key = 2 + aerial_points
+                dash(player, name, 2 + aerial_points, 0, y, dash_speed)
             elseif msg == "dash_r" then
-                x = dash_speed
-                dash_key = 3 + aerial_points
+                dash(player, name, 3 + aerial_points, dash_speed, y, 0)
             elseif msg == "dash_d" then
-                z = -dash_speed
-                dash_key = 4 + aerial_points
+                dash(player, name, 4 + aerial_points, 0, y, -dash_speed)
             else
                 return false
-            end
-
-            local dash_data = get_player_data(player, name).dash
-
-            local function dash()
-                local co = cos(yaw)
-                local si = sin(yaw)
-                local re_x = co * x - si * z
-                local re_z = si * x + co * z
-
-                player:add_player_velocity({x = re_x, y = y, z = re_z})
-            end
-
-            if not dash_data then
-                dash()
-
-                player_data[name].dash = {[dash_key] = get_us_time()}
-            elseif dash_data and not dash_data[dash_key] then
-                dash()
-
-                player_data[name].dash[dash_key] = get_us_time()
             end
         end
     end)
@@ -801,16 +879,16 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     local victim_data = get_player_data(player, name)
 
     -- If the player is dodging return true.
-    if victim_data.active_dodges then
+    if victim_data.active_barrel_rolls or victim_data.active_dodges then
         return true
     end
 
     local hitter_name = hitter:get_player_name()
     local hitter_data = get_player_data(hitter, hitter_name)
     
-    -- Cancel any attack if the hitter is in dodge mode.
+    -- Cancel any attack if the hitter is in barrel_roll or dodge mode.
     -- Or if the hitter is in the process of throwing.
-    if (hitter_data.active_dodges or hitter_data.throw) and not projectile_data then
+    if (hitter_data.active_barrel_rolls or hitter_data.active_dodges or hitter_data.throw) and not projectile_data then
         return true
     end
     

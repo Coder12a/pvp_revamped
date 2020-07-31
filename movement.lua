@@ -4,10 +4,11 @@ local max = math.max
 local last_control = {}
 local timer = 0
 local timer_max = 0.15
-local dodge_l = 0
-local dodge_u = 0
-local dodge_r = 0
-local dodge_d = 0
+local dodge = 0
+local barrel_roll_l = 0
+local barrel_roll_u = 0
+local barrel_roll_r = 0
+local barrel_roll_d = 0
 local dash_l = 0
 local dash_u = 0
 local dash_r = 0
@@ -58,52 +59,63 @@ minetest.register_globalstep(function(dtime)
             dash_d = 0
         end
     else
+        if control.aux1 and not last_control.aux1 then
+            dodge = dodge + 1
+            timer = 0
+        end
+
         if control.left and not last_control.left then
-            dodge_l = dodge_l + 1
+            barrel_roll_l = barrel_roll_l + 1
             timer = 0
         end
 
         if control.up and not last_control.up then
-            dodge_u = dodge_u + 1
+            barrel_roll_u = barrel_roll_u + 1
             timer = 0
         end
 
         if control.right and not last_control.right then
-            dodge_r = dodge_r + 1
+            barrel_roll_r = barrel_roll_r + 1
             timer = 0
         end
 
         if control.down and not last_control.down then
-            dodge_d = dodge_d + 1
+            barrel_roll_d = barrel_roll_d + 1
             timer = 0
         end
 
-        if control.left and dodge_l >= 2 then
-            com_send("pvp_revamped:dodge", "dodge_l")
-            dodge_l = 0
+        if control.aux1 and dodge >= 2 then
+            com_send("pvp_revamped:dodge", "dodge")
+            dodge = 0
         end
 
-        if control.up and dodge_u >= 2 then
-            com_send("pvp_revamped:dodge", "dodge_u")
-            dodge_u = 0
+        if control.left and barrel_roll_l >= 2 then
+            com_send("pvp_revamped:barrel_roll", "barrel_roll_l")
+            barrel_roll_l = 0
         end
 
-        if control.right and dodge_r >= 2 then
-            com_send("pvp_revamped:dodge", "dodge_r")
-            dodge_r = 0
+        if control.up and barrel_roll_u >= 2 then
+            com_send("pvp_revamped:barrel_roll", "barrel_roll_u")
+            barrel_roll_u = 0
         end
 
-        if control.down and dodge_d >= 2 then
-            com_send("pvp_revamped:dodge", "dodge_d")
-            dodge_d = 0
+        if control.right and barrel_roll_r >= 2 then
+            com_send("pvp_revamped:barrel_roll", "barrel_roll_r")
+            barrel_roll_r = 0
+        end
+
+        if control.down and barrel_roll_d >= 2 then
+            com_send("pvp_revamped:barrel_roll", "barrel_roll_d")
+            barrel_roll_d = 0
         end
     end
 
     if timer > timer_max then
-        dodge_l = 0
-        dodge_u = 0
-        dodge_r = 0
-        dodge_d = 0
+        dodge = 0
+        barrel_roll_l = 0
+        barrel_roll_u = 0
+        barrel_roll_r = 0
+        barrel_roll_d = 0
         dash_l = 0
         dash_u = 0
         dash_r = 0
