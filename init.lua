@@ -203,7 +203,7 @@ minetest.register_entity("pvp_revamped:projectile", {
             self.spin_rate = data.spin_rate
         end
 
-        self.timer = 0
+        self.timer = projectile_step
 
         self:set_item()
     end,
