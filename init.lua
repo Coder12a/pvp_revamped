@@ -12,6 +12,7 @@ local dash_speed = 9.2
 local disarm_chance_mul = 2
 local leg_stagger_mul = 0.8
 local knee_stagger_mul = 1.5
+local stagger_mul = 100000
 local block_duration_mul = 100000
 local block_interval_mul = 0.15
 local block_pool_mul = 2
@@ -175,7 +176,6 @@ minetest.register_entity("pvp_revamped:projectile", {
         end
 
         self.throw_style = throw_style
-        self.timer = -1 / speed
     end,
     
     get_staticdata = function(self)
@@ -266,7 +266,7 @@ minetest.register_entity("pvp_revamped:projectile", {
                         end
 
                         -- Set the table for later use in the punch function.
-                        projectile_data = {pos = pos, name = self.itemname, dir = dir, velocity = velocity}
+                        projectile_data = {pos = pos, name = self.itemname, dir = dir, velocity = velocity, intersection_point = pointed_thing.intersection_point}
 
                         obj:punch(get_player_by_name(self.owner), nil, tool_capabilities)
                         self:die()
@@ -830,6 +830,8 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     local full_punch
     local full_punch_interval = 1.4
     local _dir
+    local projectile
+    local projectile_intersection_point
 
     -- Use projectile_data if a thrown entity was the one that punched.
     if projectile_data then
@@ -838,6 +840,8 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         item = registered_tools[projectile_data.name]
         _dir = projectile_data.dir
         hitter_velocity = projectile_data.velocity
+        projectile_intersection_point = projectile_data.intersection_point
+        projectile = true
 
         -- Set the projectile table to nil.
         projectile_data = nil
@@ -868,139 +872,146 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     local hit_pos2 = add(hit_pos1, multiply(_dir, range))
     local ray = raycast(hit_pos1, hit_pos2)
 
-    for pointed_thing in ray do
-        if pointed_thing.type == "object" and pointed_thing.ref:is_player() and pointed_thing.ref:get_player_name() == name then
-            local hit_point = pointed_thing.intersection_point
-            local newpos = subtract(hit_point, pos2)
-            local y1 = hit_point.y
-            local y2 = pos2.y
+    local function hit(intersection_point)
+        local newpos = subtract(intersection_point, pos2)
+        local y1 = intersection_point.y
+        local y2 = pos2.y
 
-            if head_height and head_dmg_mul and y1 > y2 + head_height then
-                -- If the player was hit in the head add extra damage.
-                damage = damage * head_dmg_mul
-            elseif torso_height and y1 > y2 + torso_height then
-                -- Find if the player was hit in the torso or arm.
-                local near_part = 0
-                local past_distance = -1
+        if head_height and head_dmg_mul and y1 > y2 + head_height then
+            -- If the player was hit in the head add extra damage.
+            damage = damage * head_dmg_mul
+        elseif torso_height and y1 > y2 + torso_height then
+            -- Find if the player was hit in the torso or arm.
+            local near_part = 0
+            local past_distance = -1
 
-                for _, point in pairs(hit_points) do
-                    local x = point.x
-                    local y = point.y
-                    local z = point.z
-                    local co = cos(yaw)
-                    local si = sin(yaw)
-                    local re_x = co * x - si * z
-                    local re_z = si * x + co * z
-                    local dist = distance(newpos, {x = re_x, y = y, z = re_z})
-                    
-                    if dist < past_distance or past_distance == -1 then
-                        past_distance = dist
-                        near_part = point.part
-                    end
-                end
-
-                if near_part == 1 then
-                    -- Hit in the arm.
-                    arm = true
-
-                    if arm_dmg_mul then
-                        damage = damage * arm_dmg_mul
-                    end
-                elseif torso_dmg_mul then
-                    -- Hit in the torso.
-                    damage = damage * torso_dmg_mul
-                end
-            elseif leg_height and y1 > y2 + leg_height then
-                -- Hit in the leg.
-                leg = true
-
-                if leg_dmg_mul then
-                    damage = damage * leg_dmg_mul
-                end
-            elseif knee_height and y1 > y2 + knee_height then
-                -- Hit in the knee.
-                knee = true
-
-                if leg_dmg_mul then
-                    damage = damage * leg_dmg_mul
-                end
-            else
-                -- Hit in the lower leg.
-                leg = true
-
-                if leg_dmg_mul then
-                    damage = damage * leg_dmg_mul
+            for _, point in pairs(hit_points) do
+                local x = point.x
+                local y = point.y
+                local z = point.z
+                local co = cos(yaw)
+                local si = sin(yaw)
+                local re_x = co * x - si * z
+                local re_z = si * x + co * z
+                local dist = distance(newpos, {x = re_x, y = y, z = re_z})
+                
+                if dist < past_distance or past_distance == -1 then
+                    past_distance = dist
+                    near_part = point.part
                 end
             end
 
-            local dist = distance(hitter_pos, pos2)
-            local optimal_range = range * optimal_distance_mul
-            local dist_rounded = dist + 0.5 - (dist + 0.5) % 1
+            if near_part == 1 then
+                -- Hit in the arm.
+                arm = true
 
-            -- If the distance rounded is outside the range skip.
-            if dist_rounded <= range + 1 then
-            
-                -- Add or remove damage based on the distance.
-                -- Full punches are not affected by maximum distance.
-                if not full_punch and optimal_distance_mul and maximum_distance_dmg_mul and dist_rounded > optimal_range then
-                    damage = damage - range * maximum_distance_dmg_mul
-                elseif optimal_distance_mul and optimal_distance_dmg_mul and dist_rounded < optimal_range then
-                    damage = damage + optimal_range - dist_rounded * optimal_distance_dmg_mul
+                if arm_dmg_mul then
+                    damage = damage * arm_dmg_mul
                 end
+            elseif torso_dmg_mul then
+                -- Hit in the torso.
+                damage = damage * torso_dmg_mul
             end
+        elseif leg_height and y1 > y2 + leg_height then
+            -- Hit in the leg.
+            leg = true
 
-            -- Get the yaw from both the player and intersection point.
-            local yaw2 = atan(newpos.z / newpos.x) + rad90
-            
-            if hit_point.x >= pos2.x then
-                yaw2 = yaw2 + pi
+            if leg_dmg_mul then
+                damage = damage * leg_dmg_mul
             end
+        elseif knee_height and y1 > y2 + knee_height then
+            -- Hit in the knee.
+            knee = true
 
-            re_yaw = rad360 - (yaw - yaw2)
-
-            if re_yaw < 0 then
-                re_yaw = rad360 - re_yaw
+            if leg_dmg_mul then
+                damage = damage * leg_dmg_mul
             end
+        else
+            -- Hit in the lower leg.
+            leg = true
 
-            if re_yaw > rad360 then
-                re_yaw = re_yaw - rad360
+            if leg_dmg_mul then
+                damage = damage * leg_dmg_mul
             end
-
-            if (re_yaw <= 0.7853982 and re_yaw >= 0) or (re_yaw <= 6.283185 and re_yaw >= 5.497787) then
-                -- Hit on the front.
-                front = true
-
-                if front_dmg_mul then
-                    damage = damage * front_dmg_mul
-                end
-            elseif re_yaw <= 2.356194 then
-                -- Hit on the left-side.
-                side = true
-
-                if side_dmg_mul then
-                    damage = damage * side_dmg_mul
-                end
-            elseif back_dmg_mul and re_yaw <= 3.926991 then
-                -- Hit on the back-side.
-                damage = damage * back_dmg_mul
-            else
-                -- Hit on the right-side.
-                side = true
-
-                if side_dmg_mul then
-                    damage = damage * side_dmg_mul
-                end
-            end
-
-            -- You can only hit the knee-caps in the front.
-            if side and knee then
-                knee = nil
-                leg = true
-            end
-
-            -- End the loop we got what we came for.
-            break
         end
+
+        local dist = distance(hitter_pos, pos2)
+        local optimal_range = range * optimal_distance_mul
+        local dist_rounded = dist + 0.5 - (dist + 0.5) % 1
+
+        -- If the distance rounded is outside the range skip.
+        if dist_rounded <= range + 1 then
+        
+            -- Add or remove damage based on the distance.
+            -- Full punches are not affected by maximum distance.
+            if not full_punch and optimal_distance_mul and maximum_distance_dmg_mul and dist_rounded > optimal_range then
+                damage = damage - range * maximum_distance_dmg_mul
+            elseif optimal_distance_mul and optimal_distance_dmg_mul and dist_rounded < optimal_range then
+                damage = damage + optimal_range - dist_rounded * optimal_distance_dmg_mul
+            end
+        end
+
+        -- Get the yaw from both the player and intersection point.
+        local yaw2 = atan(newpos.z / newpos.x) + rad90
+        
+        if intersection_point.x >= pos2.x then
+            yaw2 = yaw2 + pi
+        end
+
+        re_yaw = rad360 - (yaw - yaw2)
+
+        if re_yaw < 0 then
+            re_yaw = rad360 - re_yaw
+        end
+
+        if re_yaw > rad360 then
+            re_yaw = re_yaw - rad360
+        end
+
+        if (re_yaw <= 0.7853982 and re_yaw >= 0) or (re_yaw <= 6.283185 and re_yaw >= 5.497787) then
+            -- Hit on the front.
+            front = true
+
+            if front_dmg_mul then
+                damage = damage * front_dmg_mul
+            end
+        elseif re_yaw <= 2.356194 then
+            -- Hit on the left-side.
+            side = true
+
+            if side_dmg_mul then
+                damage = damage * side_dmg_mul
+            end
+        elseif back_dmg_mul and re_yaw <= 3.926991 then
+            -- Hit on the back-side.
+            damage = damage * back_dmg_mul
+        else
+            -- Hit on the right-side.
+            side = true
+
+            if side_dmg_mul then
+                damage = damage * side_dmg_mul
+            end
+        end
+
+        -- You can only hit the knee-caps in the front.
+        if side and knee then
+            knee = nil
+            leg = true
+        end
+    end
+
+    if not projectile then
+        for pointed_thing in ray do
+            if pointed_thing.type == "object" and pointed_thing.ref:is_player() and pointed_thing.ref:get_player_name() == name then
+                hit(pointed_thing.intersection_point)
+
+                -- End the loop we got what we came for.
+                break
+            end
+        end
+    else
+        hit(projectile_intersection_point)
     end
 
     if elevated_dmg_mul and pos1.y > pos2.y then
@@ -1036,10 +1047,12 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     -- If damage is at or below zero set it to a default value.
     damage = max(damage, 0.1)
 
-    -- Remove the hitter's blocking data.
-    hitter_data.block = nil
-    hitter_data.shield = nil
-    player_data[hitter_name] = hitter_data
+    if not projectile then
+        -- Remove the hitter's blocking data.
+        hitter_data.block = nil
+        hitter_data.shield = nil
+        player_data[hitter_name] = hitter_data
+    end
 
     local data_throw = victim_data.throw
     local data_block = victim_data.block
@@ -1128,7 +1141,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
 
         data_stagger = {}
         data_stagger.time = get_us_time()
-        data_stagger.value = (1 / speed) * 500000
+        data_stagger.value = (1 / speed) * stagger_mul
         victim_data.stagger = data_stagger
     end
 
