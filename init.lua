@@ -15,6 +15,8 @@ local knee_stagger_mul = 1.5
 local block_duration_mul = 100000
 local block_interval_mul = 0.15
 local block_pool_mul = 2
+local shield_duration = 100000
+local shield_duration_mul = 100000
 local shield_pool_mul = 4
 local block_wear_mul = 9000
 local shield_axe_dmg_mul = 20
@@ -33,6 +35,7 @@ local optimal_distance_dmg_mul = 0.2
 local maximum_distance_dmg_mul = 0.1
 local optimal_distance_mul = 0.5
 local projectile_full_throw_mul = 2
+local projectile_half_throw_mul = 0.000005
 local projectile_speed_mul = 3
 local projectile_gravity = -10
 local projectile_dmg_mul = 0.5
@@ -46,6 +49,7 @@ local projectile_throw_style_dip = 1
 local projectile_throw_style_spinning = 2
 local lag = 0
 local player_data = {}
+local player_persistent_data = {}
 
 local hit_points = {{x = 0.3, y = 1.2, z = 0, part = 1}, 
         {x = 0, y = 1.2, z = 0, part = 0}, 
@@ -79,6 +83,20 @@ local pi = math.pi
 local rad45 = pi * 0.25
 local rad90 = pi * 0.5
 local rad360 = pi * 2
+
+local function get_player_data(player, name)
+    if not name then
+        name = player:get_player_name()
+    end
+
+    local data = player_data[name] or {}
+
+    if not player_data[name] then
+        player_data[name] = data
+    end
+
+    return data
+end
 
 -- Entity for thrown items.
 minetest.register_entity("pvp_revamped:projectile", {
@@ -344,22 +362,23 @@ minetest.register_on_mods_loaded(function()
                     local name = user:get_player_name()
 
                     -- Cancel if the player is throwing something.
-                    if player_data[name].throw then
+                    if get_player_data(user, name).throw then
                         return
                     end
 
                     local time = get_us_time()
-                    local data = player_data[name].block
+                    local data = player_data[name]
 
                     -- Prevent spam blocking.
-                    if not data or time - data.time > full_block_interval then
-                        data = {pool = block_pool, time = time, duration = duration}
+                    if not data.block or time - data.block.time > full_block_interval then
+                        data.block = {pool = block_pool, time = time, duration = duration}
+                        data.shield = nil
                     end
 
                     -- Disable the damage texture modifier on tool block.
                     user:set_properties{damage_texture_modifier = ""}
 
-                    player_data[name].block = data
+                    player_data[name] = data
                 end
 
                 minetest.override_item(k, {on_secondary_use = function(itemstack, user, pointed_thing)
@@ -374,7 +393,7 @@ minetest.register_on_mods_loaded(function()
                     local name = itemstack:get_name()
                     local player_name = dropper:get_player_name()
                     local control_bits = dropper:get_player_control_bits()
-                    local throw_data = player_data[player_name].throw
+                    local throw_data = get_player_data(dropper, player_name).throw
 
                     -- If in the process of throwing, either LMB, RMB, or item name is not the same then return the old function.
                     if throw_data or dropper:get_wielded_item():get_name() ~= name or (floor(control_bits / 128) % 2 ~= 1 and floor(control_bits / 256) % 2 ~= 1) then 
@@ -400,7 +419,8 @@ minetest.register_on_mods_loaded(function()
                 fleshy = v.armor_groups.fleshy
             end
             
-            local block_pool = (max_armor_use - armor_use + armor_heal + armor_shield + fleshy) * shield_pool_mul
+            local block_pool = max_armor_use - armor_use + (armor_heal + armor_shield + fleshy) * shield_pool_mul
+            local duration = shield_duration + (armor_use + armor_heal + armor_shield + fleshy) * shield_duration_mul
 
             if block_pool > 0 then
                 -- Allow the shield to block damage.
@@ -408,18 +428,19 @@ minetest.register_on_mods_loaded(function()
                     local name = user:get_player_name()
 
                     -- Cancel if the player is throwing something.
-                    if player_data[name].throw then
+                    if get_player_data(user, name).throw then
                         return
                     end
 
-                    local data = player_data[name].shield
+                    local data = player_data[name]
 
-                    data = {name = k, pool = block_pool}
-                    
+                    data.shield = {pool = block_pool, name = k, time = get_us_time(), duration = duration}
+                    data.block = nil
+
+                    player_data[name] = data
+
                     -- Disable the damage texture modifier on shield block.
                     user:set_properties{damage_texture_modifier = ""}
-
-                    player_data[name].shield = data
                 end
 
                 minetest.override_item(k, {on_secondary_use = function(itemstack, user, pointed_thing)
@@ -442,12 +463,13 @@ minetest.register_globalstep(function(dtime)
     for k, v in pairs(player_data) do
         local server_lag = lag + get_player_information(k).avg_jitter * 1000000
         local player = get_player_by_name(k)
+        local active
 
         if v.block then
             -- Check if the player is holding down the RMB key.
             if floor(player:get_player_control_bits() / 256) % 2 == 1 then
                 -- Update the block time.
-                player_data[k].block.time = get_us_time()
+                v.block.time = get_us_time()
             end
 
             local block = v.block
@@ -455,9 +477,30 @@ minetest.register_globalstep(function(dtime)
             -- Remove the block table if it's past duration.
             if block.time + block.duration + server_lag < get_us_time() then
                 -- Revert the damage texture modifier.
-                player:set_properties{damage_texture_modifier = player_data[k].damage_texture_modifier}
-                player_data[k].block = nil
+                player:set_properties{damage_texture_modifier = player_persistent_data[k].damage_texture_modifier}
+                v.block = nil
             end
+
+            active = true
+        end
+
+        if v.shield then
+            -- Check if the player is holding down the RMB key.
+            if floor(player:get_player_control_bits() / 256) % 2 == 1 then
+                -- Update the shield time.
+                v.shield.time = get_us_time()
+            end
+
+            local shield = v.shield
+
+            -- Remove the shield table if it's past duration.
+            if shield.time + shield.duration + server_lag < get_us_time() then
+                -- Revert the damage texture modifier.
+                player:set_properties{damage_texture_modifier = player_persistent_data[k].damage_texture_modifier}
+                v.shield = nil
+            end
+
+            active = true
         end
 
         if v.throw then
@@ -474,7 +517,7 @@ minetest.register_globalstep(function(dtime)
 
                 if ent then
                     local name = player:get_player_name()
-                    local throw_style = player_data[name].throw_style
+                    local throw_style = player_persistent_data[name].throw_style
                     local throw_data = v.throw
                     local tool_capabilities = throw_data.tool_capabilities
                     local throw_speed = tool_capabilities.throw_speed
@@ -485,7 +528,7 @@ minetest.register_globalstep(function(dtime)
                     local spin
 
                     if full_throw > time then
-                        local re = (full_throw - time) / 200000
+                        local re = (full_throw - time) * projectile_half_throw_mul
 
                         if re > 0.5 then
                             damage = tool_capabilities.damage_groups.fleshy - re
@@ -504,8 +547,10 @@ minetest.register_globalstep(function(dtime)
                     ent:throw(player, throw_speed, {x = 0, y = gravity, z = 0}, max(damage * projectile_dmg_mul, 0.1), throw_style, spin)
                 end
 
-                player_data[k].throw = nil
+                v.throw = nil
             end
+
+            active = true
         end
 
         if v.stagger then
@@ -515,37 +560,41 @@ minetest.register_globalstep(function(dtime)
             if stagger.time + stagger.value + server_lag < get_us_time() then
                 -- Restore the player's physics.
                 get_player_by_name(k):set_physics_override({speed = 1, jump = 1})
-                player_data[k].stagger = nil
+                v.stagger = nil
             end
+
+            active = true
         end
 
         if v.dodge then
-            local active_dodges = 0
+            local active_dodges = nil
             
             -- Process the player's dodge table cooldown.
             for j, l in pairs(v.dodge) do
                 -- Find if it's aerial or not.
                 if j > 4 and l + dodge_aerial_cooldown + server_lag < get_us_time() then
-                    player_data[k].dodge[j] = nil
+                    v.dodge[j] = nil
                 elseif j < 5 and l + dodge_cooldown + server_lag < get_us_time() then
-                    player_data[k].dodge[j] = nil
+                    v.dodge[j] = nil
                 elseif l + dodge_duration + server_lag > get_us_time() then
-                    active_dodges = active_dodges + 1
+                    active_dodges = true
                 end
             end
 
-            if active_dodges < 1 and player:get_properties().damage_texture_modifier == "" then
+            if not active_dodges and player:get_properties().damage_texture_modifier == "" then
                 -- Revert the damage texture modifier.
-                player:set_properties{damage_texture_modifier = player_data[k].damage_texture_modifier}
+                player:set_properties{damage_texture_modifier = player_persistent_data[k].damage_texture_modifier}
             end
 
             -- Store the dodge amount for later use.
-            player_data[k].active_dodges = active_dodges
+            player_persistent_data[k].active_dodges = active_dodges
 
             -- If this table contains no more dodges remove it.
-            if maxn(player_data[k].dodge) < 1 then
-                player_data[k].dodge = nil
+            if maxn(v.dodge) < 1 then
+                v.dodge = nil
             end
+
+            active = true
         end
 
         if v.dash then
@@ -553,16 +602,22 @@ minetest.register_globalstep(function(dtime)
             for j, l in pairs(v.dash) do
                 -- Find if it's aerial or not.
                 if j > 4 and l + dash_aerial_cooldown + server_lag < get_us_time() then
-                    player_data[k].dash[j] = nil
+                    v.dash[j] = nil
                 elseif j < 5 and l + dash_cooldown + server_lag < get_us_time() then
-                    player_data[k].dash[j] = nil
+                    v.dash[j] = nil
                 end
             end
 
             -- If this table contains no more dashes remove it.
-            if maxn(player_data[k].dash) < 1 then
-                player_data[k].dash = nil
+            if maxn(v.dash) < 1 then
+                v.dash = nil
             end
+
+            active = true
+        end
+
+        if not active then
+            player_data[k] = nil
         end
     end
 end)
@@ -574,15 +629,13 @@ if sscsm then
 
     -- Helper function to check and set the dodge cooldown.
     local function dodge(name, player, number)
-        local dodge_data = player_data[name]
+        local dodge_data = get_player_data(player, name)
         
         if not dodge_data.dodge then
             dodge_data.dodge = {[number] = get_us_time()}
-            dodge_data.active_dodges = dodge_data.active_dodges + 1
             player:set_properties{damage_texture_modifier = ""}
         elseif dodge_data.dodge and not dodge_data.dodge[number] then
             dodge_data.dodge[number] = get_us_time()
-            dodge_data.active_dodges = dodge_data.active_dodges + 1
             player:set_properties{damage_texture_modifier = ""}
         end
     end
@@ -645,7 +698,7 @@ if sscsm then
                 return false
             end
 
-            local dash_data = player_data[name]
+            local dash_data = get_player_data(player, name).dash
 
             local function dash()
                 local co = cos(yaw)
@@ -656,14 +709,14 @@ if sscsm then
                 player:add_player_velocity({x = re_x, y = y, z = re_z})
             end
 
-            if not dash_data.dash then
+            if not dash_data then
                 dash()
 
-                dash_data.dash = {[dash_key] = get_us_time()}
-            elseif dash_data.dash and not dash_data.dash[dash_key] then
+                player_data[name].dash = {[dash_key] = get_us_time()}
+            elseif dash_data and not dash_data[dash_key] then
                 dash()
 
-                dash_data.dash[dash_key] = get_us_time()
+                player_data[name].dash[dash_key] = get_us_time()
             end
         end
     end)
@@ -671,8 +724,7 @@ end
 
 -- Create an empty data sheet for the player.
 minetest.register_on_joinplayer(function(player)
-    player_data[player:get_player_name()] = {damage_texture_modifier = player:get_properties().damage_texture_modifier,
-                                                active_dodges = 0}
+    player_persistent_data[player:get_player_name()] = {damage_texture_modifier = player:get_properties().damage_texture_modifier}
 end)
 
 -- Helper function to drop an item.
@@ -692,20 +744,29 @@ end
 -- Drop any item the player is about to throw on leave.
 minetest.register_on_leaveplayer(function(player)
     local name = player:get_player_name()
+
+    if not player_data[name] then
+        return
+    end
+
     local throw_data = player_data[name].throw
     
     if throw_data then
         drop(player, throw_data.item)
-        
-        player_data[name].throw = nil
     end
 
     player_data[name] = nil
+    player_persistent_data[name] = nil
 end)
 
 -- Drop any item the player is about to throw on death.
 minetest.register_on_dieplayer(function(player)
     local name = player:get_player_name()
+
+    if not player_data[name] then
+        return
+    end
+
     local throw_data = player_data[name].throw
     
     if throw_data then
@@ -722,8 +783,6 @@ minetest.register_on_shutdown(function()
 
         if throw_data then
             drop(player, throw_data.item)
-
-            player_data[k].throw = nil
         end
     end
 end)
@@ -731,19 +790,19 @@ end)
 -- Do the damage calculations when the player gets hit.
 minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, tool_capabilities, dir, damage)
     local name = player:get_player_name()
-    local victim_data = player_data[name]
+    local victim_data = get_player_data(player, name)
 
     -- If the player is dodging return true.
-    if victim_data.active_dodges > 0 then
+    if victim_data.active_dodges then
         return true
     end
 
     local hitter_name = hitter:get_player_name()
-    local hitter_data = player_data[hitter_name]
+    local hitter_data = get_player_data(hitter, hitter_name)
     
     -- Cancel any attack if the hitter is in dodge mode.
     -- Or if the hitter is in the process of throwing.
-    if hitter_data.active_dodges > 0 or hitter_data.throw then
+    if hitter_data.active_dodges or hitter_data.throw then
         return true
     end
     
@@ -913,7 +972,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
                 leg = true
             end
 
-            -- End the for loop we got what we come for.
+            -- End the loop we got what we came for.
             break
         end
     end
@@ -964,7 +1023,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     local item_name = wielded_item:get_name()
 
     -- Process if the player is blocking with a tool or not.
-    if front and not data_throw and data_block and data_block.pool > 0 and data_block.time + data_block.duration + lag + max(get_player_information(name).avg_jitter - get_player_information(hitter_name).avg_jitter, 0) * 1000000 > time then
+    if front and not data_throw and data_block and data_block.pool > 0 then
         -- Block the damage and add it as wear to the tool.
         wielded_item:add_wear(((damage - full_punch_interval) / 75) * block_wear_mul)
         player:set_wielded_item(wielded_item)
@@ -1072,7 +1131,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
 
     if player:get_properties().damage_texture_modifier == "" then
         -- Revert the damage texture modifier.
-        player:set_properties{damage_texture_modifier = victim_data.damage_texture_modifier}
+        player:set_properties{damage_texture_modifier = player_persistent_data[name].damage_texture_modifier}
     end
 
     -- Save new player data to the table.
@@ -1095,17 +1154,17 @@ minetest.register_chatcommand("throw_style", {
         -- Check the given param.
         if param == "none" then
         -- Set the style to none.
-        player_data[name].throw_style = nil
+        player_persistent_data[name].throw_style = nil
         
         return true, "Throw style set to none."
         elseif param == "spin" then
         -- Give the item a little spin.
-        player_data[name].throw_style = projectile_throw_style_spinning
+        player_persistent_data[name].throw_style = projectile_throw_style_spinning
 
         return true, "Throw style set to spin."
         elseif param == "dip" then
         -- Bullet drop.
-        player_data[name].throw_style = projectile_throw_style_dip
+        player_persistent_data[name].throw_style = projectile_throw_style_dip
 
         return true, "Throw style set to dip."
         end
