@@ -48,6 +48,7 @@ local projectile_dip_velocity_dmg_mul = {x = 1, y = 2, z = 1}
 local projectile_throw_style_dip = 1
 local projectile_throw_style_spinning = 2
 local lag = 0
+local projectile_data
 local player_data = {}
 local player_persistent_data = {}
 
@@ -115,6 +116,7 @@ minetest.register_entity("pvp_revamped:projectile", {
     throw_style = 0,
     itemstring = "",
     owner = "",
+    itemname = "",
     tool_capabilities = nil,
 
     set_item = function(self, owner, item)
@@ -129,7 +131,7 @@ minetest.register_entity("pvp_revamped:projectile", {
         
         local itemname = stack:is_known() and stack:get_name() or "unknown"
         -- Get the name of the stack item.
-        local tool_capabilities = registered_tools[stack:get_name()].tool_capabilities
+        local tool_capabilities = registered_tools[itemname].tool_capabilities
         local max_count = stack:get_stack_max()
 		local count = math.min(stack:get_count(), max_count)
         local size = 0.2 + 0.1 * (count / max_count) ^ (1 / 3)
@@ -148,6 +150,7 @@ minetest.register_entity("pvp_revamped:projectile", {
         end
 
         self.tool_capabilities = tool_capabilities
+        self.itemname = itemname
     end,
 
     throw = function(self, user, speed, acceleration, damage, throw_style, spin_rate)
@@ -178,6 +181,7 @@ minetest.register_entity("pvp_revamped:projectile", {
     get_staticdata = function(self)
         return serialize({
             itemstring = self.itemstring,
+            itemname = self.itemname,
             owner = self.owner,
             tool_capabilities = self.tool_capabilities,
             throw_style = self.throw_style,
@@ -192,6 +196,7 @@ minetest.register_entity("pvp_revamped:projectile", {
         
         if data and type(data) == "table" then
             self.itemstring = data.itemstring
+            self.itemname = data.itemname
             self.owner = data.owner
             self.tool_capabilities = data.tool_capabilities
             self.throw_style = data.throw_style
@@ -259,6 +264,9 @@ minetest.register_entity("pvp_revamped:projectile", {
                                 tool_capabilities.damage_groups.fleshy = tool_capabilities.damage_groups.fleshy + vv * projectile_velocity_dmg_mul
                             end
                         end
+
+                        -- Set the table for later use in the punch function.
+                        projectile_data = {pos = pos, name = self.itemname, dir = dir, velocity = velocity}
 
                         obj:punch(get_player_by_name(self.owner), nil, tool_capabilities)
                         self:die()
@@ -802,14 +810,15 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     
     -- Cancel any attack if the hitter is in dodge mode.
     -- Or if the hitter is in the process of throwing.
-    if hitter_data.active_dodges or hitter_data.throw then
+    if (hitter_data.active_dodges or hitter_data.throw) and not projectile_data then
         return true
     end
     
-    local pos1 = hitter:get_pos()
+    local pos1
     local pos2 = player:get_pos()
-    local hitter_pos = {x = pos1.x, y = pos1.y, z = pos1.z}
-    local item = registered_tools[hitter:get_wielded_item():get_name()]
+    local hitter_pos
+    local hitter_velocity
+    local item
     local range = 4
     local yaw = player:get_look_horizontal()
     local front
@@ -820,6 +829,27 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     local re_yaw
     local full_punch
     local full_punch_interval = 1.4
+    local _dir
+
+    -- Use projectile_data if a thrown entity was the one that punched.
+    if projectile_data then
+        pos1 = projectile_data.pos
+        hitter_pos = {x = pos1.x, y = pos1.y, z = pos1.z}
+        item = registered_tools[projectile_data.name]
+        _dir = projectile_data.dir
+        hitter_velocity = projectile_data.velocity
+
+        -- Set the projectile table to nil.
+        projectile_data = nil
+    else
+        pos1 = hitter:get_pos()
+        hitter_pos = {x = pos1.x, y = pos1.y, z = pos1.z}
+        item = registered_tools[hitter:get_wielded_item():get_name()]
+        -- Raise the position to eye height.
+        hitter_pos.y = hitter_pos.y + hitter:get_properties().eye_height
+        _dir = hitter:get_look_dir()
+        hitter_velocity = hitter:get_player_velocity()
+    end
 
     if item and item.range then
         range = item.range
@@ -833,11 +863,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         full_punch_interval = tool_capabilities.full_punch_interval
     end
 
-    -- Raise the position to eye height.
-    hitter_pos.y = hitter_pos.y + hitter:get_properties().eye_height
-    
     -- Get the second position from the direction of the hitter.
-    local _dir = hitter:get_look_dir()
     local hit_pos1 = add(hitter_pos, _dir)
     local hit_pos2 = add(hit_pos1, multiply(_dir, range))
     local ray = raycast(hit_pos1, hit_pos2)
@@ -990,16 +1016,15 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     
     -- This damage bonus can only be used if this is a full interval punch.
     if full_punch and velocity_dmg_mul then
-        local v1 = hitter:get_player_velocity()
         local vv
 
         if front then
             -- Ignore the victim's speed if you hit them in the front.
-            vv = abs(v1.x) + abs(v1.y) + abs(v1.z)
+            vv = abs(hitter_velocity.x) + abs(hitter_velocity.y) + abs(hitter_velocity.z)
         else
             -- Subtract the victim's velocity from the aggressor if they where not hit in the front.
             local v2 = player:get_player_velocity()
-            vv = abs(v1.x) - abs(v2.x) + abs(v1.y) - abs(v2.y) + abs(v1.z) - abs(v2.z)
+            vv = abs(hitter_velocity.x) - abs(v2.x) + abs(hitter_velocity.y) - abs(v2.y) + abs(hitter_velocity.z) - abs(v2.z)
         end
 
         if vv > 0 then
@@ -1053,8 +1078,10 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
             axe_wear = tool_capabilities.damage_groups.shield_dmg
         end
 
+        -- Wear down the shield plus axe damage.
         wielded_item:add_wear((((damage - full_punch_interval) / 75) * block_wear_mul) + axe_wear)
         player:set_wielded_item(wielded_item)
+        -- pool minus damage + axe_wear.
         data_shield.pool = data_shield.pool - (damage + axe_wear)
 
         -- Remove shield table if pool is zero or below.
