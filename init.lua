@@ -70,6 +70,7 @@ local serialize = minetest.serialize
 local deserialize = minetest.deserialize
 local add_item = minetest.add_item
 local add_entity = minetest.add_entity
+local calculate_knockback = minetest.calculate_knockback
 local maxn = table.maxn
 local add = vector.add
 local multiply = vector.multiply
@@ -138,7 +139,7 @@ minetest.register_entity("pvp_revamped:projectile", {
         -- Get the name of the stack item.
         local tool_capabilities = registered_tools[itemname].tool_capabilities
         local max_count = stack:get_stack_max()
-		local count = math.min(stack:get_count(), max_count)
+		local count = min(stack:get_count(), max_count)
         local size = 0.2 + 0.1 * (count / max_count) ^ (1 / 3)
         
         -- Set the entity properties.
@@ -180,9 +181,12 @@ minetest.register_entity("pvp_revamped:projectile", {
         end
 
         self.throw_style = throw_style
+        -- Set the hp to the damage.
+        self.object:set_hp(max(self.tool_capabilities.damage_groups.fleshy, 1))
     end,
     
     get_staticdata = function(self)
+        -- Serialize the entitiy's data.
         return serialize({
             itemstring = self.itemstring,
             itemname = self.itemname,
@@ -194,10 +198,11 @@ minetest.register_entity("pvp_revamped:projectile", {
     end,
     
     on_activate = function(self, staticdata)
-        self.object:set_armor_groups({immortal = 1})
+        self.object:set_armor_groups({fleshy = 100})
         
         local data = deserialize(staticdata)
         
+        -- Read data only if it is a table.
         if data and type(data) == "table" then
             self.itemstring = data.itemstring
             self.itemname = data.itemname
@@ -235,13 +240,6 @@ minetest.register_entity("pvp_revamped:projectile", {
         if self.timer >= projectile_step then
             local velocity = object:get_velocity()
             
-            -- If there is no velocity then drop the item.
-            if velocity.y == 0 or velocity.x == 0 and velocity.z == 0 then
-                self:die()
-
-                return
-            end
-
             local dir = normalize(velocity)
             local pos = object:get_pos()
             local p1 = add(pos, dir)
@@ -258,9 +256,9 @@ minetest.register_entity("pvp_revamped:projectile", {
                             local vv
                             
                             if throw_style and throw_style == projectile_throw_style_dip then
-                                vv = abs(velocity.x * projectile_dip_velocity_dmg_mul.x) + abs(velocity.y * projectile_dip_velocity_dmg_mul.y) + abs(velocity.z * projectile_dip_velocity_dmg_mul.z)
+                                vv = max(abs(velocity.x * projectile_dip_velocity_dmg_mul.x), abs(velocity.y * projectile_dip_velocity_dmg_mul.y), abs(velocity.z * projectile_dip_velocity_dmg_mul.z))
                             else
-                                vv = abs(velocity.x) + abs(velocity.y) + abs(velocity.z)
+                                vv = max(abs(velocity.x), abs(velocity.y), abs(velocity.z))
                             end
 
                             if vv > 0 then
@@ -280,19 +278,46 @@ minetest.register_entity("pvp_revamped:projectile", {
                 end
             end
 
+            -- If there is no velocity then drop the item.
+            if velocity.y == 0 or velocity.x == 0 and velocity.z == 0 then
+                self:die()
+
+                return
+            end
+
             self.timer = 0
         end
     end,
 
     on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir, damage)
-        -- If this item was punched drop it.
-        if puncher and puncher:is_player() and puncher:get_player_name() ~= self.owner then
-            self:die()
+        local object = self.object
+        local velocity = object:get_velocity()
+        local throw_style = self.throw_style
+        local vv
+        
+        -- Reduce the damage that will be done by the object's velocity.
+        if throw_style and throw_style == projectile_throw_style_dip then
+            vv = max(abs(velocity.x * projectile_dip_velocity_dmg_mul.x), abs(velocity.y * projectile_dip_velocity_dmg_mul.y), abs(velocity.z * projectile_dip_velocity_dmg_mul.z))
+        else
+            vv = max(abs(velocity.x), abs(velocity.y), abs(velocity.z))
         end
+
+        if vv > 0 then
+            damage = max(damage - vv * projectile_velocity_dmg_mul, 0)
+        end
+
+        -- Reduce the item's damage.
+        self.tool_capabilities.damage_groups.fleshy = max(self.tool_capabilities.damage_groups.fleshy - damage, 0)
+        
+        -- Knockback.
+        object:add_velocity(multiply(dir, calculate_knockback(puncher, nil, time_from_last_punch, tool_capabilities, dir, distance(object:get_pos(), puncher:get_pos()), damage)))
+        object:set_hp(object:get_hp() - damage)
+        
+        return true
     end,
 
     die = function(self, pos)
-        -- On death drop the item.
+        -- Drop the item while giving it the same velocity.
         if not pos then
             pos = self.object:get_pos()
         end
@@ -306,6 +331,11 @@ minetest.register_entity("pvp_revamped:projectile", {
         end
 
         self.object:remove()
+    end,
+
+    on_death = function(self)
+        -- On death drop the item.
+        self:die()
     end
 })
 
@@ -383,7 +413,7 @@ minetest.register_on_mods_loaded(function()
 
                     -- Prevent spam blocking.
                     if not data.block or time - data.block.time > full_block_interval then
-                        data.block = {pool = block_pool, time = time, duration = duration}
+                        data.block = {pool = block_pool, name = k, time = time, duration = duration}
                         data.shield = nil
                     end
 
@@ -1109,11 +1139,11 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
 
         if front then
             -- Ignore the victim's speed if you hit them in the front.
-            vv = abs(hitter_velocity.x) + abs(hitter_velocity.y) + abs(hitter_velocity.z)
+            vv = max(abs(hitter_velocity.x), abs(hitter_velocity.y), abs(hitter_velocity.z))
         else
             -- Subtract the victim's velocity from the aggressor if they where not hit in the front.
             local v2 = player:get_player_velocity()
-            vv = abs(hitter_velocity.x) - abs(v2.x) + abs(hitter_velocity.y) - abs(v2.y) + abs(hitter_velocity.z) - abs(v2.z)
+            vv = max(abs(hitter_velocity.x) - abs(v2.x), abs(hitter_velocity.y) - abs(v2.y), abs(hitter_velocity.z) - abs(v2.z))
         end
 
         if vv > 0 then
@@ -1139,7 +1169,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     local item_name = wielded_item:get_name()
 
     -- Process if the player is blocking with a tool or not.
-    if front and not data_throw and data_block and data_block.pool > 0 then
+    if front and not data_throw and data_block and data_block.pool > 0 and data_block.name == item_name then
         -- Block the damage and add it as wear to the tool.
         wielded_item:add_wear(((damage - full_punch_interval) / 75) * block_wear_mul)
         player:set_wielded_item(wielded_item)
