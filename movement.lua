@@ -123,6 +123,11 @@ minetest.register_globalstep(function(dtime)
         timer = 0
     end
 
+    -- sneak + RMB = armor inv shield block.
+    if (not last_control.sneak or not last_control.RMB) and control.sneak and control.RMB then
+        com_send("pvp_revamped:shield_block", "block")
+    end
+
     last_control = control
 end)
 

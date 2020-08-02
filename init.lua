@@ -54,6 +54,7 @@ local projectile_throw_style_dip = 1
 local projectile_throw_style_spinning = 2
 local lag = 0
 local projectile_data
+local armor_3d
 local player_data = {}
 local player_persistent_data = {}
 
@@ -71,6 +72,7 @@ local deserialize = minetest.deserialize
 local add_item = minetest.add_item
 local add_entity = minetest.add_entity
 local calculate_knockback = minetest.calculate_knockback
+local get_item_group = minetest.get_item_group
 local maxn = table.maxn
 local add = vector.add
 local multiply = vector.multiply
@@ -91,11 +93,7 @@ local rad45 = pi * 0.25
 local rad90 = pi * 0.5
 local rad360 = pi * 2
 
-local function get_player_data(player, name)
-    if not name then
-        name = player:get_player_name()
-    end
-
+local function get_player_data(name)
     local data = player_data[name] or {}
 
     if not player_data[name] then
@@ -398,13 +396,35 @@ minetest.register_on_mods_loaded(function()
             local old_on_place = v.on_place
             local old_on_drop = v.on_drop
             
+            -- Write new capabilities if they are nil.
+            tool_capabilities.block_pool = tool_capabilities.block_pool or block_pool
+            tool_capabilities.full_block_interval = tool_capabilities.full_block_interval or full_block_interval
+            tool_capabilities.duration = tool_capabilities.duration or duration
+            
             if block_pool > 0 then
                 -- Allow the tool to block damage.
                 local function block_action(user)
                     local name = user:get_player_name()
 
                     -- Cancel if the player is throwing something.
-                    if get_player_data(user, name).throw then
+                    if get_player_data(name).throw then
+                        return
+                    end
+
+                    local player_pdata = player_persistent_data[name]
+                    local control_bits = user:get_player_control_bits()
+
+                    -- Use 3d_armor inv shield if available.
+                    if armor_3d and player_pdata.inventory_armor_shield and (player_pdata.use_shield or floor(control_bits / 64) % 2 == 1) then
+                        local data_shield = player_pdata.inventory_armor_shield
+                        local data = player_data[name]
+
+                        data.shield = {pool = data_shield.block_pool, name = data_shield.name, index = data_shield.index, time = get_us_time(), duration = data_shield.duration, armor_inv = true}
+                        data.block = nil
+                        player_data[name] = data
+                        
+                        user:set_properties{damage_texture_modifier = ""}
+
                         return
                     end
 
@@ -435,7 +455,7 @@ minetest.register_on_mods_loaded(function()
                     local name = itemstack:get_name()
                     local player_name = dropper:get_player_name()
                     local control_bits = dropper:get_player_control_bits()
-                    local throw_data = get_player_data(dropper, player_name).throw
+                    local throw_data = get_player_data(player_name).throw
 
                     -- If in the process of throwing, either LMB, RMB, or item name is not the same then return the old function.
                     if throw_data or dropper:get_wielded_item():get_name() ~= name or (floor(control_bits / 128) % 2 ~= 1 and floor(control_bits / 256) % 2 ~= 1) then 
@@ -446,13 +466,14 @@ minetest.register_on_mods_loaded(function()
                     player_data[player_name].throw = throw_data
 
                     return itemstack
-                end})
+                end, tool_capabilities = tool_capabilities})
             end
         elseif max_armor_use and v.groups and v.groups.armor_shield then
             -- Block feature for shields.
-            local armor_heal = v.groups.armor_heal or 0
-            local armor_use = v.groups.armor_use or 0
-            local armor_shield = v.groups.armor_shield or 1
+            local groups = v.groups
+            local armor_heal = groups.armor_heal or 0
+            local armor_use = groups.armor_use or 0
+            local armor_shield = groups.armor_shield or 1
             local old_on_secondary_use = v.on_secondary_use
             local old_on_place = v.on_place
             local fleshy = 1
@@ -464,13 +485,34 @@ minetest.register_on_mods_loaded(function()
             local block_pool = max_armor_use - armor_use + (armor_heal + armor_shield + fleshy) * shield_pool_mul
             local duration = shield_duration + (armor_use + armor_heal + armor_shield + fleshy) * shield_duration_mul
 
+            -- Write new capabilities if they are nil.
+            groups.block_pool = groups.block_pool or block_pool
+            groups.duration = groups.duration or duration
+
             if block_pool > 0 then
                 -- Allow the shield to block damage.
                 local function block_action(user)
                     local name = user:get_player_name()
 
                     -- Cancel if the player is throwing something.
-                    if get_player_data(user, name).throw then
+                    if get_player_data(name).throw then
+                        return
+                    end
+
+                    local player_pdata = player_persistent_data[name]
+                    local control_bits = user:get_player_control_bits()
+
+                    -- Use 3d_armor inv shield if available.
+                    if armor_3d and player_pdata.inventory_armor_shield and (player_pdata.use_shield or floor(control_bits / 64) % 2 == 1) then
+                        local data_shield = player_pdata.inventory_armor_shield
+                        local data = player_data[name]
+
+                        data.shield = {pool = data_shield.block_pool, name = data_shield.name, index = data_shield.index, time = get_us_time(), duration = data_shield.duration, armor_inv = true}
+                        data.block = nil
+                        player_data[name] = data
+                        
+                        user:set_properties{damage_texture_modifier = ""}
+
                         return
                     end
 
@@ -493,7 +535,7 @@ minetest.register_on_mods_loaded(function()
                     block_action(placer)
 
                     return old_on_place(itemstack, placer, pointed_thing)
-                end})
+                end, groups = groups})
             end
         end
     end
@@ -569,7 +611,7 @@ minetest.register_globalstep(function(dtime)
                     local gravity = projectile_gravity
                     local spin
 
-                    if full_throw > time then
+                    if full_throw > time + server_lag then
                         local re = (full_throw - time) * projectile_half_throw_mul
 
                         if re > 0.5 then
@@ -712,7 +754,7 @@ if sscsm then
 
     -- Helper function to check and set the dodge cooldown.
     local function dodge(name, player, number)
-        local dodge_data = get_player_data(player, name)
+        local dodge_data = get_player_data(name)
         
         if not dodge_data.dodge then
             dodge_data.dodge = {[number] = get_us_time()}
@@ -744,7 +786,7 @@ if sscsm then
     
     -- Helper function to check and set the barrel_roll cooldown.
     local function barrel_roll(name, player, number, x, z)
-        local barrel_roll_data = get_player_data(player, name)
+        local barrel_roll_data = get_player_data(name)
 
         if not barrel_roll_data.barrel_roll then
             barrel_roll_data.barrel_roll = {[number] = {time = get_us_time(), x = x, z = z}}
@@ -792,7 +834,7 @@ if sscsm then
     end)
 
     local function dash(player, name, dash_key, x, y, z)
-        local dash_data = get_player_data(player, name)
+        local dash_data = get_player_data(name)
         
         if not dash_data.dash then
             dash_data.dash = {[dash_key] = get_us_time()}
@@ -836,6 +878,25 @@ if sscsm then
             end
         end
     end)
+
+    -- Channel for shield_block request.
+    if minetest.global_exists("armor") then
+        sscsm.register_on_com_receive("pvp_revamped:shield_block", function(name, msg)
+            if msg and type(msg) == "string" then
+                local data_shield = player_persistent_data[name].inventory_armor_shield
+
+                if data_shield then
+                    local data = get_player_data(name)
+
+                    data.shield = {pool = data_shield.block_pool, name = data_shield.name, index = data_shield.index, time = get_us_time(), duration = data_shield.duration, armor_inv = true}
+                    data.block = nil
+                    player_data[name] = data
+
+                    get_player_by_name(name):set_properties{damage_texture_modifier = ""}
+                end
+            end
+        end)
+    end
 end
 
 -- Create an empty data sheet for the player.
@@ -906,7 +967,7 @@ end)
 -- Do the damage calculations when the player gets hit.
 minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, tool_capabilities, dir, damage)
     local name = player:get_player_name()
-    local victim_data = get_player_data(player, name)
+    local victim_data = get_player_data(name)
 
     -- If the player is dodging return true.
     if victim_data.active_barrel_rolls or victim_data.active_dodges then
@@ -914,7 +975,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     end
 
     local hitter_name = hitter:get_player_name()
-    local hitter_data = get_player_data(hitter, hitter_name)
+    local hitter_data = get_player_data(hitter_name)
     
     -- Cancel any attack if the hitter is in barrel_roll or dodge mode.
     -- Or if the hitter is in the process of throwing.
@@ -1182,6 +1243,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         end
 
         victim_data.block = data_block
+
         return true
     elseif data_block then
         -- Block attempt failed.
@@ -1191,7 +1253,7 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
     local data_shield = victim_data.shield
 
     -- Process if the player is blocking with a shield or not.
-    if data_shield and not data_throw and data_shield.pool > 0 and data_shield.name == item_name and (front or side) then
+    if data_shield and not data_shield.armor_inv and not data_throw and data_shield.pool > 0 and data_shield.name == item_name and (front or side) then
         -- Block the damage and add it as wear to the tool.
         local axe_wear = 0
 
@@ -1212,7 +1274,41 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         end
 
         victim_data.shield = data_shield
+
         return true
+    elseif armor_3d and data_shield and data_shield.armor_inv and not data_throw and data_shield.pool > 0 and (front or side) then
+        local inv = minetest.get_inventory({type = "detached", name = name .. "_armor"})
+
+        if inv then
+            -- Block the damage and add it as wear to the tool.
+            local axe_wear = 0
+            local index = player_persistent_data[name].inventory_armor_shield.index
+            local stack = inv:get_stack("armor", index)
+
+            if tool_capabilities and tool_capabilities.damage_groups and tool_capabilities.damage_groups.shield_dmg then
+                axe_wear = tool_capabilities.damage_groups.shield_dmg
+            end
+
+            -- Wear down the shield plus axe damage.
+            stack:add_wear((((damage - full_punch_interval) / 75) * block_wear_mul) + axe_wear)
+            inv:set_stack("armor", index, stack)
+            -- pool minus damage + axe_wear.
+            data_shield.pool = data_shield.pool - (damage + axe_wear)
+
+            -- Remove shield table if pool is zero or below.
+            if data_shield.pool <= 0 then
+                victim_data.shield = nil
+                return true
+            end
+
+            victim_data.shield = data_shield
+            
+            return true
+        else
+            -- Shield block attempt failed.
+            player_persistent_data[name].inventory_armor_shield = nil
+            victim_data.shield = nil
+        end
     elseif data_shield then
         -- Shield block attempt failed.
         victim_data.shield = nil
@@ -1322,8 +1418,9 @@ minetest.register_chatcommand("throw_style", {
     end
 })
 
--- See if armor_3d mod is a thing here.
+-- See if the mod armor_3d is a thing here.
 if minetest.global_exists("armor") then
+    armor_3d = true
     -- Cmd for changing the way you block incoming damage.
     minetest.register_chatcommand("use_shield", {
         params = "[<boolean>]: Change how you block incoming damage.",
@@ -1349,4 +1446,60 @@ if minetest.global_exists("armor") then
             return false, "Only parameters: 'true', and 'false' are accepted."
         end
     })
+
+    local old_save_armor_inventory = armor.save_armor_inventory
+    local old_load_armor_inventory = armor.load_armor_inventory
+
+    armor.save_armor_inventory = function(self, player)
+        local _, inv = self:get_valid_player(player)
+
+        -- Create new shield inv data.
+        if inv then
+            for i, stack in pairs(inv:get_list("armor")) do
+                if stack:get_count() == 1 then
+                    local name = stack:get_name()
+                    local armor_shield = get_item_group(name, "armor_shield") or 0
+
+                    if armor_shield > 0 then
+                        local groups = stack:get_definition().groups
+
+                        player_persistent_data[player:get_player_name()].inventory_armor_shield = {name = name, index = i, block_pool = groups.block_pool, duration = groups.duration}
+                        
+                        return old_save_armor_inventory(self, player)
+                    end
+                end
+            end
+        end
+
+        player_persistent_data[player:get_player_name()].inventory_armor_shield = nil
+
+        return old_save_armor_inventory(self, player)
+    end
+
+    armor.load_armor_inventory = function(self, player)
+        local _, inv = self:get_valid_player(player)
+        local results = old_load_armor_inventory(self, player)
+
+        -- Create new shield inv data.
+        if inv then
+            for i, stack in pairs(inv:get_list("armor")) do
+                if stack:get_count() == 1 then
+                    local name = stack:get_name()
+                    local armor_shield = get_item_group(name, "armor_shield") or 0
+
+                    if armor_shield > 0 then
+                        local groups = stack:get_definition().groups
+
+                        player_persistent_data[player:get_player_name()].inventory_armor_shield = {name = name, index = i, block_pool = groups.block_pool, duration = groups.duration}
+                        
+                        return results
+                    end
+                end
+            end
+        end
+
+        player_persistent_data[player:get_player_name()].inventory_armor_shield = nil
+
+        return results
+    end
 end
