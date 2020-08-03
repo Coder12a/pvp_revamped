@@ -1452,8 +1452,6 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         for i = #hitter_hitdata, 1, -1 do
             local hd = hitter_hitdata[i]
 
-            minetest.log(dump(tool_capabilities))
-            
             if not hd.resolved and hd.name == name then
                 if floor(hitter:get_player_control_bits() / 256) % 2 == 1 then
                     -- Attempt to parry the attack if RMB is down.
@@ -1468,8 +1466,6 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
                     local counter_dmg_mul = tool_capabilities.counter_dmg_mul or counter_dmg_mul
 
                     hd.damage = -(hd.damage + (damage * counter_dmg_mul))
-
-                    minetest.log(hd.damage)
                 else
                     -- Reduce, remove, or reverse the damage and resolve the clash.
                     -- Negative damage will be applied to the hitter.
