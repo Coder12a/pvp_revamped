@@ -52,6 +52,10 @@ local projectile_dip_gravity_mul = 1.2
 local projectile_dip_velocity_dmg_mul = {x = 1, y = 2, z = 1}
 local projectile_throw_style_dip = 1
 local projectile_throw_style_spinning = 2
+local parry_dmg_mul = 1.2
+local counter_dmg_mul = 1.5
+local clash_duration = 150000
+local counter_duration = 100000
 local lag = 0
 local projectile_data
 local armor_3d
@@ -74,6 +78,7 @@ local add_entity = minetest.add_entity
 local calculate_knockback = minetest.calculate_knockback
 local get_item_group = minetest.get_item_group
 local maxn = table.maxn
+local insert = table.insert
 local add = vector.add
 local multiply = vector.multiply
 local subtract = vector.subtract
@@ -396,10 +401,13 @@ minetest.register_on_mods_loaded(function()
             local old_on_place = v.on_place
             local old_on_drop = v.on_drop
             
-            -- Write new capabilities if they are nil.
+            -- Override some custom capabilities if they are nil.
             tool_capabilities.block_pool = tool_capabilities.block_pool or block_pool
-            tool_capabilities.full_block_interval = tool_capabilities.full_block_interval or full_block_interval
             tool_capabilities.duration = tool_capabilities.duration or duration
+            tool_capabilities.parry_dmg_mul = tool_capabilities.parry_dmg_mul or parry_dmg_mul
+            tool_capabilities.clash_def_mul = tool_capabilities.clash_def_mul or 0.5
+            tool_capabilities.counter_dmg_mul = tool_capabilities.counter_dmg_mul or counter_dmg_mul
+            tool_capabilities.counter_duration = tool_capabilities.counter_duration or counter_duration
             
             if block_pool > 0 then
                 -- Allow the tool to block damage.
@@ -741,6 +749,40 @@ minetest.register_globalstep(function(dtime)
             active = true
         end
 
+        if v.hit then
+            local hit_data = v.hit
+            local hp = player:get_hp()
+            local hp_change
+
+            for i = #hit_data, 1, -1 do
+                local data = hit_data[i]
+
+                if data.resolved or data.time + clash_duration + server_lag < get_us_time() then
+                    local damage = data.damage
+                    
+                    if damage > 0 then
+                        hp = hp - damage
+                        hp_change = true
+                    elseif damage < 0 then
+                        local hitter = get_player_by_name(data.name)
+
+                        hitter:set_hp(hitter:get_hp() + damage)
+                    end
+
+                    local count = #hit_data
+
+                    hit_data[i] = hit_data[count]
+                    hit_data[count] = nil
+                end
+            end
+
+            if hp_change then
+                player:set_hp(hp)
+            end
+
+            active = true
+        end
+
         if not active then
             player_data[k] = nil
         end
@@ -1023,6 +1065,8 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         _dir = hitter:get_look_dir()
         hitter_velocity = hitter:get_player_velocity()
     end
+
+    tool_capabilities = item.tool_capabilities
 
     if item and item.range then
         range = item.range
@@ -1378,11 +1422,59 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         player:set_properties{damage_texture_modifier = player_persistent_data[name].damage_texture_modifier}
     end
 
+    -- If there is a damage queue for the hitter tigger the clash.
+    local hitter_hitdata = hitter_data.hit
+    
+    if hitter_hitdata then
+        for i = #hitter_hitdata, 1, -1 do
+            local hd = hitter_hitdata[i]
+
+            minetest.log(dump(tool_capabilities))
+            
+            if not hd.resolved and hd.name == name then
+                if floor(hitter:get_player_control_bits() / 256) % 2 == 1 then
+                    -- Attempt to parry the attack if RMB is down.
+                    local parry_dmg_mul = tool_capabilities.parry_dmg_mul or parry_dmg_mul
+                    local clash_def_mul = tool_capabilities.clash_def_mul or 0
+                    local c_damage = damage * clash_def_mul
+                    
+                    hd.damage = max(hd.damage - (damage + c_damage) * parry_dmg_mul, 0)
+                elseif full_punch and tool_capabilities.counter_duration and hd.time + tool_capabilities.counter_duration + lag + get_player_information(hitter_name).avg_jitter * 1000000 > get_us_time() then
+                    -- All damage gets reversed on counter.
+                    -- Current damage gets added to it plus the damage multipliable.
+                    local counter_dmg_mul = tool_capabilities.counter_dmg_mul or counter_dmg_mul
+
+                    hd.damage = -(hd.damage + (damage * counter_dmg_mul))
+
+                    minetest.log(hd.damage)
+                else
+                    -- Reduce, remove, or reverse the damage and resolve the clash.
+                    -- Negative damage will be applied to the hitter.
+                    local clash_def_mul = tool_capabilities.clash_def_mul or 0
+                    local c_damage = damage * clash_def_mul
+
+                    hd.damage = hd.damage - damage
+
+                    if hd.damage > 0 and hd.damage - c_damage < 0 then
+                        hd.damage = 0
+                    elseif hd.damage > 0 and hd.damage - c_damage >= 0 then
+                        hd.damage = hd.damage - c_damage
+                    end
+                end
+
+                hd.resolved = true
+
+                break
+            end
+        end
+    elseif victim_data.hit then
+        insert(victim_data.hit, 1, {name = hitter_name, damage = damage, time = get_us_time()})
+    else
+        victim_data.hit = {{name = hitter_name, damage = damage, time = get_us_time()}}
+    end
+
     -- Save new player data to the table.
     player_data[name] = victim_data
-
-    -- Damage the player.
-    player:set_hp(hp - damage, "punch")
 
     return true
 end)
