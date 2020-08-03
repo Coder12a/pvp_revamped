@@ -794,6 +794,21 @@ if sscsm then
     sscsm.register({name = "pvp_revamped:movement",
                     file = minetest.get_modpath("pvp_revamped") .. "/movement.lua"})
 
+    local function remove_hits(name)
+        local hit_data = get_player_data(name).hit
+
+        for i = #hit_data, 1, -1 do
+            local data = hit_data[i]
+
+            if not data.resolved then
+                local count = #hit_data
+                
+                hit_data[i] = hit_data[count]
+                hit_data[count] = nil
+            end
+        end
+    end
+
     -- Helper function to check and set the dodge cooldown.
     local function dodge(name, player, number)
         local dodge_data = get_player_data(name)
@@ -801,9 +816,13 @@ if sscsm then
         if not dodge_data.dodge then
             dodge_data.dodge = {[number] = get_us_time()}
             player:set_properties{damage_texture_modifier = ""}
+            -- Clear out any hit data on dodge.
+            remove_hits(name)
         elseif dodge_data.dodge and not dodge_data.dodge[number] then
             dodge_data.dodge[number] = get_us_time()
             player:set_properties{damage_texture_modifier = ""}
+            -- Clear out any hit data on dodge.
+            remove_hits(name)
         end
     end
 
@@ -833,9 +852,13 @@ if sscsm then
         if not barrel_roll_data.barrel_roll then
             barrel_roll_data.barrel_roll = {[number] = {time = get_us_time(), x = x, z = z}}
             player:set_properties{damage_texture_modifier = ""}
+            -- Clear out any hit data on barrel roll.
+            remove_hits(name)
         elseif barrel_roll_data.barrel_roll and not barrel_roll_data.barrel_roll[number] then
             barrel_roll_data.barrel_roll[number] = {time = get_us_time(), x = x, z = z}
             player:set_properties{damage_texture_modifier = ""}
+            -- Clear out any hit data on barrel roll.
+            remove_hits(name)
         else
             return
         end
