@@ -3,7 +3,7 @@
 New pvp game mechanics are introduced such as evasive maneuvers, damage blocking, and weapon throwing. Also, the damage system was overhauled, players now have hit points that do different amount of damage.
 
 # optional dependencies
-[sscsm](https://forum.minetest.net/viewtopic.php?t=23504) - Needed to preform dodging and barrel rolling.
+[sscsm](https://forum.minetest.net/viewtopic.php?t=23504) - Needed for preforming dodge and barrel roll maneuvers.
 
 [3d_armor](https://forum.minetest.net/viewtopic.php?t=4654) - Shields are given a buff such as blocking damage 180 degrees around the player when activated.
 
