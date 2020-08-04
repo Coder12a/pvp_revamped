@@ -1535,7 +1535,7 @@ if minetest.global_exists("armor") then
     -- Cmd for changing the way you block incoming damage.
     minetest.register_chatcommand("use_shield", {
         params = "[<boolean>]: Change how you block incoming damage.",
-        description = "If set to true the shield plate placed in the armor inventory will be used to block all incoming damage when block key is pressed.",
+        description = "If set to true, the shield plate placed in the armor inventory will be used to block all incoming damage when block key is pressed.",
         privs = {
             interact = true,
         },

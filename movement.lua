@@ -133,7 +133,7 @@ end)
 
 sscsm.register_chatcommand("tap_speed", {
     params = "<seconds>",
-    description = "Set how fast you want the double tap speed for dashing and dodging.",
+    description = "Set the double tap sensitivity for dashing and dodging.",
     func = function(param)
         if param and tonumber(param) then
             timer_max = tonumber(param)
@@ -147,7 +147,7 @@ sscsm.register_chatcommand("tap_speed", {
 
 sscsm.register_chatcommand("tap_speed_reset", {
     params = "<none>",
-    description = "Resets the tap speed to 0.15 seconds.",
+    description = "Resets the tap sensitivity to 0.15 seconds.",
     func = function(param)
         timer_max = 0.15
 
