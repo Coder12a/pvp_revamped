@@ -9,7 +9,7 @@ New pvp game mechanics are introduced such as evasive maneuvers, damage blocking
 
 # controls
 
-#### movement and dodging controls
+#### movement and dodging
 
 Double tap any of the movement keys to barrel roll. **(Requires sscsm)**
 
@@ -23,22 +23,30 @@ Using any tool that can damage. Press RMB *(Right mouse button or double tap)* k
 
 Holding down the RMB after activating will maintain the block.
 
-sneak key + RMB will block using the shield in the armor inventory. **(Requires shields from 3d_armor)**
+Be careful though tool blocking has a guard pool taking damage reduces it on till the block breaks and you must re-activate the tool block or take damage.
+
+#### shield blocking
+Same as tool blocking but shields have a bigger guard pool and have can cover 180 degrees around the player. **(Requires shields from 3d_armor)**
+
+sneak key + RMB or setting will block using the shield in the armor inventory. **(Requires shields from 3d_armor)**
+
+
 
 #### throwing
 
 To throw a tool hold down either LMB or RMB then press the drop key to start charging up the toss.
 
-When you are ready to throw release LMB or RMB.
+When you are ready to throw release either LMB or RMB.
 
 All tools have different throw speeds, charge times, and damages.
 
 # commands
+
 **/tap_speed** [seconds] Set the double tap sensitivity for dashing and dodging. **(Requires sscsm)**
 
 **/tap_speed_reset** [none] Resets the tap sensitivity to 0.15 seconds. **(Requires sscsm)**
 
-**/use_shield** [boolean] If set to true, the shield plate placed in the armor inventory will be used to block all incoming damage when block key is pressed.
+**/use_shield** [boolean] If set to true, the shield plate placed in the armor inventory will be used to block all incoming damage when RMB is pressed.
 
 **/throw_style** Change how you throw an item. Accepted values are [none|spin|dip]
 
@@ -65,7 +73,7 @@ Damage to the:
 5. Kneecaps stagger the player. **(Slows them down for a short amount of time)**
 
 #### side related damage.
-When hitting another player an angle.
+When hitting another player at an angle.
 
 Damage from the:
 1. *Front* gives a damage multipliable. **(Off by default)**
@@ -81,7 +89,7 @@ Damage from:
 3. *Below* gives a damage multipliable.
 
 #### velocity related damage.
-Damage from speed related on all three-position axis.
+Velocity damage requires a full punch. Damage from speed is related to the hitter’s velocity. Hitting the victim on the side or back while they are running will reduce this multiplier. If the victim is running at you and you hit them in the front you get a full damage multiplier.
 
 #### distance related damage.
 Damage from range the distance is spilt into three parts by a multipliable:

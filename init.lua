@@ -780,6 +780,11 @@ minetest.register_globalstep(function(dtime)
                 player:set_hp(hp)
             end
 
+            -- If this table contains no more hits remove it.
+            if maxn(hit_data) < 1 then
+                v.hit = nil
+            end
+
             active = true
         end
 
