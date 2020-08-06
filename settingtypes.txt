@@ -1,0 +1,127 @@
+[Limb Height]
+# Any punch directed at or above this height will be headshots.
+pvp_revamped.head_height (Head height) float 1.35
+# Any punch directed at or above this height will hit the torso.
+pvp_revamped.torso_height (Torso height) float 0.75
+# Any punch directed at or above this height will be legshots.
+pvp_revamped.leg_height (Leg height) float 0.45
+# Any punch directed at or above this height will hit the kneecaps.
+pvp_revamped.knee_height (Knee height) float 0.375
+
+[Duration]
+# Base value for the tool block duration in microseconds.
+pvp_revamped.block_duration (Block duration) float 100000
+# Total duration for player dodge in microseconds.
+pvp_revamped.dodge_duration (Dodge duration) float 350000
+# Total duration for barrel roll in microseconds.
+pvp_revamped.barrel_roll_duration (Barrel roll duration) float 500000
+# This multiplies fleshy subtracted by full_punch_interval by the given value in microseconds. The resulting value is an add-on to the block duration.
+pvp_revamped.block_duration_mul (Block duration multiply) float 100000
+# Base value for the shield block duration in microseconds.
+pvp_revamped.shield_duration (Shield duration) float 100000
+# armor_use + armor_heal + armor_shield + fleshy multiplied by this value in microseconds. The resulting value is an add-on to the shield block duration.
+pvp_revamped.shield_duration_mul (Shield duration multiply) float 100000
+# In microseconds. Set how long you want damage to sit in the queue.
+pvp_revamped.clash_duration (Clash duration) float 150000
+# In microseconds. Set the time frame where a player can counter a punch.
+pvp_revamped.counter_duration (Counter duration) float 100000
+# Multiples full_punch_interval by this value in seconds.
+pvp_revamped.block_interval_mul (Block interval mul) float 0.15
+
+[cooldown]
+# Set how long it takes to perform another dodge. In microseconds.
+pvp_revamped.dodge_cooldown (Dodge cooldown) float 1500000
+# Set how long it takes to perform another barrel roll. In microseconds.
+pvp_revamped.barrel_roll_cooldown (Barrel roll cooldown) float 5000000
+# Set how long it takes to perform another dash. In microseconds.
+pvp_revamped.dash_cooldown (Dash cooldown) float 2000000
+# Set how long it takes to perform another aerial dodge. In microseconds.
+pvp_revamped.dodge_aerial_cooldown (Dodge aerial cooldown) float 5000000
+# Set how long it takes to perform another aerial barrel roll. In microseconds.
+pvp_revamped.barrel_roll_aerial_cooldown (Barrel roll aerial cooldown) float 10000000
+# Set how long it takes to perform another aerial dash. In microseconds.
+pvp_revamped.dash_aerial_cooldown (Dash aerial cooldown) float 4000000
+
+[Damage]
+# Multiplies how much wear an axe does to a shield, also affects the shield’s guard pool.
+pvp_revamped.shield_axe_dmg_mul (Shield axe damage) float 20
+# Damage multiplier for headshots.
+pvp_revamped.head_dmg_mul (Head damage multiplier) float 1.2
+# Damage multiplier for torso shots.
+pvp_revamped.torso_dmg_mul (Torso damage multiplier) float 1.0
+# Damage multiplier for arm shots.
+pvp_revamped.arm_dmg_mul (Arm damage multiplier) float 0.6
+# Damage multiplier for leg shots.
+pvp_revamped.leg_dmg_mul (Leg damage multiplier) float 0.7
+# Damage multiplier for punching a player facing you.
+pvp_revamped.front_dmg_mul (Front damage multiplier) float nil
+# Damage multiplier for punching a player on any side.
+pvp_revamped.side_dmg_mul (Side damage multiplier) float 1.05
+# Damage multiplier for punching a player on the back.
+pvp_revamped.back_dmg_mul (Back damage multiplier) float 1.1
+# Damage multiplier for being above the victim's y position.
+pvp_revamped.elevated_dmg_mul (Elevated damage multiplier) float 1.5
+# Damage multiplier for having equal y position.
+pvp_revamped.equal_height_dmg_mul (Equal height damage multiplier) float nil
+# Damage multiplier for being below the victim's y position.
+pvp_revamped.lower_elevation_dmg_mul (Lower elevation damage multiplier) float 0.9
+# Damage multiplier for how fast the hitter is moving.
+pvp_revamped.velocity_dmg_mul (Velocity damage multiplier) float 0.15
+# Damage multiplier when the hitter is within optimal range.
+pvp_revamped.optimal_distance_dmg_mul (Optimal damage multiplier) float 0.2
+# Damage multiplier when the hitter is at maximum range.
+pvp_revamped.maximum_distance_dmg_mul (Maximum damage multiplier) float 0.1
+# Damage multiplier for thrown tools.
+pvp_revamped.projectile_dmg_mul (Projectile damage multiplier) float 0.5
+# Damage multiplier for a thrown tool's velocity.
+pvp_revamped.projectile_velocity_dmg_mul (Projectile velocity damage multiplier) float 0.01
+# Damage multiplier for velocity of a tool thrown with dip style. Values are x, y, and z separated by spaces.
+pvp_revamped.projectile_dip_velocity_dmg_mul (Dip velocity damage multiplier) string "1 2 1"
+# Damage multiplier for how much damage gets mitigated when performing a parry attack.
+pvp_revamped.parry_dmg_mul (Parry damage multiplier) float 1.2
+# Damage multiplier when performing a counter.
+pvp_revamped.counter_dmg_mul (Counter damage multiplier) float 1.5
+# This is used to divide the range value into two parts. The parts being optimal and maximum range.
+pvp_revamped.optimal_distance_mul (Optimal distance multiplier) float 0.625
+
+[Maneuvers]
+# Set how fast eachh player should dash.
+pvp_revamped.dash_speed (Dash speed) float 9.2
+# Set the barrel roll speed.
+pvp_revamped.barrel_roll_speed (Barrel roll speed) float 1
+
+[Blocking]
+# The value is used to multiply tool damage subtracted by full_punch_interval.
+pvp_revamped.block_pool_mul (Block pool multiplier) float 2
+# The value is used to multiply armor use, heal, shield, and fleshy after they are added first.
+pvp_revamped.shield_pool_mul (Shield pool multiplier) float 4
+# Used to multiply wear from any tool blocking or shielding.
+pvp_revamped.block_wear_mul (Block wear multiplier) float 9000
+
+[Effects]
+# Value is used to decrease the chance of disarming another player.
+pvp_revamped.disarm_chance_mul (Disarm chance multiplier) float 2
+# Value multiplies damage subtracted by health to set the new walk speed.
+pvp_revamped.knee_stagger_mul (Knee stagger multiplier) float 1.5
+# Value multiplies damage subtracted by health to set the new walk speed.
+pvp_revamped.leg_stagger_mul (Leg stagger multiplier) float 0.8
+# Multiplies the stagger duration In microseconds.
+pvp_revamped.stagger_mul (Stagger multiplier) float 100000
+
+[Projectile]
+# This value multiplies full_punch_interval to create the time need to fully throw a tool at max speed and damage.
+pvp_revamped.projectile_full_throw_mul (Full throw multiplier) float 2
+# Reduces both speed and damage when not thrown at full time in microseconds.
+pvp_revamped.projectile_half_throw_mul (Half throw multiplier) float 0.000005
+# Multiplies tool range by this value to create the throw speed.
+pvp_revamped.projectile_speed_mul (Throw speed multiplier) float 3
+# Sets the projectile's downward acceleration.
+pvp_revamped.projectile_gravity (Gravity) float -10
+# Sets how often the projectile would check collision and speed.
+pvp_revamped.projectile_step (Step) float 0.15
+# Set the ray cast collision range in nodes.
+pvp_revamped.projectile_dist (Projectile collision range) float 5
+# Spin throw style gravity modifier.
+pvp_revamped.projectile_spinning_gravity_mul (Spinning gravity multiplier) float 0.5
+# Dip throw style gravity modifier.
+pvp_revamped.projectile_dip_gravity_mul (Dip gravity multiplier) float 1.2

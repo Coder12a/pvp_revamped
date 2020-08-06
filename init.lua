@@ -1,61 +1,65 @@
-local head_height = 1.35
-local torso_height = 0.75
-local leg_height = 0.45
-local knee_height = 0.375
-local block_duration = 100000
-local dodge_duration = 350000
-local barrel_roll_duration = 500000
-local dodge_cooldown = 1500000
-local barrel_roll_cooldown = 5000000
-local dash_cooldown = 2000000
-local dodge_aerial_cooldown = 5000000
-local barrel_roll_aerial_cooldown = 10000000
-local dash_aerial_cooldown = 4000000
-local dash_speed = 9.2
-local barrel_roll_speed = 1
-local disarm_chance_mul = 2
-local leg_stagger_mul = 0.8
-local knee_stagger_mul = 1.5
-local stagger_mul = 100000
-local block_duration_mul = 100000
-local block_interval_mul = 0.15
-local block_pool_mul = 2
-local shield_duration = 100000
-local shield_duration_mul = 100000
-local shield_pool_mul = 4
-local block_wear_mul = 9000
-local shield_axe_dmg_mul = 20
-local head_dmg_mul = 1.2
-local torso_dmg_mul = 1.0
-local arm_dmg_mul = 0.6
-local leg_dmg_mul = 0.7
-local front_dmg_mul = nil
-local side_dmg_mul = 1.05
-local back_dmg_mul = 1.1
-local elevated_dmg_mul = 1.5
-local equal_height_dmg_mul = nil
-local lower_elevation_dmg_mul = 0.9
-local velocity_dmg_mul = 0.15
-local optimal_distance_dmg_mul = 0.2
-local maximum_distance_dmg_mul = 0.1
-local optimal_distance_mul = 0.625
-local projectile_full_throw_mul = 2
-local projectile_half_throw_mul = 0.000005
-local projectile_speed_mul = 3
-local projectile_gravity = -10
-local projectile_dmg_mul = 0.5
-local projectile_velocity_dmg_mul = 0.01
-local projectile_step = 0.15
-local projectile_dist = 5
-local projectile_spinning_gravity_mul = 0.5
-local projectile_dip_gravity_mul = 1.2
-local projectile_dip_velocity_dmg_mul = {x = 1, y = 2, z = 1}
+local head_height = tonumber(minetest.settings:get("pvp_revamped.head_height")) or 1.35
+local torso_height = tonumber(minetest.settings:get("pvp_revamped.torso_height")) or 0.75
+local leg_height = tonumber(minetest.settings:get("pvp_revamped.leg_height")) or 0.45
+local knee_height = tonumber(minetest.settings:get("pvp_revamped.knee_height")) or 0.375
+local block_duration = tonumber(minetest.settings:get("pvp_revamped.block_duration")) or 100000
+local dodge_duration = tonumber(minetest.settings:get("pvp_revamped.dodge_duration"))  or 350000
+local barrel_roll_duration = tonumber(minetest.settings:get("pvp_revamped.barrel_roll_duration"))  or 500000
+local dodge_cooldown = tonumber(minetest.settings:get("pvp_revamped.dodge_cooldown"))  or 1500000
+local barrel_roll_cooldown = tonumber(minetest.settings:get("pvp_revamped.barrel_roll_cooldown"))  or 5000000
+local dash_cooldown = tonumber(minetest.settings:get("pvp_revamped.dash_cooldown"))  or 2000000
+local dodge_aerial_cooldown = tonumber(minetest.settings:get("pvp_revamped.dodge_aerial_cooldown"))  or 5000000
+local barrel_roll_aerial_cooldown = tonumber(minetest.settings:get("pvp_revamped.barrel_roll_aerial_cooldown"))  or 10000000
+local dash_aerial_cooldown = tonumber(minetest.settings:get("pvp_revamped.dash_aerial_cooldown"))  or 4000000
+local dash_speed = tonumber(minetest.settings:get("pvp_revamped.dash_speed")) or 9.2
+local barrel_roll_speed = tonumber(minetest.settings:get("pvp_revamped.barrel_roll_speed")) or 1
+local disarm_chance_mul = tonumber(minetest.settings:get("pvp_revamped.disarm_chance_mul")) or 2
+local leg_stagger_mul = tonumber(minetest.settings:get("pvp_revamped.leg_stagger_mul")) or 0.8
+local knee_stagger_mul = tonumber(minetest.settings:get("pvp_revamped.knee_stagger_mul")) or 1.5
+local stagger_mul = tonumber(minetest.settings:get("pvp_revamped.stagger_mul")) or 100000
+local block_duration_mul = tonumber(minetest.settings:get("pvp_revamped.block_duration_mul")) or 100000
+local block_interval_mul = tonumber(minetest.settings:get("pvp_revamped.block_interval_mul")) or 0.15
+local block_pool_mul = tonumber(minetest.settings:get("pvp_revamped.block_pool_mul")) or 2
+local shield_duration = tonumber(minetest.settings:get("pvp_revamped.shield_duration")) or 100000
+local shield_duration_mul = tonumber(minetest.settings:get("pvp_revamped.shield_duration_mul")) or 100000
+local shield_pool_mul = tonumber(minetest.settings:get("pvp_revamped.shield_pool_mul")) or 4
+local block_wear_mul = tonumber(minetest.settings:get("pvp_revamped.block_wear_mul")) or 9000
+local shield_axe_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.shield_axe_dmg_mul")) or 20
+local head_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.head_dmg_mul")) or 1.2
+local torso_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.torso_dmg_mul")) or 1.0
+local arm_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.arm_dmg_mul")) or 0.6
+local leg_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.leg_dmg_mul")) or 0.7
+local front_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.front_dmg_mul")) or nil
+local side_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.side_dmg_mul")) or 1.05
+local back_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.back_dmg_mul")) or 1.1
+local elevated_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.elevated_dmg_mul")) or 1.5
+local equal_height_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.equal_height_dmg_mul")) or nil
+local lower_elevation_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.lower_elevation_dmg_mul")) or 0.9
+local velocity_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.velocity_dmg_mul")) or 0.15
+local optimal_distance_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.optimal_distance_dmg_mul")) or 0.2
+local maximum_distance_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.maximum_distance_dmg_mul")) or 0.1
+local optimal_distance_mul = tonumber(minetest.settings:get("pvp_revamped.optimal_distance_mul")) or 0.625
+local projectile_full_throw_mul = tonumber(minetest.settings:get("pvp_revamped.projectile_full_throw_mul")) or 2
+local projectile_half_throw_mul = tonumber(minetest.settings:get("pvp_revamped.projectile_half_throw_mul")) or 0.000005
+local projectile_speed_mul = tonumber(minetest.settings:get("pvp_revamped.projectile_speed_mul")) or 3
+local projectile_gravity = tonumber(minetest.settings:get("pvp_revamped.projectile_gravity")) or -10
+local projectile_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.projectile_dmg_mul")) or 0.5
+local projectile_velocity_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.projectile_velocity_dmg_mul")) or 0.01
+local projectile_step = tonumber(minetest.settings:get("pvp_revamped.projectile_step")) or 0.15
+local projectile_dist = tonumber(minetest.settings:get("pvp_revamped.projectile_dist")) or 5
+local projectile_spinning_gravity_mul = tonumber(minetest.settings:get("pvp_revamped.projectile_spinning_gravity_mul")) or 0.5
+local projectile_dip_gravity_mul = tonumber(minetest.settings:get("pvp_revamped.projectile_dip_gravity_mul")) or 1.2
+local xyz = minetest.settings:get("pvp_revamped.projectile_dip_velocity_dmg_mul") or {1, 2, 1}
+if xyz and type(xyz) == "string" then
+    xyz = minetest.settings:get("pvp_revamped.projectile_dip_velocity_dmg_mul"):split(" ")
+end
+local projectile_dip_velocity_dmg_mul = {x = tonumber(xyz[1]), y = tonumber(xyz[2]), z = tonumber(xyz[3])}
 local projectile_throw_style_dip = 1
 local projectile_throw_style_spinning = 2
-local parry_dmg_mul = 1.2
-local counter_dmg_mul = 1.5
-local clash_duration = 150000
-local counter_duration = 100000
+local parry_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.parry_dmg_mul")) or 1.2
+local counter_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.counter_dmg_mul")) or 1.5
+local clash_duration = tonumber(minetest.settings:get("pvp_revamped.clash_duration")) or 150000
+local counter_duration = tonumber(minetest.settings:get("pvp_revamped.counter_duration")) or 100000
 local lag = 0
 local projectile_data
 local armor_3d
@@ -359,7 +363,7 @@ minetest.register_on_mods_loaded(function()
             local choppy = tool_capabilities.groupcaps.choppy
             local uxml = choppy.uses * choppy.maxlevel
 
-            tool_capabilities.damage_groups.shield_dmg = uxml * shield_axe_dmg_mul
+            tool_capabilities.damage_groups.shield = uxml * shield_axe_dmg_mul
 
             minetest.override_item(k, {tool_capabilities = tool_capabilities})
         end
@@ -1329,8 +1333,8 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
         -- Block the damage and add it as wear to the tool.
         local axe_wear = 0
 
-        if tool_capabilities and tool_capabilities.damage_groups and tool_capabilities.damage_groups.shield_dmg then
-            axe_wear = tool_capabilities.damage_groups.shield_dmg
+        if tool_capabilities and tool_capabilities.damage_groups and tool_capabilities.damage_groups.shield then
+            axe_wear = tool_capabilities.damage_groups.shield
         end
 
         -- Wear down the shield plus axe damage.
@@ -1357,8 +1361,8 @@ minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, 
             local index = player_persistent_data[name].inventory_armor_shield.index
             local stack = inv:get_stack("armor", index)
 
-            if tool_capabilities and tool_capabilities.damage_groups and tool_capabilities.damage_groups.shield_dmg then
-                axe_wear = tool_capabilities.damage_groups.shield_dmg
+            if tool_capabilities and tool_capabilities.damage_groups and tool_capabilities.damage_groups.shield then
+                axe_wear = tool_capabilities.damage_groups.shield
             end
 
             -- Wear down the shield plus axe damage.
