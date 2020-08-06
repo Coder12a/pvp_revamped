@@ -806,14 +806,16 @@ if sscsm then
     local function remove_hits(name)
         local hit_data = get_player_data(name).hit
 
-        for i = #hit_data, 1, -1 do
-            local data = hit_data[i]
+        if hit_data then
+            for i = #hit_data, 1, -1 do
+                local data = hit_data[i]
 
-            if not data.resolved then
-                local count = #hit_data
-                
-                hit_data[i] = hit_data[count]
-                hit_data[count] = nil
+                if not data.resolved then
+                    local count = #hit_data
+                    
+                    hit_data[i] = hit_data[count]
+                    hit_data[count] = nil
+                end
             end
         end
     end

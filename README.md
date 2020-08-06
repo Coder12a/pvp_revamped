@@ -316,7 +316,7 @@ Used to multiply wear from any tool blocking or shielding.
 pvp_revamped.block_wear_mul = 9000
 ```
 
-#### Effects
+#### effects
 Value is used to decrease the chance of disarming another player.
 ``` lua
 pvp_revamped.disarm_chance_mul = 2
