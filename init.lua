@@ -1040,8 +1040,22 @@ minetest.register_on_shutdown(function()
     end
 end)
 
+local calculate_knockback = minetest.calculate_knockback
+
+--Disable knockback on stagger.
+function minetest.calculate_knockback(player, hitter, time_from_last_punch, tool_capabilities, dir, distance, damage)
+    local pdata = player_data[player:get_player_name()]
+
+    if pdata and pdata.stagger then
+        return 0.0
+    end
+    
+    return calculate_knockback(player, hitter, time_from_last_punch, tool_capabilities, dir, distance, damage)
+end
+
 -- Do the damage calculations when the player gets hit.
-minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, tool_capabilities, dir, damage)
+-- This needs to be the first punch function to prevent knockback on a staggered player.
+insert(minetest.registered_on_punchplayers, 1, function(player, hitter, time_from_last_punch, tool_capabilities, dir, damage)
     local name = player:get_player_name()
     local victim_data = get_player_data(name)
 
