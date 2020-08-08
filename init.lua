@@ -81,6 +81,8 @@ local add_item = minetest.add_item
 local add_entity = minetest.add_entity
 local calculate_knockback = minetest.calculate_knockback
 local get_item_group = minetest.get_item_group
+local get_connected_players = minetest.get_connected_players
+local get_inventory = minetest.get_inventory
 local maxn = table.maxn
 local insert = table.insert
 local add = vector.add
@@ -124,6 +126,7 @@ minetest.register_entity("pvp_revamped:projectile", {
         static_save = false,
         is_visible = false
     },
+    step = 0,
     timer = 0,
     spin_rate = 0,
     throw_style = 0,
@@ -164,6 +167,7 @@ minetest.register_entity("pvp_revamped:projectile", {
 
         self.tool_capabilities = tool_capabilities
         self.itemname = itemname
+        self.step = tool_capabilities.projectile_step or projectile_step
     end,
 
     throw = function(self, user, speed, acceleration, damage, throw_style, spin_rate)
@@ -200,7 +204,8 @@ minetest.register_entity("pvp_revamped:projectile", {
             owner = self.owner,
             tool_capabilities = self.tool_capabilities,
             throw_style = self.throw_style,
-            spin_rate = self.spin_rate
+            spin_rate = self.spin_rate,
+            step = self.step
         })
     end,
     
@@ -217,9 +222,10 @@ minetest.register_entity("pvp_revamped:projectile", {
             self.tool_capabilities = data.tool_capabilities
             self.throw_style = data.throw_style
             self.spin_rate = data.spin_rate
+            self.step = data.step
         end
 
-        self.timer = projectile_step
+        self.timer = self.step
 
         self:set_item()
     end,
@@ -244,12 +250,13 @@ minetest.register_entity("pvp_revamped:projectile", {
             object:set_rotation({x = old_rotation.x, y = old_rotation.y, z = asin(-normalize(object:get_velocity()).y) + rad45})
         end
 
-        if self.timer >= projectile_step then
+        if self.timer >= self.step then
             local velocity = object:get_velocity()
             
             local dir = normalize(velocity)
             local pos = object:get_pos()
             local p1 = add(pos, dir)
+            local projectile_dist = tool_capabilities.projectile_dist or projectile_dist
             local p2 = add(pos, multiply(dir, projectile_dist))
             local ray = raycast(p1, p2)
 
@@ -259,10 +266,13 @@ minetest.register_entity("pvp_revamped:projectile", {
 
                     if obj:get_armor_groups().fleshy then
                         -- Add up the velocity damage.
+                        local projectile_velocity_dmg_mul = tool_capabilities.projectile_velocity_dmg_mul or projectile_velocity_dmg_mul
+
                         if projectile_velocity_dmg_mul and tool_capabilities.damage_groups and tool_capabilities.damage_groups.fleshy then
                             local vv
                             
                             if throw_style and throw_style == projectile_throw_style_dip then
+                                local projectile_dip_velocity_dmg_mul = tool_capabilities.projectile_dip_velocity_dmg_mul or projectile_dip_velocity_dmg_mul
                                 vv = max(abs(velocity.x * projectile_dip_velocity_dmg_mul.x), abs(velocity.y * projectile_dip_velocity_dmg_mul.y), abs(velocity.z * projectile_dip_velocity_dmg_mul.z))
                             else
                                 vv = max(abs(velocity.x), abs(velocity.y), abs(velocity.z))
@@ -362,6 +372,7 @@ minetest.register_on_mods_loaded(function()
             local tool_capabilities = v.tool_capabilities
             local choppy = tool_capabilities.groupcaps.choppy
             local uxml = choppy.uses * choppy.maxlevel
+            local shield_axe_dmg_mul = tool_capabilities.shield_axe_dmg_mul or shield_axe_dmg_mul
 
             tool_capabilities.damage_groups.shield = uxml * shield_axe_dmg_mul
 
@@ -371,6 +382,7 @@ minetest.register_on_mods_loaded(function()
         if v.tool_capabilities and v.tool_capabilities.full_punch_interval then
             -- Calculate the time it takes to fully throw an item at max velocity and damage.
             local tool_capabilities = v.tool_capabilities
+            local projectile_full_throw_mul = tool_capabilities.projectile_full_throw_mul or projectile_full_throw_mul
 
             tool_capabilities.full_throw = (v.tool_capabilities.full_punch_interval * projectile_full_throw_mul) * 1000000
             
@@ -381,6 +393,7 @@ minetest.register_on_mods_loaded(function()
             -- Calculate the item throw speed.
             local tool_capabilities = v.tool_capabilities
             local range = 4
+            local projectile_speed_mul = tool_capabilities.projectile_speed_mul or projectile_speed_mul
 
             if v.tool_capabilities.range then
                 range = v.tool_capabilities.range
@@ -398,8 +411,12 @@ minetest.register_on_mods_loaded(function()
             local tool_capabilities = v.tool_capabilities
             local full_punch_interval = tool_capabilities.full_punch_interval
             local punch_number = max(tool_capabilities.damage_groups.fleshy - full_punch_interval, 0.1)
+            local block_pool_mul = tool_capabilities.block_pool_mul or block_pool_mul
             local block_pool = punch_number * block_pool_mul
+            local block_interval_mul = tool_capabilities.block_interval_mul or block_interval_mul
             local full_block_interval = (full_punch_interval * block_interval_mul) * 1000000
+            local block_duration = tool_capabilities.block_duration or block_duration
+            local block_duration_mul = tool_capabilities.block_duration_mul or block_duration_mul
             local duration = block_duration + (punch_number * block_duration_mul)
             local old_on_secondary_use = v.on_secondary_use
             local old_on_place = v.on_place
@@ -494,7 +511,9 @@ minetest.register_on_mods_loaded(function()
                 fleshy = v.armor_groups.fleshy
             end
             
+            local shield_pool_mul = groups.shield_pool_mul or shield_pool_mul
             local block_pool = max_armor_use - armor_use + (armor_heal + armor_shield + fleshy) * shield_pool_mul
+            local shield_duration = groups.shield_duration or shield_duration
             local duration = shield_duration + (armor_use + armor_heal + armor_shield + fleshy) * shield_duration_mul
 
             -- Write new capabilities if they are nil.
@@ -620,10 +639,15 @@ minetest.register_globalstep(function(dtime)
                     local damage = tool_capabilities.damage_groups.fleshy
                     local time = get_us_time()
                     local full_throw = throw_data.time + tool_capabilities.full_throw
+                    local projectile_gravity = tool_capabilities.projectile_gravity or projectile_gravity
                     local gravity = projectile_gravity
+                    local projectile_dmg_mul = tool_capabilities.projectile_dmg_mul or projectile_dmg_mul
+                    local projectile_spinning_gravity_mul = tool_capabilities.projectile_spinning_gravity_mul or projectile_spinning_gravity_mul
+                    local projectile_dip_gravity_mul = tool_capabilities.projectile_dip_gravity_mul or projectile_dip_gravity_mul
                     local spin
 
                     if full_throw > time + server_lag then
+                        local projectile_half_throw_mul = tool_capabilities.projectile_half_throw_mul or projectile_half_throw_mul
                         local re = (full_throw - time) * projectile_half_throw_mul
 
                         if re > 0.5 then
@@ -1054,8 +1078,7 @@ function minetest.calculate_knockback(player, hitter, time_from_last_punch, tool
 end
 
 -- Do the damage calculations when the player gets hit.
--- This needs to be the first punch function to prevent knockback on a staggered player.
-insert(minetest.registered_on_punchplayers, 1, function(player, hitter, time_from_last_punch, tool_capabilities, dir, damage)
+local function punch(player, hitter, time_from_last_punch, tool_capabilities, dir, damage)
     local name = player:get_player_name()
     local victim_data = get_player_data(name)
 
@@ -1066,13 +1089,13 @@ insert(minetest.registered_on_punchplayers, 1, function(player, hitter, time_fro
 
     local hitter_name = hitter:get_player_name()
     local hitter_data = get_player_data(hitter_name)
-    
+
     -- Cancel any attack if the hitter is in barrel_roll or dodge mode.
     -- Or if the hitter is in the process of throwing.
     if (hitter_data.active_barrel_rolls or hitter_data.active_dodges or hitter_data.throw) and not projectile_data then
         return true
     end
-    
+
     local pos1
     local pos2 = player:get_pos()
     local hitter_pos
@@ -1137,6 +1160,16 @@ insert(minetest.registered_on_punchplayers, 1, function(player, hitter, time_fro
         local newpos = subtract(intersection_point, pos2)
         local y1 = intersection_point.y
         local y2 = pos2.y
+        
+        -- Get the tool's modifiers or use the default ones.
+        local head_height = tool_capabilities.head_height or head_height
+        local torso_height = tool_capabilities.torso_height or torso_height
+        local leg_height = tool_capabilities.leg_height or leg_height
+        local knee_height = tool_capabilities.knee_height or knee_height
+        local head_dmg_mul = tool_capabilities.head_dmg_mul or head_dmg_mul
+        local torso_dmg_mul = tool_capabilities.torso_dmg_mul or torso_dmg_mul
+        local arm_dmg_mul = tool_capabilities.arm_dmg_mul or arm_dmg_mul
+        local leg_dmg_mul = tool_capabilities.leg_dmg_mul or leg_dmg_mul
 
         if head_height and head_dmg_mul and y1 > y2 + head_height then
             -- If the player was hit in the head add extra damage.
@@ -1197,6 +1230,9 @@ insert(minetest.registered_on_punchplayers, 1, function(player, hitter, time_fro
         end
 
         local dist = distance(hitter_pos, pos2)
+        local optimal_distance_dmg_mul = tool_capabilities.optimal_distance_dmg_mul or optimal_distance_dmg_mul
+        local optimal_distance_mul = tool_capabilities.optimal_distance_mul or optimal_distance_mul
+        local maximum_distance_dmg_mul = tool_capabilities.maximum_distance_dmg_mul or maximum_distance_dmg_mul
         local optimal_range = range * optimal_distance_mul
         local dist_rounded = dist + 0.5 - (dist + 0.5) % 1
 
@@ -1229,9 +1265,13 @@ insert(minetest.registered_on_punchplayers, 1, function(player, hitter, time_fro
             re_yaw = re_yaw - rad360
         end
 
+        local back_dmg_mul = tool_capabilities.back_dmg_mul or back_dmg_mul
+
         if (re_yaw <= 0.7853982 and re_yaw >= 0) or (re_yaw <= 6.283185 and re_yaw >= 5.497787) then
             -- Hit on the front.
             front = true
+
+            local front_dmg_mul = tool_capabilities.front_dmg_mul or front_dmg_mul
 
             if front_dmg_mul then
                 damage = damage * front_dmg_mul
@@ -1239,6 +1279,8 @@ insert(minetest.registered_on_punchplayers, 1, function(player, hitter, time_fro
         elseif re_yaw <= 2.356194 then
             -- Hit on the left-side.
             side = true
+
+            local side_dmg_mul = tool_capabilities.side_dmg_mul or side_dmg_mul
 
             if side_dmg_mul then
                 damage = damage * side_dmg_mul
@@ -1249,6 +1291,8 @@ insert(minetest.registered_on_punchplayers, 1, function(player, hitter, time_fro
         else
             -- Hit on the right-side.
             side = true
+
+            local side_dmg_mul = tool_capabilities.side_dmg_mul or side_dmg_mul
 
             if side_dmg_mul then
                 damage = damage * side_dmg_mul
@@ -1275,6 +1319,10 @@ insert(minetest.registered_on_punchplayers, 1, function(player, hitter, time_fro
         hit(projectile_intersection_point)
     end
 
+    local elevated_dmg_mul = tool_capabilities.elevated_dmg_mul or elevated_dmg_mul
+    local lower_elevation_dmg_mul = tool_capabilities.lower_elevation_dmg_mul or lower_elevation_dmg_mul
+    local equal_height_dmg_mul = tool_capabilities.equal_height_dmg_mul or equal_height_dmg_mul
+
     if elevated_dmg_mul and pos1.y > pos2.y then
         -- Give a damage bonus or drawback to the aggressor if they are above the victim.
         damage = damage * elevated_dmg_mul
@@ -1285,8 +1333,10 @@ insert(minetest.registered_on_punchplayers, 1, function(player, hitter, time_fro
         -- Give a damage bonus or drawback to the aggressor if they are equal footing with the victim.
         damage = damage * equal_height_dmg_mul
     end
-    
+
     -- This damage bonus can only be used if this is a full interval punch.
+    local velocity_dmg_mul = tool_capabilities.velocity_dmg_mul or velocity_dmg_mul
+
     if full_punch and velocity_dmg_mul then
         local vv
 
@@ -1320,6 +1370,7 @@ insert(minetest.registered_on_punchplayers, 1, function(player, hitter, time_fro
     local hp = player:get_hp()
     local wielded_item = player:get_wielded_item()
     local item_name = wielded_item:get_name()
+    local block_wear_mul = tool_capabilities.block_wear_mul or block_wear_mul
 
     -- Process if the player is blocking with a tool or not.
     if front and not data_throw and data_block and data_block.pool > 0 and data_block.name == item_name then
@@ -1369,7 +1420,7 @@ insert(minetest.registered_on_punchplayers, 1, function(player, hitter, time_fro
 
         return true
     elseif armor_3d and data_shield and data_shield.armor_inv and not data_throw and data_shield.pool > 0 and (front or side) then
-        local inv = minetest.get_inventory({type = "detached", name = name .. "_armor"})
+        local inv = get_inventory({type = "detached", name = name .. "_armor"})
 
         if inv then
             -- Block the damage and add it as wear to the tool.
@@ -1413,6 +1464,8 @@ insert(minetest.registered_on_punchplayers, 1, function(player, hitter, time_fro
         
         if item2 and not data_shield and not data_block and item2.tool_capabilities and item2.tool_capabilities.damage_groups.fleshy and item2.tool_capabilities.full_punch_interval then
             -- Compute the chance to disarm by the victim's hp and tool stats.
+            local disarm_chance_mul = tool_capabilities.disarm_chance_mul or disarm_chance_mul
+
             chance = random(0, ((hp + (item2.tool_capabilities.damage_groups.fleshy - item2.tool_capabilities.full_punch_interval) * disarm_chance_mul) - damage) + 1)
         elseif not item2 and not data_shield and not data_block then
             -- Compute the chance to disarm by the victim's hp.
@@ -1437,6 +1490,7 @@ insert(minetest.registered_on_punchplayers, 1, function(player, hitter, time_fro
 
         data_stagger = {}
         data_stagger.time = get_us_time()
+        local stagger_mul = tool_capabilities.stagger_mul or stagger_mul
         data_stagger.value = (1 / speed) * stagger_mul
         victim_data.stagger = data_stagger
     end
@@ -1444,6 +1498,7 @@ insert(minetest.registered_on_punchplayers, 1, function(player, hitter, time_fro
     -- Process if the player was hit in the leg.
     if leg then
         -- Stagger the player.
+        local leg_stagger_mul = tool_capabilities.leg_stagger_mul or leg_stagger_mul
         local speed = min(1 / max(damage - hp, 1) * leg_stagger_mul, 0.1)
         local data_stagger = victim_data.stagger
 
@@ -1452,6 +1507,7 @@ insert(minetest.registered_on_punchplayers, 1, function(player, hitter, time_fro
         end
     elseif knee then
         -- Stagger the player.
+        local knee_stagger_mul = tool_capabilities.knee_stagger_mul or knee_stagger_mul
         local speed = min(1 / max(damage - hp, 1.5) * knee_stagger_mul, 0.1)
         local data_stagger = victim_data.stagger
 
@@ -1472,7 +1528,7 @@ insert(minetest.registered_on_punchplayers, 1, function(player, hitter, time_fro
 
     -- If there is a damage queue for the hitter tigger the clash.
     local hitter_hitdata = hitter_data.hit
-    
+
     if hitter_hitdata then
         for i = #hitter_hitdata, 1, -1 do
             local hd = hitter_hitdata[i]
@@ -1521,7 +1577,15 @@ insert(minetest.registered_on_punchplayers, 1, function(player, hitter, time_fro
     player_data[name] = victim_data
 
     return true
-end)
+end
+
+-- This needs to be the first punch function to prevent knockback on a staggered player.
+insert(minetest.registered_on_punchplayers, 1, punch)
+
+minetest.callback_origins[punch] = {
+    mod = "pvp_revamped",
+    name = "register_on_punchplayer"
+}
 
 -- Cmd for changing the way you throw items.
 minetest.register_chatcommand("throw_style", {

@@ -114,8 +114,17 @@ Any damage from a punch in pvp is put in a queue for a duration. This makes it p
 3.	*Parry* when a player parry’s an attack all damage and bonus damages are used to mitigate the attack. This does not harm the aggressor.
 4.	*Counter* reverses all damage plus bonus damage to the aggressor. (Must be within counter duration and full punch only)
 
+### effects
+
+#### disarming
+Hitting a player in the arms gives a random chance to cause them to drop whatever item they are holding. The chance to disarm is affected by what item they are holding and the player health. Lesser health means better chance at disarming.
+
+#### staggering
+The stagger effect makes a player move slow. To stagger a player hit them in the legs or kneecaps.
+
 ### maneuvers
 Explaining in detail the different evasive maneuvers you can pull off in-game.
+
 #### movement
 You have four ground dashes and four aerial dashes, bring a total of eight possible dashes. When performing a dash, the player hops and flies forward or sideways depending on the key press. Dash has a cooldown so use them wisely.
 
@@ -349,7 +358,7 @@ pvp_revamped.projectile_speed_mul = 3
 ```
 Sets the projectile's downward acceleration.
 ``` lua
-pvp_revamped.projectile_gravity =-10
+pvp_revamped.projectile_gravity = -10
 ```
 Sets how often the projectile would check collision and speed.
 ``` lua
@@ -369,3 +378,114 @@ pvp_revamped.projectile_dip_gravity_mul = 1.2
 ```
 
 # api
+Tools can define their own values independent of the config.
+tool capabilities can work in registered armor as well, but not the other around.
+
+### tool capabilities
+``` lua
+tool_capabilities = {
+    -- Wears both a shield's health and guard pool.
+    damage_groups = {shield = 1000},
+    -- See head_height in config.
+    head_height = 1.35,
+    -- See torso_height in config.
+    torso_height = 0.75,
+    -- See leg_height in config.
+    leg_height = 0.45,
+    -- See knee_height in config.
+    knee_height = 0.375,
+    -- See block_duration in config.
+    block_duration = 100000,
+    -- See disarm_chance_mul in config.
+    disarm_chance_mul = 2,
+    -- See leg_stagger_mul in config.
+    leg_stagger_mul = 0.8,
+    -- See knee_stagger_mul in config.
+    knee_stagger_mul = 1.5,
+    -- See stagger_mul in config.
+    stagger_mul = 100000,
+    -- See block_duration_mul in config.
+    block_duration_mul = 100000,
+    -- See block_interval_mul in config.
+    block_interval_mul = 0.15,
+    -- See block_pool_mul in config.
+    block_pool_mul = 2,
+    -- See block_wear_mul in config.
+    block_wear_mul = 9000,
+    -- See shield_axe_dmg_mul in config.
+    shield_axe_dmg_mul = 20,
+    -- See head_dmg_mul in config.
+    head_dmg_mul = 1.2,
+    -- See torso_dmg_mul in config.
+    torso_dmg_mul = 1.0,
+    -- See arm_dmg_mul in config.
+    arm_dmg_mul = 0.6,
+    -- See leg_dmg_mul in config.
+    leg_dmg_mul = 0.7,
+    -- See front_dmg_mul in config.
+    front_dmg_mul = nil,
+    -- See side_dmg_mul in config.
+    side_dmg_mul = 1.05,
+    -- See back_dmg_mul in config.
+    back_dmg_mul = 1.1,
+    -- See elevated_dmg_mul in config.
+    elevated_dmg_mul = 1.5,
+    -- See equal_height_dmg_mul in config.
+    equal_height_dmg_mul = nil,
+    -- See lower_elevation_dmg_mul in config.
+    lower_elevation_dmg_mul = 0.9,
+    -- See velocity_dmg_mul in config.
+    velocity_dmg_mul = 0.15,
+    -- See optimal_distance_dmg_mul in config.
+    optimal_distance_dmg_mul = 0.2,
+    -- See maximum_distance_dmg_mul in config.
+    maximum_distance_dmg_mul = 0.1,
+    -- See optimal_distance_mul in config.
+    optimal_distance_mul = 0.625,
+    -- See projectile_full_throw_mul in config.
+    projectile_full_throw_mul = 2,
+    -- See projectile_half_throw_mul in config.
+    projectile_half_throw_mul = 0.000005,
+    -- See projectile_speed_mul in config.
+    projectile_speed_mul = 3,
+    -- See projectile_gravity in config.
+    projectile_gravity = -10,
+    -- See projectile_dmg_mul in config.
+    projectile_dmg_mul = 0.5,
+    -- See projectile_velocity_dmg_mul in config.
+    projectile_velocity_dmg_mul = 0.01,
+    -- See projectile_step in config.
+    projectile_step = 0.15,
+    -- See projectile_dist in config.
+    projectile_dist = 5,
+    -- See projectile_spinning_gravity_mul in config.
+    projectile_spinning_gravity_mul = 0.5,
+    -- See projectile_dip_gravity_mul in config.
+    projectile_dip_gravity_mul = 1.2,
+    -- See projectile_dip_velocity_dmg_mul in config.
+    projectile_dip_velocity_dmg_mul = {x = 1, y = 2, z = 1},
+    -- See parry_dmg_mul in config.
+    parry_dmg_mul = 1.2,
+    -- See counter_dmg_mul in config.
+    counter_dmg_mul = 1.5,
+    -- The clash defense multiplier.
+    clash_def_mul = 0.5,
+    -- See counter_duration in config.
+    counter_duration = 100000
+}
+```
+
+### shield groups only
+``` lua
+armor:register_armor("test:shield_test", {
+    groups = {
+        -- See shield_pool_mul in config.
+        shield_pool_mul = 4,
+        -- See shield_duration in config.
+        shield_duration = 100000,
+        -- The health of the guard pool when block is activated.
+        block_pool = 1960,
+        -- Guard pool's max duration in microseconds.
+        duration = 100802}
+})
+```
