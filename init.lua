@@ -1137,7 +1137,9 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         hitter_velocity = hitter:get_player_velocity()
     end
 
-    tool_capabilities = item.tool_capabilities
+    if item then
+        tool_capabilities = item.tool_capabilities
+    end
 
     if item and item.range then
         range = item.range
@@ -1230,21 +1232,21 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         end
 
         local dist = distance(hitter_pos, pos2)
-        local optimal_distance_dmg_mul = tool_capabilities.optimal_distance_dmg_mul or optimal_distance_dmg_mul
         local optimal_distance_mul = tool_capabilities.optimal_distance_mul or optimal_distance_mul
-        local maximum_distance_dmg_mul = tool_capabilities.maximum_distance_dmg_mul or maximum_distance_dmg_mul
-        local optimal_range = range * optimal_distance_mul
         local dist_rounded = dist + 0.5 - (dist + 0.5) % 1
 
         -- If the distance rounded is outside the range skip.
-        if dist_rounded <= range + 1 then
-        
+        if optimal_distance_mul and dist_rounded <= range + 1 then
+            local optimal_distance_dmg_mul = tool_capabilities.optimal_distance_dmg_mul or optimal_distance_dmg_mul
+            local maximum_distance_dmg_mul = tool_capabilities.maximum_distance_dmg_mul or maximum_distance_dmg_mul
+            local optimal_range = range * optimal_distance_mul
+
             -- Add or remove damage based on the distance.
-            -- Full punches are not affected by maximum distance.
-            if not full_punch and optimal_distance_mul and maximum_distance_dmg_mul and dist_rounded > optimal_range then
+            -- Full punches are not affected by any maximum distance.
+            if (not full_punch or maximum_distance_dmg_mul < 0) and maximum_distance_dmg_mul and dist_rounded > optimal_range then
                 damage = damage - range * maximum_distance_dmg_mul
-            elseif optimal_distance_mul and optimal_distance_dmg_mul and dist_rounded < optimal_range then
-                damage = damage + optimal_range - dist_rounded * optimal_distance_dmg_mul
+            elseif (not full_punch or optimal_distance_dmg_mul > 0) and optimal_distance_dmg_mul and dist_rounded < optimal_range then
+                damage = damage + range * optimal_distance_dmg_mul
             end
         end
 
