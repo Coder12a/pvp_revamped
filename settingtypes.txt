@@ -97,6 +97,12 @@ pvp_revamped.block_pool_mul (Block pool multiplier) float 2
 pvp_revamped.shield_pool_mul (Shield pool multiplier) float 4
 # Used to multiply wear from any tool blocking or shielding.
 pvp_revamped.block_wear_mul (Block wear multiplier) float 9000
+# Base time window to perform a hasty guard.
+pvp_revamped.hasty_guard_duration (Hasty guard duration) float 50000
+# Multiplies by the tool's full_punch_interval, and damage to add on to the duration.
+pvp_revamped.hasty_guard_mul (Hasty guard multiplier) float 1000
+# Multiplies by the shield's heal, armor_shield, and fleshy to add on to the duration.
+pvp_revamped.hasty_shield_mul (Hasty shield multiplier) float 1000
 
 [Effects]
 # Value is used to decrease the chance of disarming another player.

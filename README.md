@@ -113,6 +113,7 @@ Any damage from a punch in pvp is put in a queue for a duration. This makes it p
 2.	*Clash* happens when the victim hits back within the duration. Damage gets mitigated, removed, or reversed.
 3.	*Parry* when a player parry’s an attack all damage and bonus damages are used to mitigate the attack. This does not harm the aggressor.
 4.	*Counter* reverses all damage plus bonus damage to the aggressor. (Must be within counter duration and full punch only)
+5. *Hasty guard* when you block immediately after being hit you can block the any damage from any angle, but this has a small-time window to activate. (depends on config or tool settings)
 
 ### effects
 
@@ -324,6 +325,18 @@ Used to multiply wear from any tool blocking or shielding.
 ``` lua
 pvp_revamped.block_wear_mul = 9000
 ```
+Base time window to perform a hasty guard.
+``` lua
+pvp_revamped.hasty_guard_duration = 50000
+```
+Multiplies by the tool's full_punch_interval, and damage to add on to the duration.
+``` lua
+pvp_revamped.hasty_guard_mul = 1000
+```
+Multiplies by the shield's heal, armor_shield, and fleshy to add on to the duration.
+``` lua
+pvp_revamped.hasty_shield_mul = 1000
+```
 
 #### effects
 Value is used to decrease the chance of disarming another player.
@@ -471,7 +484,11 @@ tool_capabilities = {
     -- The clash defense multiplier.
     clash_def_mul = 0.5,
     -- See counter_duration in config.
-    counter_duration = 100000
+    counter_duration = 100000,
+    -- See hasty_guard_duration in config.
+    hasty_guard_duration = 50000,
+    -- See hasty_guard_mul in config.
+    hasty_guard_mul = 1000
 }
 ```
 
@@ -486,6 +503,11 @@ armor:register_armor("test:shield_test", {
         -- The health of the guard pool when block is activated.
         block_pool = 1960,
         -- Guard pool's max duration in microseconds.
-        duration = 100802}
+        duration = 100802,
+        -- See hasty_guard_duration in config.
+        hasty_guard_duration = 50000,
+        -- See hasty_shield_mul in config.
+        hasty_shield_mul = 1000}
+
 })
 ```

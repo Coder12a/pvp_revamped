@@ -60,6 +60,9 @@ local parry_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.parry_dmg_mul
 local counter_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.counter_dmg_mul")) or 1.5
 local clash_duration = tonumber(minetest.settings:get("pvp_revamped.clash_duration")) or 150000
 local counter_duration = tonumber(minetest.settings:get("pvp_revamped.counter_duration")) or 100000
+local hasty_guard_duration = tonumber(minetest.settings:get("pvp_revamped.hasty_guard_duration")) or 50000
+local hasty_guard_mul = tonumber(minetest.settings:get("pvp_revamped.hasty_guard_mul")) or 1000
+local hasty_shield_mul = tonumber(minetest.settings:get("pvp_revamped.hasty_shield_mul")) or 1000
 local lag = 0
 local projectile_data
 local armor_3d
@@ -421,6 +424,8 @@ minetest.register_on_mods_loaded(function()
             local old_on_secondary_use = v.on_secondary_use
             local old_on_place = v.on_place
             local old_on_drop = v.on_drop
+            local hasty_guard_mul = tool_capabilities.hasty_guard_mul or hasty_guard_mul
+            local hasty_guard_duration = tool_capabilities.hasty_guard_duration or hasty_guard_duration
             
             -- Override some custom capabilities if they are nil.
             tool_capabilities.block_pool = tool_capabilities.block_pool or block_pool
@@ -429,6 +434,7 @@ minetest.register_on_mods_loaded(function()
             tool_capabilities.clash_def_mul = tool_capabilities.clash_def_mul or 0.5
             tool_capabilities.counter_dmg_mul = tool_capabilities.counter_dmg_mul or counter_dmg_mul
             tool_capabilities.counter_duration = tool_capabilities.counter_duration or counter_duration
+            tool_capabilities.hasty_guard_duration = tool_capabilities.hasty_guard_duration or hasty_guard_duration + punch_number * hasty_guard_mul
             
             if block_pool > 0 then
                 -- Allow the tool to block damage.
@@ -442,13 +448,14 @@ minetest.register_on_mods_loaded(function()
 
                     local player_pdata = player_persistent_data[name]
                     local control_bits = user:get_player_control_bits()
+                    local time = get_us_time()
 
                     -- Use 3d_armor inv shield if available.
                     if armor_3d and player_pdata.inventory_armor_shield and (player_pdata.use_shield or floor(control_bits / 64) % 2 == 1) then
                         local data_shield = player_pdata.inventory_armor_shield
                         local data = player_data[name]
 
-                        data.shield = {pool = data_shield.block_pool, name = data_shield.name, index = data_shield.index, time = get_us_time(), duration = data_shield.duration, armor_inv = true}
+                        data.shield = {pool = data_shield.block_pool, name = data_shield.name, index = data_shield.index, initial_time = time, time = time, duration = data_shield.duration, hasty_guard_duration = data_shield.hasty_guard_duration, armor_inv = true}
                         data.block = nil
                         player_data[name] = data
                         
@@ -457,12 +464,11 @@ minetest.register_on_mods_loaded(function()
                         return
                     end
 
-                    local time = get_us_time()
                     local data = player_data[name]
 
                     -- Prevent spam blocking.
                     if not data.block or time - data.block.time > full_block_interval then
-                        data.block = {pool = block_pool, name = k, time = time, duration = duration}
+                        data.block = {pool = block_pool, name = k, initial_time = time, time = time, duration = duration, hasty_guard_duration = hasty_guard_duration}
                         data.shield = nil
                     end
 
@@ -511,14 +517,18 @@ minetest.register_on_mods_loaded(function()
                 fleshy = v.armor_groups.fleshy
             end
             
+            local value = armor_heal + armor_shield + fleshy
             local shield_pool_mul = groups.shield_pool_mul or shield_pool_mul
-            local block_pool = max_armor_use - armor_use + (armor_heal + armor_shield + fleshy) * shield_pool_mul
+            local block_pool = max_armor_use - armor_use + value * shield_pool_mul
             local shield_duration = groups.shield_duration or shield_duration
-            local duration = shield_duration + (armor_use + armor_heal + armor_shield + fleshy) * shield_duration_mul
+            local duration = shield_duration + (armor_use + value) * shield_duration_mul
+            local hasty_shield_mul = groups.hasty_shield_mul or hasty_shield_mul
 
             -- Write new capabilities if they are nil.
             groups.block_pool = groups.block_pool or block_pool
             groups.duration = groups.duration or duration
+            groups.hasty_guard_duration = groups.hasty_guard_duration or hasty_guard_duration
+            groups.hasty_guard_duration = groups.hasty_guard_duration + value * hasty_shield_mul
 
             if block_pool > 0 then
                 -- Allow the shield to block damage.
@@ -532,13 +542,14 @@ minetest.register_on_mods_loaded(function()
 
                     local player_pdata = player_persistent_data[name]
                     local control_bits = user:get_player_control_bits()
+                    local time = get_us_time()
 
                     -- Use 3d_armor inv shield if available.
                     if armor_3d and player_pdata.inventory_armor_shield and (player_pdata.use_shield or floor(control_bits / 64) % 2 == 1) then
                         local data_shield = player_pdata.inventory_armor_shield
                         local data = player_data[name]
 
-                        data.shield = {pool = data_shield.block_pool, name = data_shield.name, index = data_shield.index, time = get_us_time(), duration = data_shield.duration, armor_inv = true}
+                        data.shield = {pool = data_shield.block_pool, name = data_shield.name, index = data_shield.index, initial_time = time, time = time, duration = data_shield.duration, hasty_guard_duration = data_shield.hasty_guard_duration, armor_inv = true}
                         data.block = nil
                         player_data[name] = data
                         
@@ -549,7 +560,7 @@ minetest.register_on_mods_loaded(function()
 
                     local data = player_data[name]
 
-                    data.shield = {pool = block_pool, name = k, time = get_us_time(), duration = duration}
+                    data.shield = {pool = block_pool, name = k, initial_time = time, time = time, duration = duration, hasty_guard_duration = hasty_guard_duration}
                     data.block = nil
 
                     player_data[name] = data
@@ -578,19 +589,20 @@ minetest.register_globalstep(function(dtime)
     for k, v in pairs(player_data) do
         local server_lag = lag + get_player_information(k).avg_jitter * 1000000
         local player = get_player_by_name(k)
+        local time = get_us_time()
         local active
 
         if v.block then
             -- Check if the player is holding down the RMB key.
             if floor(player:get_player_control_bits() / 256) % 2 == 1 then
                 -- Update the block time.
-                v.block.time = get_us_time()
+                v.block.time = time
             end
 
             local block = v.block
             
             -- Remove the block table if it's past duration.
-            if block.time + block.duration + server_lag < get_us_time() then
+            if block.time + block.duration + server_lag < time then
                 -- Revert the damage texture modifier.
                 player:set_properties{damage_texture_modifier = player_persistent_data[k].damage_texture_modifier}
                 v.block = nil
@@ -603,13 +615,13 @@ minetest.register_globalstep(function(dtime)
             -- Check if the player is holding down the RMB key.
             if floor(player:get_player_control_bits() / 256) % 2 == 1 then
                 -- Update the shield time.
-                v.shield.time = get_us_time()
+                v.shield.time = time
             end
 
             local shield = v.shield
 
             -- Remove the shield table if it's past duration.
-            if shield.time + shield.duration + server_lag < get_us_time() then
+            if shield.time + shield.duration + server_lag < time then
                 -- Revert the damage texture modifier.
                 player:set_properties{damage_texture_modifier = player_persistent_data[k].damage_texture_modifier}
                 v.shield = nil
@@ -637,7 +649,6 @@ minetest.register_globalstep(function(dtime)
                     local tool_capabilities = throw_data.tool_capabilities
                     local throw_speed = tool_capabilities.throw_speed
                     local damage = tool_capabilities.damage_groups.fleshy
-                    local time = get_us_time()
                     local full_throw = throw_data.time + tool_capabilities.full_throw
                     local projectile_gravity = tool_capabilities.projectile_gravity or projectile_gravity
                     local gravity = projectile_gravity
@@ -677,7 +688,7 @@ minetest.register_globalstep(function(dtime)
             local stagger = v.stagger
 
             -- Check if the stagger duration expired. 
-            if stagger.time + stagger.value + server_lag < get_us_time() then
+            if stagger.time + stagger.value + server_lag < time then
                 -- Restore the player's physics.
                 get_player_by_name(k):set_physics_override({speed = 1, jump = 1})
                 v.stagger = nil
@@ -692,11 +703,11 @@ minetest.register_globalstep(function(dtime)
             -- Process the player's barrel_roll table cooldown.
             for j, l in pairs(v.barrel_roll) do
                 -- Find if it's aerial or not.
-                if j > 4 and l.time + barrel_roll_aerial_cooldown + server_lag < get_us_time() then
+                if j > 4 and l.time + barrel_roll_aerial_cooldown + server_lag < time then
                     v.barrel_roll[j] = nil
-                elseif j < 5 and l.time + barrel_roll_cooldown + server_lag < get_us_time() then
+                elseif j < 5 and l.time + barrel_roll_cooldown + server_lag < time then
                     v.barrel_roll[j] = nil
-                elseif l.time + barrel_roll_duration + server_lag > get_us_time() then
+                elseif l.time + barrel_roll_duration + server_lag > time then
 
                     local yaw = player:get_look_horizontal()
                     local co = cos(yaw)
@@ -733,11 +744,11 @@ minetest.register_globalstep(function(dtime)
             -- Process the player's dodge table cooldown.
             for j, l in pairs(v.dodge) do
                 -- Find if it's aerial or not.
-                if j > 4 and l + dodge_aerial_cooldown + server_lag < get_us_time() then
+                if j > 4 and l + dodge_aerial_cooldown + server_lag < time then
                     v.dodge[j] = nil
-                elseif j < 5 and l + dodge_cooldown + server_lag < get_us_time() then
+                elseif j < 5 and l + dodge_cooldown + server_lag < time then
                     v.dodge[j] = nil
-                elseif l + dodge_duration + server_lag > get_us_time() then
+                elseif l + dodge_duration + server_lag > time then
                     active_dodges = true
                 end
             end
@@ -762,9 +773,9 @@ minetest.register_globalstep(function(dtime)
             -- Process the player's dash table cooldown.
             for j, l in pairs(v.dash) do
                 -- Find if it's aerial or not.
-                if j > 4 and l + dash_aerial_cooldown + server_lag < get_us_time() then
+                if j > 4 and l + dash_aerial_cooldown + server_lag < time then
                     v.dash[j] = nil
-                elseif j < 5 and l + dash_cooldown + server_lag < get_us_time() then
+                elseif j < 5 and l + dash_cooldown + server_lag < time then
                     v.dash[j] = nil
                 end
             end
@@ -785,10 +796,14 @@ minetest.register_globalstep(function(dtime)
             for i = #hit_data, 1, -1 do
                 local data = hit_data[i]
 
-                if data.resolved or data.time + clash_duration + server_lag < get_us_time() then
+                if data.resolved or data.time + clash_duration + server_lag < time then
+                    local block = v.block
+                    local shield = v.shield
+
                     local damage = data.damage
                     
-                    if damage > 0 then
+                    -- If the player was able to pull off a hasty guard cancel the attack.
+                     if damage > 0 and not (block and block.initial_time + block.hasty_guard_duration + server_lag > time) and not (shield and shield.initial_time + shield.hasty_guard_duration + server_lag > time) then
                         hp = hp - damage
                         hp_change = true
                     elseif damage < 0 then
@@ -987,8 +1002,9 @@ if sscsm then
 
                 if data_shield then
                     local data = get_player_data(name)
+                    local time = get_us_time()
 
-                    data.shield = {pool = data_shield.block_pool, name = data_shield.name, index = data_shield.index, time = get_us_time(), duration = data_shield.duration, armor_inv = true}
+                    data.shield = {pool = data_shield.block_pool, name = data_shield.name, index = data_shield.index, initial_time = time, time = time, duration = data_shield.duration, hasty_guard_duration = data_shield.hasty_guard_duration, armor_inv = true}
                     data.block = nil
                     player_data[name] = data
 
@@ -1139,6 +1155,11 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
 
     if item then
         tool_capabilities = item.tool_capabilities
+    end
+
+    -- I got this rare error where tool_capabilities was nil so I put this here to safe guard.
+    if not tool_capabilities then
+        return true
     end
 
     if item and item.range then
@@ -1390,9 +1411,6 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         victim_data.block = data_block
 
         return true
-    elseif data_block then
-        -- Block attempt failed.
-        victim_data.block = nil
     end
 
     local data_shield = victim_data.shield
@@ -1427,36 +1445,38 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         if inv then
             -- Block the damage and add it as wear to the tool.
             local axe_wear = 0
-            local index = player_persistent_data[name].inventory_armor_shield.index
+            local inventory_armor_shield = player_persistent_data[name].inventory_armor_shield
+            local index = inventory_armor_shield.index
             local stack = inv:get_stack("armor", index)
 
             if tool_capabilities and tool_capabilities.damage_groups and tool_capabilities.damage_groups.shield then
                 axe_wear = tool_capabilities.damage_groups.shield
             end
 
-            -- Wear down the shield plus axe damage.
-            stack:add_wear((((damage - full_punch_interval) / 75) * block_wear_mul) + axe_wear)
-            inv:set_stack("armor", index, stack)
-            -- pool minus damage + axe_wear.
-            data_shield.pool = data_shield.pool - (damage + axe_wear)
+            if stack and stack:get_name() == inventory_armor_shield.name then
+                -- Wear down the shield plus axe damage.
+                stack:add_wear((((damage - full_punch_interval) / 75) * block_wear_mul) + axe_wear)
+                inv:set_stack("armor", index, stack)
+                -- pool minus damage + axe_wear.
+                data_shield.pool = data_shield.pool - (damage + axe_wear)
 
-            -- Remove shield table if pool is zero or below.
-            if data_shield.pool <= 0 then
-                victim_data.shield = nil
+                -- Remove shield table if pool is zero or below.
+                if data_shield.pool <= 0 then
+                    victim_data.shield = nil
+                    return true
+                end
+
+                victim_data.shield = data_shield
+                
                 return true
+            else
+                -- Remove the data if we either can't find the stack or the name is different.
+                player_persistent_data[name].inventory_armor_shield = nil
             end
-
-            victim_data.shield = data_shield
-            
-            return true
         else
-            -- Shield block attempt failed.
+            -- No inv so remove data.
             player_persistent_data[name].inventory_armor_shield = nil
-            victim_data.shield = nil
         end
-    elseif data_shield then
-        -- Shield block attempt failed.
-        victim_data.shield = nil
     end
 
     -- Process if the player was hit in the arm.
@@ -1490,11 +1510,9 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
     local function set_stagger_data(speed)
         player:set_physics_override({speed = speed, jump = speed})
 
-        data_stagger = {}
-        data_stagger.time = get_us_time()
         local stagger_mul = tool_capabilities.stagger_mul or stagger_mul
-        data_stagger.value = (1 / speed) * stagger_mul
-        victim_data.stagger = data_stagger
+        
+        victim_data.stagger = {time = get_us_time(), value = (1 / speed) * stagger_mul}
     end
 
     -- Process if the player was hit in the leg.
@@ -1574,6 +1592,9 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
     else
         victim_data.hit = {{name = hitter_name, damage = damage, time = get_us_time()}}
     end
+
+    victim_data.block = nil
+    victim_data.shield = nil
 
     -- Save new player data to the table.
     player_data[name] = victim_data
@@ -1665,7 +1686,7 @@ if minetest.global_exists("armor") then
                     if armor_shield > 0 then
                         local groups = stack:get_definition().groups
 
-                        player_persistent_data[player:get_player_name()].inventory_armor_shield = {name = name, index = i, block_pool = groups.block_pool, duration = groups.duration}
+                        player_persistent_data[player:get_player_name()].inventory_armor_shield = {name = name, index = i, block_pool = groups.block_pool, duration = groups.duration, hasty_guard_duration = groups.hasty_guard_duration}
                         
                         return old_save_armor_inventory(self, player)
                     end
@@ -1692,7 +1713,7 @@ if minetest.global_exists("armor") then
                     if armor_shield > 0 then
                         local groups = stack:get_definition().groups
 
-                        player_persistent_data[player:get_player_name()].inventory_armor_shield = {name = name, index = i, block_pool = groups.block_pool, duration = groups.duration}
+                        player_persistent_data[player:get_player_name()].inventory_armor_shield = {name = name, index = i, block_pool = groups.block_pool, duration = groups.duration, hasty_guard_duration = groups.hasty_guard_duration}
                         
                         return results
                     end
