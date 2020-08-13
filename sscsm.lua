@@ -1,11 +1,12 @@
 if sscsm then
+    local dash_speed = pvp_revamped.config.dash_speed
+    local barrel_roll_speed = pvp_revamped.config.barrel_roll_speed
     local get_player_data = pvp_revamped.get_player_data
     local player_data = pvp_revamped.player_data
     local player_persistent_data = pvp_revamped.player_persistent_data
+    local create_wield_shield = pvp_revamped.create_wield_shield
     local get_us_time = minetest.get_us_time
     local get_player_by_name = minetest.get_player_by_name
-    local dash_speed = pvp_revamped.config.dash_speed
-    local barrel_roll_speed = pvp_revamped.config.barrel_roll_speed
     local cos = math.cos
     local sin = math.sin
 
@@ -175,6 +176,8 @@ if sscsm then
                     local data = get_player_data(name)
                     local time = get_us_time()
 
+                    create_wield_shield(name, "Arm_Left", data_shield.name, data_shield.groups)
+                    
                     data.shield = {pool = data_shield.block_pool, name = data_shield.name, index = data_shield.index, initial_time = time, time = time, duration = data_shield.duration, hasty_guard_duration = data_shield.hasty_guard_duration, armor_inv = true}
                     data.block = nil
                     player_data[name] = data

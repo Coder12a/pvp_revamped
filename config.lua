@@ -50,14 +50,6 @@ pvp_revamped.config.projectile_step = tonumber(minetest.settings:get("pvp_revamp
 pvp_revamped.config.projectile_dist = tonumber(minetest.settings:get("pvp_revamped.projectile_dist")) or 5
 pvp_revamped.config.projectile_spinning_gravity_mul = tonumber(minetest.settings:get("pvp_revamped.projectile_spinning_gravity_mul")) or 0.5
 pvp_revamped.config.projectile_dip_gravity_mul = tonumber(minetest.settings:get("pvp_revamped.projectile_dip_gravity_mul")) or 1.2
-
-local xyz = minetest.settings:get("pvp_revamped.projectile_dip_velocity_dmg_mul") or {1, 2, 1}
-
-if xyz and type(xyz) == "string" then
-    xyz = minetest.settings:get("pvp_revamped.projectile_dip_velocity_dmg_mul"):split(" ")
-end
-
-pvp_revamped.config.projectile_dip_velocity_dmg_mul = {x = tonumber(xyz[1]), y = tonumber(xyz[2]), z = tonumber(xyz[3])}
 pvp_revamped.config.parry_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.parry_dmg_mul")) or 1.2
 pvp_revamped.config.counter_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.counter_dmg_mul")) or 1.5
 pvp_revamped.config.clash_duration = tonumber(minetest.settings:get("pvp_revamped.clash_duration")) or 150000
@@ -65,3 +57,30 @@ pvp_revamped.config.counter_duration = tonumber(minetest.settings:get("pvp_revam
 pvp_revamped.config.hasty_guard_duration = tonumber(minetest.settings:get("pvp_revamped.hasty_guard_duration")) or 50000
 pvp_revamped.config.hasty_guard_mul = tonumber(minetest.settings:get("pvp_revamped.hasty_guard_mul")) or 1000
 pvp_revamped.config.hasty_shield_mul = tonumber(minetest.settings:get("pvp_revamped.hasty_shield_mul")) or 1000
+
+local function split(string, def)
+    local settings = minetest.settings:get(string)
+    local xyz = settings or def
+
+    if xyz and type(xyz) == "string" then
+        xyz = settings:split(" ")
+    end
+
+    return xyz
+end
+
+local xyz = split("pvp_revamped.projectile_dip_velocity_dmg_mul", {1, 2, 1})
+
+pvp_revamped.config.projectile_dip_velocity_dmg_mul = {x = tonumber(xyz[1]), y = tonumber(xyz[2]), z = tonumber(xyz[3])}
+
+xyz = split("pvp_revamped.shield_entity_pos", {0, 6, 0})
+
+pvp_revamped.config.shield_entity_pos = {x = tonumber(xyz[1]), y = tonumber(xyz[2]), z = tonumber(xyz[3])}
+
+xyz = split("pvp_revamped.shield_entity_rotate", {-90, 180, 180})
+
+pvp_revamped.config.shield_entity_rotate = {x = tonumber(xyz[1]), y = tonumber(xyz[2]), z = tonumber(xyz[3])}
+
+xyz = split("pvp_revamped.shield_entity_scale", {0.35, 0.35})
+
+pvp_revamped.config.shield_entity_scale = {x = tonumber(xyz[1]), y = tonumber(xyz[2]), z = tonumber(xyz[3])}

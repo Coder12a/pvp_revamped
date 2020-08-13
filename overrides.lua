@@ -17,6 +17,7 @@ local parry_dmg_mul = pvp_revamped.config.parry_dmg_mul
 local counter_dmg_mul = pvp_revamped.config.counter_dmg_mul
 local armor_3d = pvp_revamped.armor_3d
 local get_player_data = pvp_revamped.get_player_data
+local create_wield_shield = pvp_revamped.create_wield_shield
 local player_data = pvp_revamped.player_data
 local player_persistent_data = pvp_revamped.player_persistent_data
 local registered_tools = minetest.registered_tools
@@ -121,6 +122,8 @@ minetest.register_on_mods_loaded(function()
                         local data_shield = player_pdata.inventory_armor_shield
                         local data = player_data[name]
 
+                        create_wield_shield(name, "Arm_Left", data_shield.name, data_shield.groups)
+
                         data.shield = {pool = data_shield.block_pool, name = data_shield.name, index = data_shield.index, initial_time = time, time = time, duration = data_shield.duration, hasty_guard_duration = data_shield.hasty_guard_duration, armor_inv = true}
                         data.block = nil
                         player_data[name] = data
@@ -215,6 +218,8 @@ minetest.register_on_mods_loaded(function()
                         local data_shield = player_pdata.inventory_armor_shield
                         local data = player_data[name]
 
+                        create_wield_shield(name, "Arm_Left", data_shield.name, data_shield.groups)
+
                         data.shield = {pool = data_shield.block_pool, name = data_shield.name, index = data_shield.index, initial_time = time, time = time, duration = data_shield.duration, hasty_guard_duration = data_shield.hasty_guard_duration, armor_inv = true}
                         data.block = nil
                         player_data[name] = data
@@ -225,6 +230,8 @@ minetest.register_on_mods_loaded(function()
                     end
 
                     local data = player_data[name]
+
+                    create_wield_shield(name, "Arm_Right", k, groups)
 
                     data.shield = {pool = block_pool, name = k, initial_time = time, time = time, duration = duration, hasty_guard_duration = hasty_guard_duration}
                     data.block = nil
@@ -268,7 +275,7 @@ if minetest.global_exists("armor") then
                     if armor_shield > 0 then
                         local groups = stack:get_definition().groups
 
-                        player_persistent_data[player:get_player_name()].inventory_armor_shield = {name = name, index = i, block_pool = groups.block_pool, duration = groups.duration, hasty_guard_duration = groups.hasty_guard_duration}
+                        player_persistent_data[player:get_player_name()].inventory_armor_shield = {name = name, index = i, block_pool = groups.block_pool, duration = groups.duration, hasty_guard_duration = groups.hasty_guard_duration, groups = groups}
                         
                         return old_save_armor_inventory(self, player)
                     end
@@ -295,7 +302,7 @@ if minetest.global_exists("armor") then
                     if armor_shield > 0 then
                         local groups = stack:get_definition().groups
 
-                        player_persistent_data[player:get_player_name()].inventory_armor_shield = {name = name, index = i, block_pool = groups.block_pool, duration = groups.duration, hasty_guard_duration = groups.hasty_guard_duration}
+                        player_persistent_data[player:get_player_name()].inventory_armor_shield = {name = name, index = i, block_pool = groups.block_pool, duration = groups.duration, hasty_guard_duration = groups.hasty_guard_duration, groups = groups}
                         
                         return results
                     end

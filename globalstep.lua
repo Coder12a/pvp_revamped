@@ -278,6 +278,12 @@ minetest.register_globalstep(function(dtime)
             active = true
         end
 
+        if v.entity and not v.shield then
+            v.entity:remove()
+            v.entity = nil
+            active = true
+        end
+
         if not active then
             player_data[k] = nil
         end

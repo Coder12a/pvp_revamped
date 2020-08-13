@@ -131,3 +131,11 @@ pvp_revamped.projectile_dist (Projectile collision range) float 5
 pvp_revamped.projectile_spinning_gravity_mul (Spinning gravity multiplier) float 0.5
 # Dip throw style gravity modifier.
 pvp_revamped.projectile_dip_gravity_mul (Dip gravity multiplier) float 1.2
+
+[Visual]
+# Shield entity position.
+pvp_revamped.shield_entity_pos (Shield position) string "0 6 0"
+# Shield entity rotate.
+pvp_revamped.shield_entity_rotate (Shield rotate) string "-90 180 180"
+# Shield entity scale.
+pvp_revamped.shield_entity_scale (Shield scale) string "0.35 0.35"

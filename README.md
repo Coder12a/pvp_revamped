@@ -390,6 +390,20 @@ Dip throw style gravity modifier.
 pvp_revamped.projectile_dip_gravity_mul = 1.2
 ```
 
+#### visual
+Shield entity position.
+``` lua
+pvp_revamped.shield_entity_pos = "0 6 0"
+```
+Shield entity rotate.
+``` lua
+pvp_revamped.shield_entity_rotate = "-90 180 180"
+```
+Shield entity scale.
+``` lua
+pvp_revamped.shield_entity_scale = "0.35 0.35"
+```
+
 # api
 Tools can define their own values independent of the config.
 tool capabilities can work in registered armor as well, but not the other around.
@@ -507,7 +521,13 @@ armor:register_armor("test:shield_test", {
         -- See hasty_guard_duration in config.
         hasty_guard_duration = 50000,
         -- See hasty_shield_mul in config.
-        hasty_shield_mul = 1000}
+        hasty_shield_mul = 1000,
+        -- See shield_entity_pos in config.
+        shield_entity_pos = {x = 0, y = 6, z = 0},
+        -- See shield_entity_rotate in config.
+        shield_entity_rotate = {x = -90, y = 180, z = 180},
+        -- See shield_entity_scale in config.
+        shield_entity_scale = {x = 0.35, y = 0.35}}
 
 })
 ```
