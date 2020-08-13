@@ -54,7 +54,7 @@ pvp_revamped.arm_dmg_mul (Arm damage multiplier) float 0.6
 # Damage multiplier for leg shots.
 pvp_revamped.leg_dmg_mul (Leg damage multiplier) float 0.7
 # Damage multiplier for punching a player facing you.
-pvp_revamped.front_dmg_mul (Front damage multiplier) float nil
+pvp_revamped.front_dmg_mul (Front damage multiplier) float 1
 # Damage multiplier for punching a player on any side.
 pvp_revamped.side_dmg_mul (Side damage multiplier) float 1.05
 # Damage multiplier for punching a player on the back.
@@ -62,7 +62,7 @@ pvp_revamped.back_dmg_mul (Back damage multiplier) float 1.1
 # Damage multiplier for being above the victim's y position.
 pvp_revamped.elevated_dmg_mul (Elevated damage multiplier) float 1.5
 # Damage multiplier for having equal y position.
-pvp_revamped.equal_height_dmg_mul (Equal height damage multiplier) float nil
+pvp_revamped.equal_height_dmg_mul (Equal height damage multiplier) float 1
 # Damage multiplier for being below the victim's y position.
 pvp_revamped.lower_elevation_dmg_mul (Lower elevation damage multiplier) float 0.9
 # Damage multiplier for how fast the hitter is moving.
