@@ -251,6 +251,7 @@ end)
 
 -- See if the mod armor_3d is a thing here.
 if minetest.global_exists("armor") then
+    armor_3d = true
     local old_save_armor_inventory = armor.save_armor_inventory
     local old_load_armor_inventory = armor.load_armor_inventory
 
