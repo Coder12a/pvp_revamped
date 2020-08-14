@@ -1,5 +1,6 @@
 local player_data = pvp_revamped.player_data
 local add_item = minetest.add_item
+local new = vector.new
 local get_player_by_name = minetest.get_player_by_name
 local shield_entity_pos = pvp_revamped.config.shield_entity_pos
 local shield_entity_rotate = pvp_revamped.config.shield_entity_rotate
@@ -39,13 +40,25 @@ function pvp_revamped.create_wield_shield(name, bone, itemname, groups)
         object:set_attach(player, bone, groups.shield_entity_pos or shield_entity_pos, groups.shield_entity_rotate or shield_entity_rotate)
         object:set_properties({
             textures = {itemname},
-            visual_size = groups.shield_entity_scale or shield_entity_scale,
+            visual_size = groups.shield_entity_scale or shield_entity_scale
         })
+
+        local entity = data.entity
         
-        if data.entity then
-            data.entity:remove()
+        if entity and entity.object then
+            player:set_bone_position(entity.bone, entity.position, new(-180, 0, 0))
+
+            entity.object:remove()
         end
 
-        data.entity = object
+        entity = {object = object, bone = bone, rotation = new(-90, 0, 0)}
+
+        if bone == "Arm_Left" then
+            entity.position = new(3, 5.7, 0)
+        elseif bone == "Arm_Right" then
+            entity.position = new(-3, 5.7, 0)
+        end
+
+        data.entity = entity
     end
 end

@@ -25,6 +25,7 @@ local get_player_by_name = minetest.get_player_by_name
 local get_us_time = minetest.get_us_time
 local add_entity = minetest.add_entity
 local maxn = table.maxn
+local new = vector.new
 local cos = math.cos
 local sin = math.sin
 local max = math.max
@@ -278,8 +279,16 @@ minetest.register_globalstep(function(dtime)
             active = true
         end
 
-        if v.entity and not v.shield then
-            v.entity:remove()
+        if v.entity and v.shield then
+            local entity = v.entity
+            -- Point arm forward.
+            player:set_bone_position(entity.bone, entity.position, entity.rotation)
+        elseif v.entity and not v.shield then
+            local entity = v.entity
+            -- Drop arms.
+            player:set_bone_position(entity.bone, entity.position, new(-180, 0, 0))
+
+            v.entity.object:remove()
             v.entity = nil
             active = true
         end

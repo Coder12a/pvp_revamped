@@ -124,7 +124,7 @@ minetest.register_on_mods_loaded(function()
 
                         create_wield_shield(name, "Arm_Left", data_shield.name, data_shield.groups)
 
-                        data.shield = {pool = data_shield.block_pool, name = data_shield.name, index = data_shield.index, initial_time = time, time = time, duration = data_shield.duration, hasty_guard_duration = data_shield.hasty_guard_duration, armor_inv = true}
+                        data.shield = {pool = data_shield.block_pool, bone = "Arm_Left", name = data_shield.name, index = data_shield.index, initial_time = time, time = time, duration = data_shield.duration, hasty_guard_duration = data_shield.hasty_guard_duration, armor_inv = true}
                         data.block = nil
                         player_data[name] = data
                         
@@ -220,7 +220,7 @@ minetest.register_on_mods_loaded(function()
 
                         create_wield_shield(name, "Arm_Left", data_shield.name, data_shield.groups)
 
-                        data.shield = {pool = data_shield.block_pool, name = data_shield.name, index = data_shield.index, initial_time = time, time = time, duration = data_shield.duration, hasty_guard_duration = data_shield.hasty_guard_duration, armor_inv = true}
+                        data.shield = {pool = data_shield.block_pool, bone = "Arm_Left", name = data_shield.name, index = data_shield.index, initial_time = time, time = time, duration = data_shield.duration, hasty_guard_duration = data_shield.hasty_guard_duration, armor_inv = true}
                         data.block = nil
                         player_data[name] = data
                         
@@ -233,7 +233,7 @@ minetest.register_on_mods_loaded(function()
 
                     create_wield_shield(name, "Arm_Right", k, groups)
 
-                    data.shield = {pool = block_pool, name = k, initial_time = time, time = time, duration = duration, hasty_guard_duration = hasty_guard_duration}
+                    data.shield = {pool = block_pool, bone = "Arm_Left", name = k, initial_time = time, time = time, duration = duration, hasty_guard_duration = hasty_guard_duration}
                     data.block = nil
 
                     player_data[name] = data

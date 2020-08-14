@@ -178,7 +178,7 @@ if sscsm then
 
                     create_wield_shield(name, "Arm_Left", data_shield.name, data_shield.groups)
                     
-                    data.shield = {pool = data_shield.block_pool, name = data_shield.name, index = data_shield.index, initial_time = time, time = time, duration = data_shield.duration, hasty_guard_duration = data_shield.hasty_guard_duration, armor_inv = true}
+                    data.shield = {pool = data_shield.block_pool, bone = "Arm_Left", name = data_shield.name, index = data_shield.index, initial_time = time, time = time, duration = data_shield.duration, hasty_guard_duration = data_shield.hasty_guard_duration, armor_inv = true}
                     data.block = nil
                     player_data[name] = data
 
