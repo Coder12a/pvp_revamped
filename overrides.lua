@@ -23,6 +23,7 @@ local player_persistent_data = pvp_revamped.player_persistent_data
 local registered_tools = minetest.registered_tools
 local get_item_group = minetest.get_item_group
 local get_us_time = minetest.get_us_time
+local new = vector.new
 local max = math.max
 local floor = math.floor
 
@@ -134,10 +135,17 @@ minetest.register_on_mods_loaded(function()
                     end
 
                     local data = player_data[name]
+                    local aim = data.aim
 
                     -- Prevent spam blocking.
                     if not data.block or time - data.block.time > full_block_interval then
                         data.block = {pool = block_pool, name = k, initial_time = time, time = time, duration = duration, hasty_guard_duration = hasty_guard_duration}
+                        
+                        if aim then
+                            user:set_bone_position(aim.bone, aim.position, new(-180, 0, 0))
+                        end
+                        
+                        data.aim = {bone = "Arm_Right", position = new(-3, 5.7, 0), rotation = new(-90, 0, 0)}
                         data.shield = nil
                     end
 

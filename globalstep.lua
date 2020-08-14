@@ -40,7 +40,7 @@ minetest.register_globalstep(function(dtime)
         local time = get_us_time()
         local active
 
-        if v.block then
+        if v.block and v.aim then
             -- Check if the player is holding down the RMB key.
             if floor(player:get_player_control_bits() / 256) % 2 == 1 then
                 -- Update the block time.
@@ -48,6 +48,9 @@ minetest.register_globalstep(function(dtime)
             end
 
             local block = v.block
+            local aim = v.aim
+            -- Hand aims forward.
+            player:set_bone_position(aim.bone, aim.position, aim.rotation)
             
             -- Remove the block table if it's past duration.
             if block.time + block.duration + server_lag < time then
@@ -56,6 +59,13 @@ minetest.register_globalstep(function(dtime)
                 v.block = nil
             end
 
+            active = true
+        elseif not v.block and v.aim then
+            local aim = v.aim
+            -- Drop hand.
+            player:set_bone_position(aim.bone, aim.position, new(-180, 0, 0))
+
+            v.aim = nil
             active = true
         end
 
