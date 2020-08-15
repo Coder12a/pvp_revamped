@@ -72,11 +72,5 @@ minetest.register_on_shutdown(function()
         if throw_data then
             drop(player, throw_data.item)
         end
-
-        local entity = v.entity
-
-        if entity then
-            entity:remove()
-        end
     end
 end)
