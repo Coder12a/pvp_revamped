@@ -20,6 +20,8 @@ local projectile_throw_style_spinning = pvp_revamped.projectile_throw_style_spin
 local player_data = pvp_revamped.player_data
 local player_persistent_data = pvp_revamped.player_persistent_data
 local lag = pvp_revamped.lag
+local create_hud_text_center = pvp_revamped.create_hud_text_center
+local remove_text_center = pvp_revamped.remove_text_center
 local get_player_information = minetest.get_player_information
 local get_player_by_name = minetest.get_player_by_name
 local get_us_time = minetest.get_us_time
@@ -38,6 +40,7 @@ minetest.register_globalstep(function(dtime)
         local server_lag = lag + get_player_information(k).avg_jitter * 1000000
         local player = get_player_by_name(k)
         local time = get_us_time()
+        local pp_data = player_persistent_data[k]
         local active
 
         if v.block and v.aim then
@@ -55,8 +58,10 @@ minetest.register_globalstep(function(dtime)
             -- Remove the block table if it's past duration.
             if block.time + block.duration + server_lag < time then
                 -- Revert the damage texture modifier.
-                player:set_properties{damage_texture_modifier = player_persistent_data[k].damage_texture_modifier}
+                player:set_properties{damage_texture_modifier = pp_data.damage_texture_modifier}
                 v.block = nil
+                -- Remove un-used hud element.
+                remove_text_center(player, "pvp_revamped:block_pool")
             end
 
             active = true
@@ -81,8 +86,10 @@ minetest.register_globalstep(function(dtime)
             -- Remove the shield table if it's past duration.
             if shield.time + shield.duration + server_lag < time then
                 -- Revert the damage texture modifier.
-                player:set_properties{damage_texture_modifier = player_persistent_data[k].damage_texture_modifier}
+                player:set_properties{damage_texture_modifier = pp_data.damage_texture_modifier}
                 v.shield = nil
+                -- Remove un-used hud element.
+                remove_text_center(player, "pvp_revamped:shield_pool")
             end
 
             active = true
@@ -90,9 +97,12 @@ minetest.register_globalstep(function(dtime)
 
         if v.throw then
             local control_bits = player:get_player_control_bits()
+            local throw_data = v.throw
+            local tool_capabilities = throw_data.tool_capabilities
+            local full_throw = throw_data.time + tool_capabilities.full_throw
             
             -- If neither LMB or RMB is down then throw the item.
-            if floor(control_bits / 128) % 2 ~= 1 and floor(control_bits / 256) % 2 ~= 1 then
+            if (floor(control_bits / 128) % 2 ~= 1 and floor(control_bits / 256) % 2 ~= 1) or pp_data.active_dodges or pp_data.active_barrel_rolls then
                 local pos = player:get_pos()
 
                 pos.y = pos.y + player:get_properties().eye_height
@@ -101,13 +111,9 @@ minetest.register_globalstep(function(dtime)
                 local ent = obj:get_luaentity()
 
                 if ent then
-                    local name = k
-                    local throw_style = player_persistent_data[name].throw_style
-                    local throw_data = v.throw
-                    local tool_capabilities = throw_data.tool_capabilities
+                    local throw_style = pp_data.throw_style
                     local throw_speed = tool_capabilities.throw_speed
                     local damage = tool_capabilities.damage_groups.fleshy
-                    local full_throw = throw_data.time + tool_capabilities.full_throw
                     local projectile_gravity = tool_capabilities.projectile_gravity or projectile_gravity
                     local gravity = projectile_gravity
                     local projectile_dmg_mul = tool_capabilities.projectile_dmg_mul or projectile_dmg_mul
@@ -115,7 +121,7 @@ minetest.register_globalstep(function(dtime)
                     local projectile_dip_gravity_mul = tool_capabilities.projectile_dip_gravity_mul or projectile_dip_gravity_mul
                     local spin
 
-                    if full_throw > time + server_lag then
+                    if not throw_data.ready then
                         local projectile_half_throw_mul = tool_capabilities.projectile_half_throw_mul or projectile_half_throw_mul
                         local re = (full_throw - time) * projectile_half_throw_mul
 
@@ -132,11 +138,19 @@ minetest.register_globalstep(function(dtime)
                         gravity = gravity * projectile_dip_gravity_mul
                     end
 
-                    ent:set_item(name, throw_data.item)
+                    ent:set_item(k, throw_data.item)
                     ent:throw(player, throw_speed, {x = 0, y = gravity, z = 0}, max(damage * projectile_dmg_mul, 0.1), throw_style, spin)
                 end
 
+                -- Remove throwing hud.
+                remove_text_center(player, "pvp_revamped:throw_item")
+
                 v.throw = nil
+            elseif not throw_data.ready and full_throw < time + server_lag then
+                -- To prevent changing the hud repeatedly.
+                v.throw.ready = true
+
+                create_hud_text_center(player, "pvp_revamped:throw_item", "READY")
             end
 
             active = true
@@ -182,7 +196,7 @@ minetest.register_globalstep(function(dtime)
 
             if not active_barrel_rolls and player:get_properties().damage_texture_modifier == "" then
                 -- Revert the damage texture modifier.
-                player:set_properties{damage_texture_modifier = player_persistent_data[k].damage_texture_modifier}
+                player:set_properties{damage_texture_modifier = pp_data.damage_texture_modifier}
             end
 
             -- Store the barrel_roll amount for later use.
@@ -191,6 +205,11 @@ minetest.register_globalstep(function(dtime)
             -- If this table contains no more barrel_rolls remove it.
             if maxn(v.barrel_roll) < 1 then
                 v.barrel_roll = nil
+            end
+
+            -- Remove un-used barrel roll text.
+            if not active_barrel_rolls then
+                remove_text_center(player, "pvp_revamped:barrel_roll")
             end
 
             active = true
@@ -213,7 +232,7 @@ minetest.register_globalstep(function(dtime)
 
             if not active_dodges and player:get_properties().damage_texture_modifier == "" then
                 -- Revert the damage texture modifier.
-                player:set_properties{damage_texture_modifier = player_persistent_data[k].damage_texture_modifier}
+                player:set_properties{damage_texture_modifier = pp_data.damage_texture_modifier}
             end
 
             -- Store the dodge amount for later use.
@@ -222,6 +241,11 @@ minetest.register_globalstep(function(dtime)
             -- If this table contains no more dodges remove it.
             if maxn(v.dodge) < 1 then
                 v.dodge = nil
+            end
+
+            -- Remove un-used dodge text.
+            if not active_dodges then
+                remove_text_center(player, "pvp_revamped:dodge")
             end
 
             active = true

@@ -5,6 +5,8 @@ if sscsm then
     local player_data = pvp_revamped.player_data
     local player_persistent_data = pvp_revamped.player_persistent_data
     local create_wield_shield = pvp_revamped.create_wield_shield
+    local create_hud_text_center = pvp_revamped.create_hud_text_center
+    local remove_text_center = pvp_revamped.remove_text_center
     local get_us_time = minetest.get_us_time
     local get_player_by_name = minetest.get_player_by_name
     local cos = math.cos
@@ -40,11 +42,27 @@ if sscsm then
             player:set_properties{damage_texture_modifier = ""}
             -- Clear out any hit data on dodge.
             remove_hits(name)
+            -- Remove shield and block.
+            dodge_data.block = nil
+            dodge_data.shield = nil
+            -- Remove un-used hud element.
+            remove_text_center(player, "pvp_revamped:block_pool")
+            remove_text_center(player, "pvp_revamped:shield_pool")
+            -- Display words invincible to player.
+            create_hud_text_center(player, "pvp_revamped:dodge", "INVINCIBLE")
         elseif dodge_data.dodge and not dodge_data.dodge[number] then
             dodge_data.dodge[number] = get_us_time()
             player:set_properties{damage_texture_modifier = ""}
             -- Clear out any hit data on dodge.
             remove_hits(name)
+            -- Remove shield and block.
+            dodge_data.block = nil
+            dodge_data.shield = nil
+            -- Remove un-used hud element.
+            remove_text_center(player, "pvp_revamped:block_pool")
+            remove_text_center(player, "pvp_revamped:shield_pool")
+            -- Display words invincible to player.
+            create_hud_text_center(player, "pvp_revamped:dodge", "INVINCIBLE")
         end
     end
 
@@ -76,11 +94,27 @@ if sscsm then
             player:set_properties{damage_texture_modifier = ""}
             -- Clear out any hit data on barrel roll.
             remove_hits(name)
+            -- Remove shield and block.
+            barrel_roll_data.block = nil
+            barrel_roll_data.shield = nil
+            -- Remove un-used hud element.
+            remove_text_center(player, "pvp_revamped:block_pool")
+            remove_text_center(player, "pvp_revamped:shield_pool")
+            -- Display words invincible to player.
+            create_hud_text_center(player, "pvp_revamped:barrel_roll", "INVINCIBLE")
         elseif barrel_roll_data.barrel_roll and not barrel_roll_data.barrel_roll[number] then
             barrel_roll_data.barrel_roll[number] = {time = get_us_time(), x = x, z = z}
             player:set_properties{damage_texture_modifier = ""}
             -- Clear out any hit data on barrel roll.
             remove_hits(name)
+            -- Remove shield and block.
+            barrel_roll_data.block = nil
+            barrel_roll_data.shield = nil
+            -- Remove un-used hud element.
+            remove_text_center(player, "pvp_revamped:block_pool")
+            remove_text_center(player, "pvp_revamped:shield_pool")
+            -- Display words invincible to player.
+            create_hud_text_center(player, "pvp_revamped:barrel_roll", "INVINCIBLE")
         else
             return
         end
@@ -175,14 +209,22 @@ if sscsm then
                 if data_shield then
                     local data = get_player_data(name)
                     local time = get_us_time()
+                    local player = get_player_by_name(name)
+                    local block_pool = data_shield.block_pool
 
-                    create_wield_shield(name, "Arm_Left", data_shield.name, data_shield.groups)
+                    create_wield_shield(player, name, "Arm_Left", data_shield.name, data_shield.groups)
+
+                    -- Write pool to hud.
+                    create_hud_text_center(player, "pvp_revamped:shield_pool", block_pool)
                     
-                    data.shield = {pool = data_shield.block_pool, bone = "Arm_Left", name = data_shield.name, index = data_shield.index, initial_time = time, time = time, duration = data_shield.duration, hasty_guard_duration = data_shield.hasty_guard_duration, armor_inv = true}
+                    data.shield = {pool = block_pool, bone = "Arm_Left", name = data_shield.name, index = data_shield.index, initial_time = time, time = time, duration = data_shield.duration, hasty_guard_duration = data_shield.hasty_guard_duration, armor_inv = true}
                     data.block = nil
                     player_data[name] = data
 
-                    get_player_by_name(name):set_properties{damage_texture_modifier = ""}
+                    player:set_properties{damage_texture_modifier = ""}
+
+                    -- Remove un-used hud element.
+                    remove_text_center(player, "pvp_revamped:block_pool")
                 end
             end
         end)

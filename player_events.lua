@@ -1,6 +1,7 @@
 local player_data = pvp_revamped.player_data
 local player_persistent_data = pvp_revamped.player_persistent_data
 local drop = pvp_revamped.drop
+local get_player_by_name = minetest.get_player_by_name
 
 -- Create an empty data sheet for the player.
 minetest.register_on_joinplayer(function(player)
@@ -70,7 +71,7 @@ minetest.register_on_shutdown(function()
         local throw_data = v.throw
 
         if throw_data then
-            drop(player, throw_data.item)
+            drop(get_player_by_name(k), throw_data.item)
         end
     end
 end)

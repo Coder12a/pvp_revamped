@@ -5,7 +5,6 @@ local projectile_dist = pvp_revamped.config.projectile_dist
 local projectile_dip_velocity_dmg_mul = pvp_revamped.config.projectile_dip_velocity_dmg_mul
 local projectile_throw_style_dip = pvp_revamped.projectile_throw_style_dip
 local projectile_throw_style_spinning = pvp_revamped.projectile_throw_style_spinning
-local projectile_data = pvp_revamped.projectile_data
 local registered_tools = minetest.registered_tools
 local serialize = minetest.serialize
 local deserialize = minetest.deserialize
@@ -195,7 +194,7 @@ minetest.register_entity("pvp_revamped:projectile", {
                         end
 
                         -- Set the table for later use in the punch function.
-                        projectile_data = {pos = pos, name = self.itemname, dir = dir, velocity = velocity, intersection_point = pointed_thing.intersection_point}
+                        pvp_revamped.projectile_data = {pos = pos, name = self.itemname, dir = dir, velocity = velocity, intersection_point = pointed_thing.intersection_point}
 
                         obj:punch(get_player_by_name(self.owner), nil, tool_capabilities)
                         self:die()

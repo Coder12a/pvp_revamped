@@ -20,6 +20,8 @@ local get_player_data = pvp_revamped.get_player_data
 local create_wield_shield = pvp_revamped.create_wield_shield
 local player_data = pvp_revamped.player_data
 local player_persistent_data = pvp_revamped.player_persistent_data
+local create_hud_text_center = pvp_revamped.create_hud_text_center
+local remove_text_center = pvp_revamped.remove_text_center
 local registered_tools = minetest.registered_tools
 local get_item_group = minetest.get_item_group
 local get_us_time = minetest.get_us_time
@@ -108,34 +110,39 @@ minetest.register_on_mods_loaded(function()
                 -- Allow the tool to block damage.
                 local function block_action(user)
                     local name = user:get_player_name()
-
-                    -- Cancel if the player is throwing something.
-                    if get_player_data(name).throw then
-                        return
-                    end
-
                     local player_pdata = player_persistent_data[name]
-                    local control_bits = user:get_player_control_bits()
-                    local time = get_us_time()
+                    local data = get_player_data(name)
 
                     -- Use 3d_armor inv shield if available.
-                    if armor_3d and player_pdata.inventory_armor_shield and (player_pdata.use_shield or floor(control_bits / 64) % 2 == 1) then
+                    if armor_3d and player_pdata.inventory_armor_shield and (player_pdata.use_shield or floor(user:get_player_control_bits() / 64) % 2 == 1) then
                         local data_shield = player_pdata.inventory_armor_shield
-                        local data = player_data[name]
+                        local block_pool = data_shield.block_pool
+                        local time = get_us_time()
 
-                        create_wield_shield(name, "Arm_Left", data_shield.name, data_shield.groups)
+                        create_wield_shield(user, name, "Arm_Left", data_shield.name, data_shield.groups)
 
-                        data.shield = {pool = data_shield.block_pool, bone = "Arm_Left", name = data_shield.name, index = data_shield.index, initial_time = time, time = time, duration = data_shield.duration, hasty_guard_duration = data_shield.hasty_guard_duration, armor_inv = true}
+                        -- Write pool to hud.
+                        create_hud_text_center(user, "pvp_revamped:shield_pool", block_pool)
+
+                        data.shield = {pool = block_pool, bone = "Arm_Left", name = data_shield.name, index = data_shield.index, initial_time = time, time = time, duration = data_shield.duration, hasty_guard_duration = data_shield.hasty_guard_duration, armor_inv = true}
                         data.block = nil
                         player_data[name] = data
                         
                         user:set_properties{damage_texture_modifier = ""}
 
+                        -- Remove un-used hud element.
+                        remove_text_center(user, "pvp_revamped:block_pool")
+
                         return
                     end
 
-                    local data = player_data[name]
+                    -- Cancel if the player is throwing something, dodging, or rolling.
+                    if data.throw or player_pdata.active_dodges or player_pdata.active_barrel_rolls then
+                        return
+                    end
+
                     local aim = data.aim
+                    local time = get_us_time()
 
                     -- Prevent spam blocking.
                     if not data.block or time - data.block.time > full_block_interval then
@@ -146,7 +153,14 @@ minetest.register_on_mods_loaded(function()
                         end
                         
                         data.aim = {bone = "Arm_Right", position = new(-3, 5.7, 0), rotation = new(-90, 0, 0)}
+
+                        -- Write pool to hud.
+                        create_hud_text_center(user, "pvp_revamped:block_pool", block_pool)
+
                         data.shield = nil
+
+                        -- Remove un-used hud element.
+                        remove_text_center(user, "pvp_revamped:shield_pool")
                     end
 
                     -- Disable the damage texture modifier on tool block.
@@ -167,15 +181,33 @@ minetest.register_on_mods_loaded(function()
                     local name = itemstack:get_name()
                     local player_name = dropper:get_player_name()
                     local control_bits = dropper:get_player_control_bits()
-                    local throw_data = get_player_data(player_name).throw
+                    local data = get_player_data(player_name)
+                    local throw_data = data.throw
+                    local shield_data = data.shield
 
                     -- If in the process of throwing, either LMB, RMB, or item name is not the same then return the old function.
                     if throw_data or dropper:get_wielded_item():get_name() ~= name or (floor(control_bits / 128) % 2 ~= 1 and floor(control_bits / 256) % 2 ~= 1) then 
                         return old_on_drop(itemstack, dropper, pos)
                     end
 
+                    data.block = nil
+
+                    -- Remove un-used block hud element.
+                    remove_text_center(dropper, "pvp_revamped:block_pool")
+
+                    -- Only clear shield if it is not from the armor inv.
+                    if shield_data and not shield_data.armor_inv then
+                        data.shield = nil
+                        -- Remove shield pool hud element.
+                        remove_text_center(dropper, "pvp_revamped:shield_pool")
+                    end
+
+                    -- Tell the player that a toss is being charged up.
+                    create_hud_text_center(dropper, "pvp_revamped:throw_item", "CHARGING")
+
                     throw_data = {name = name, time = get_us_time(), item = itemstack:take_item(), tool_capabilities = registered_tools[name].tool_capabilities}
-                    player_data[player_name].throw = throw_data
+                    data.throw = throw_data
+                    player_data[player_name] = data
 
                     return itemstack
                 end, tool_capabilities = tool_capabilities})
@@ -211,35 +243,43 @@ minetest.register_on_mods_loaded(function()
                 -- Allow the shield to block damage.
                 local function block_action(user)
                     local name = user:get_player_name()
-
-                    -- Cancel if the player is throwing something.
-                    if get_player_data(name).throw then
-                        return
-                    end
-
                     local player_pdata = player_persistent_data[name]
-                    local control_bits = user:get_player_control_bits()
-                    local time = get_us_time()
+                    local data = get_player_data(name)
 
                     -- Use 3d_armor inv shield if available.
-                    if armor_3d and player_pdata.inventory_armor_shield and (player_pdata.use_shield or floor(control_bits / 64) % 2 == 1) then
+                    if armor_3d and player_pdata.inventory_armor_shield and (player_pdata.use_shield or floor(user:get_player_control_bits() / 64) % 2 == 1) then
                         local data_shield = player_pdata.inventory_armor_shield
-                        local data = player_data[name]
+                        local block_pool = data_shield.block_pool
+                        local time = get_us_time()
 
-                        create_wield_shield(name, "Arm_Left", data_shield.name, data_shield.groups)
+                        create_wield_shield(user, name, "Arm_Left", data_shield.name, data_shield.groups)
 
-                        data.shield = {pool = data_shield.block_pool, bone = "Arm_Left", name = data_shield.name, index = data_shield.index, initial_time = time, time = time, duration = data_shield.duration, hasty_guard_duration = data_shield.hasty_guard_duration, armor_inv = true}
+                        -- Write pool to hud.
+                        create_hud_text_center(user, "pvp_revamped:shield_pool", block_pool)
+
+                        data.shield = {pool = block_pool, bone = "Arm_Left", name = data_shield.name, index = data_shield.index, initial_time = time, time = time, duration = data_shield.duration, hasty_guard_duration = data_shield.hasty_guard_duration, armor_inv = true}
                         data.block = nil
                         player_data[name] = data
                         
                         user:set_properties{damage_texture_modifier = ""}
 
+                        -- Remove un-used hud element.
+                        remove_text_center(user, "pvp_revamped:block_pool")
+
                         return
                     end
 
-                    local data = player_data[name]
+                    -- Cancel if the player is throwing something, dodging, or rolling.
+                    if data.throw or player_pdata.active_dodges or player_pdata.active_barrel_rolls then
+                        return
+                    end
 
-                    create_wield_shield(name, "Arm_Right", k, groups)
+                    local time = get_us_time()
+
+                    create_wield_shield(user, name, "Arm_Right", k, groups)
+
+                    -- Write pool to hud.
+                    create_hud_text_center(user, "pvp_revamped:shield_pool", block_pool)
 
                     data.shield = {pool = block_pool, bone = "Arm_Left", name = k, initial_time = time, time = time, duration = duration, hasty_guard_duration = hasty_guard_duration}
                     data.block = nil
@@ -248,6 +288,9 @@ minetest.register_on_mods_loaded(function()
 
                     -- Disable the damage texture modifier on shield block.
                     user:set_properties{damage_texture_modifier = ""}
+
+                    -- Remove un-used hud element.
+                    remove_text_center(user, "pvp_revamped:block_pool")
                 end
 
                 minetest.override_item(k, {on_secondary_use = function(itemstack, user, pointed_thing)
@@ -267,6 +310,7 @@ end)
 -- See if the mod armor_3d is a thing here.
 if minetest.global_exists("armor") then
     armor_3d = true
+    pvp_revamped.armor_3d = armor_3d
     local old_save_armor_inventory = armor.save_armor_inventory
     local old_load_armor_inventory = armor.load_armor_inventory
 

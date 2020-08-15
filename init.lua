@@ -2,6 +2,7 @@ pvp_revamped = {}
 
 local modpath = minetest.get_modpath("pvp_revamped")
 
+dofile(string.format("%s/hudkit.lua", modpath))
 dofile(string.format("%s/config.lua", modpath))
 dofile(string.format("%s/constant.lua", modpath))
 dofile(string.format("%s/globaldata.lua", modpath))

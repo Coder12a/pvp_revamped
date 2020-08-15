@@ -26,11 +26,12 @@ local counter_dmg_mul = pvp_revamped.config.counter_dmg_mul
 local counter_duration = pvp_revamped.config.counter_duration
 local get_player_data = pvp_revamped.get_player_data
 local player_data = pvp_revamped.player_data
-local projectile_data = pvp_revamped.projectile_data
 local player_persistent_data = pvp_revamped.player_persistent_data
 local armor_3d = pvp_revamped.armor_3d
 local lag = pvp_revamped.lag
 local hit_points = pvp_revamped.hit_points
+local create_hud_text_center = pvp_revamped.create_hud_text_center
+local remove_text_center = pvp_revamped.remove_text_center
 local registered_tools = minetest.registered_tools
 local raycast = minetest.raycast
 local get_us_time = minetest.get_us_time
@@ -66,6 +67,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
 
     local hitter_name = hitter:get_player_name()
     local hitter_data = get_player_data(hitter_name)
+    local projectile_data = pvp_revamped.projectile_data
 
     -- Cancel any attack if the hitter is in barrel_roll or dodge mode.
     -- Or if the hitter is in the process of throwing.
@@ -347,6 +349,10 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         hitter_data.block = nil
         hitter_data.shield = nil
         player_data[hitter_name] = hitter_data
+
+        -- Remove un-used hud element.
+        remove_text_center(hitter, "pvp_revamped:block_pool")
+        remove_text_center(hitter, "pvp_revamped:shield_pool")
     end
 
     local data_throw = victim_data.throw
@@ -361,14 +367,23 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         -- Block the damage and add it as wear to the tool.
         wielded_item:add_wear(((damage - full_punch_interval) / 75) * block_wear_mul)
         player:set_wielded_item(wielded_item)
-        data_block.pool = data_block.pool - damage
+        local pool = data_block.pool
+        pool = pool - damage
 
         -- Remove block table if pool is zero or below.
-        if data_block.pool <= 0 then
+        if pool <= 0 then
             victim_data.block = nil
+
+            -- Remove un-used hud element.
+            remove_text_center(player, "pvp_revamped:block_pool")
+
             return true
         end
 
+        -- Update block pool text.
+        create_hud_text_center(player, "pvp_revamped:block_pool", pool)
+
+        data_block.pool = pool
         victim_data.block = data_block
 
         return true
@@ -380,6 +395,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
     if data_shield and not data_shield.armor_inv and not data_throw and data_shield.pool > 0 and data_shield.name == item_name and (front or side) then
         -- Block the damage and add it as wear to the tool.
         local axe_wear = 0
+        local pool = data_shield.pool
 
         if tool_capabilities and tool_capabilities.damage_groups and tool_capabilities.damage_groups.shield then
             axe_wear = tool_capabilities.damage_groups.shield
@@ -389,14 +405,22 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         wielded_item:add_wear((((damage - full_punch_interval) / 75) * block_wear_mul) + axe_wear)
         player:set_wielded_item(wielded_item)
         -- pool minus damage + axe_wear.
-        data_shield.pool = data_shield.pool - (damage + axe_wear)
+        pool = pool - (damage + axe_wear)
 
         -- Remove shield table if pool is zero or below.
-        if data_shield.pool <= 0 then
+        if pool <= 0 then
             victim_data.shield = nil
+
+            -- Remove un-used hud element.
+            remove_text_center(player, "pvp_revamped:shield_pool")
+
             return true
         end
 
+        -- Update shield pool text.
+        create_hud_text_center(player, "pvp_revamped:shield_pool", pool)
+
+        data_shield.pool = pool
         victim_data.shield = data_shield
 
         return true
@@ -413,20 +437,28 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
             if tool_capabilities and tool_capabilities.damage_groups and tool_capabilities.damage_groups.shield then
                 axe_wear = tool_capabilities.damage_groups.shield
             end
-
             if stack and stack:get_name() == inventory_armor_shield.name then
+                local pool = data_shield.pool
                 -- Wear down the shield plus axe damage.
                 stack:add_wear((((damage - full_punch_interval) / 75) * block_wear_mul) + axe_wear)
                 inv:set_stack("armor", index, stack)
                 -- pool minus damage + axe_wear.
-                data_shield.pool = data_shield.pool - (damage + axe_wear)
+                pool = pool - (damage + axe_wear)
 
                 -- Remove shield table if pool is zero or below.
-                if data_shield.pool <= 0 then
+                if pool <= 0 then
                     victim_data.shield = nil
+
+                    -- Remove un-used hud element.
+                    remove_text_center(player, "pvp_revamped:shield_pool")
+
                     return true
                 end
 
+                -- Update shield pool text.
+                create_hud_text_center(player, "pvp_revamped:shield_pool", pool)
+
+                data_shield.pool = pool
                 victim_data.shield = data_shield
                 
                 return true
@@ -556,6 +588,10 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
 
     victim_data.block = nil
     victim_data.shield = nil
+
+    -- Remove un-used hud element.
+    remove_text_center(player, "pvp_revamped:block_pool")
+    remove_text_center(player, "pvp_revamped:shield_pool")
 
     -- Save new player data to the table.
     player_data[name] = victim_data
