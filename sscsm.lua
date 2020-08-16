@@ -7,10 +7,16 @@ if sscsm then
     local create_wield_shield = pvp_revamped.create_wield_shield
     local create_hud_text_center = pvp_revamped.create_hud_text_center
     local remove_text_center = pvp_revamped.remove_text_center
+    local use_player_api = pvp_revamped.use_player_api
     local get_us_time = minetest.get_us_time
     local get_player_by_name = minetest.get_player_by_name
+    local set_textures
     local cos = math.cos
     local sin = math.sin
+
+    if use_player_api then
+        set_textures = player_api.set_textures
+    end
 
     -- Register a sscsm for dodging and dashing.
     sscsm.register({name = "pvp_revamped:movement",
@@ -217,7 +223,17 @@ if sscsm then
                     -- Write pool to hud.
                     create_hud_text_center(player, "pvp_revamped:shield_pool", block_pool)
                     
-                    data.shield = {pool = block_pool, bone = "Arm_Left", name = data_shield.name, index = data_shield.index, initial_time = time, time = time, duration = data_shield.duration, hasty_guard_duration = data_shield.hasty_guard_duration, armor_inv = true}
+                    data.shield = {
+                        pool = block_pool,
+                        name = data_shield.name,
+                        index = data_shield.index,
+                        initial_time = time,
+                        time = time,
+                        duration = data_shield.duration,
+                        hasty_guard_duration = data_shield.hasty_guard_duration,
+                        armor_inv = true
+                    }
+
                     data.block = nil
                     player_data[name] = data
 
@@ -225,6 +241,16 @@ if sscsm then
 
                     -- Remove un-used hud element.
                     remove_text_center(player, "pvp_revamped:block_pool")
+
+                    if use_player_api then
+                        local tex_data = armor.textures[name]
+                        -- Remove shield from left arm.
+                        set_textures(player, {
+                            tex_data.skin,
+                            tex_data.armor:gsub("%^" .. data_shield.texture .. ".png", ""),
+                            tex_data.wielditem
+                        })
+                    end
                 end
             end
         end)

@@ -28,7 +28,6 @@ local get_player_data = pvp_revamped.get_player_data
 local player_data = pvp_revamped.player_data
 local player_persistent_data = pvp_revamped.player_persistent_data
 local armor_3d = pvp_revamped.armor_3d
-local lag = pvp_revamped.lag
 local hit_points = pvp_revamped.hit_points
 local create_hud_text_center = pvp_revamped.create_hud_text_center
 local remove_text_center = pvp_revamped.remove_text_center
@@ -554,7 +553,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
                     local c_damage = damage * clash_def_mul
                     
                     hd.damage = max(hd.damage - (damage + c_damage) * parry_dmg_mul, 0)
-                elseif full_punch and tool_capabilities.counter_duration and hd.time + tool_capabilities.counter_duration + lag + get_player_information(hitter_name).avg_jitter * 1000000 > get_us_time() then
+                elseif full_punch and tool_capabilities.counter_duration and hd.time + tool_capabilities.counter_duration + pvp_revamped.lag + get_player_information(hitter_name).avg_jitter * 1000000 > get_us_time() then
                     -- All damage gets reversed on counter.
                     -- Current damage gets added to it plus the damage multipliable.
                     local counter_dmg_mul = tool_capabilities.counter_dmg_mul or counter_dmg_mul

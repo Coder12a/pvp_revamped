@@ -19,7 +19,6 @@ local projectile_throw_style_dip = pvp_revamped.projectile_throw_style_dip
 local projectile_throw_style_spinning = pvp_revamped.projectile_throw_style_spinning
 local player_data = pvp_revamped.player_data
 local player_persistent_data = pvp_revamped.player_persistent_data
-local lag = pvp_revamped.lag
 local create_hud_text_center = pvp_revamped.create_hud_text_center
 local remove_text_center = pvp_revamped.remove_text_center
 local get_player_information = minetest.get_player_information
@@ -34,7 +33,8 @@ local max = math.max
 local floor = math.floor
 
 minetest.register_globalstep(function(dtime)
-    lag = dtime * 1000000
+    local lag = dtime * 1000000
+    pvp_revamped.lag = lag
 
     for k, v in pairs(player_data) do
         local server_lag = lag + get_player_information(k).avg_jitter * 1000000
@@ -321,6 +321,8 @@ minetest.register_globalstep(function(dtime)
             local entity = v.entity
             -- Drop arms.
             player:set_bone_position(entity.bone, entity.position, new(-180, 0, 0))
+            -- Update player's armor visual.
+            armor:update_player_visuals(player)
 
             v.entity.object:remove()
             v.entity = nil
