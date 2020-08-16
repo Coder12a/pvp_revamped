@@ -1,5 +1,6 @@
 local player_data = pvp_revamped.player_data
 local player_persistent_data = pvp_revamped.player_persistent_data
+local remove_text_center = pvp_revamped.remove_text_center
 local drop = pvp_revamped.drop
 local get_player_by_name = minetest.get_player_by_name
 
@@ -73,5 +74,34 @@ minetest.register_on_shutdown(function()
         if throw_data then
             drop(get_player_by_name(k), throw_data.item)
         end
+    end
+end)
+
+minetest.register_on_player_inventory_action(function(player)
+    local name = player:get_player_name()
+
+    if not player_data or not player_data[name] then
+        return
+    end
+
+    local pdata = player_data[name]
+    local data_shield = pdata.shield
+
+    if data_shield and not data_shield.armor_inv and player:get_wielded_item():get_name() ~= data_shield.name then
+        player_data[name].shield = nil
+
+        -- Remove un-used hud element.
+        remove_text_center(player, "pvp_revamped:shield_pool")
+
+        return
+    end
+
+    local data_block = pdata.block
+
+    if data_block and player:get_wielded_item():get_name() ~= data_block.name then
+        player_data[name].block = nil
+
+        -- Remove un-used hud element.
+        remove_text_center(player, "pvp_revamped:block_pool")
     end
 end)
