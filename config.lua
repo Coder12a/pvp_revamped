@@ -70,17 +70,13 @@ local function split(string, def)
 end
 
 local xyz = split("pvp_revamped.projectile_dip_velocity_dmg_mul", {1, 2, 1})
-
 pvp_revamped.config.projectile_dip_velocity_dmg_mul = {x = tonumber(xyz[1]), y = tonumber(xyz[2]), z = tonumber(xyz[3])}
 
 xyz = split("pvp_revamped.shield_entity_pos", {0, 6, 0})
-
 pvp_revamped.config.shield_entity_pos = {x = tonumber(xyz[1]), y = tonumber(xyz[2]), z = tonumber(xyz[3])}
 
 xyz = split("pvp_revamped.shield_entity_rotate", {-90, 180, 180})
-
 pvp_revamped.config.shield_entity_rotate = {x = tonumber(xyz[1]), y = tonumber(xyz[2]), z = tonumber(xyz[3])}
 
 xyz = split("pvp_revamped.shield_entity_scale", {0.35, 0.35})
-
 pvp_revamped.config.shield_entity_scale = {x = tonumber(xyz[1]), y = tonumber(xyz[2]), z = tonumber(xyz[3])}

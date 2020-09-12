@@ -23,6 +23,7 @@ local player_persistent_data = pvp_revamped.player_persistent_data
 local create_hud_text_center = pvp_revamped.create_hud_text_center
 local remove_text_center = pvp_revamped.remove_text_center
 local use_player_api = pvp_revamped.use_player_api
+local shield_inv = pvp_revamped.shield_inv
 local registered_tools = minetest.registered_tools
 local get_item_group = minetest.get_item_group
 local get_us_time = minetest.get_us_time
@@ -71,12 +72,8 @@ minetest.register_on_mods_loaded(function()
         if v.tool_capabilities then
             -- Calculate the item throw speed.
             local tool_capabilities = v.tool_capabilities
-            local range = 4
+            local range = v.tool_capabilities.range or 4
             local projectile_speed_mul = tool_capabilities.projectile_speed_mul or projectile_speed_mul
-
-            if v.tool_capabilities.range then
-                range = v.tool_capabilities.range
-            end
 
             tool_capabilities.throw_speed = range * projectile_speed_mul
 
@@ -119,46 +116,7 @@ minetest.register_on_mods_loaded(function()
                     local player_pdata = player_persistent_data[name]
                     local data = get_player_data(name)
 
-                    -- Use 3d_armor inv shield if available.
-                    if armor_3d and player_pdata.inventory_armor_shield and (player_pdata.use_shield or floor(user:get_player_control_bits() / 64) % 2 == 1) then
-                        local data_shield = player_pdata.inventory_armor_shield
-                        local block_pool = data_shield.block_pool
-                        local time = get_us_time()
-
-                        create_wield_shield(user, name, "Arm_Left", data_shield.name, data_shield.groups)
-
-                        -- Write pool to hud.
-                        create_hud_text_center(user, "pvp_revamped:shield_pool", block_pool)
-
-                        data.shield = {
-                            pool = block_pool,
-                            name = data_shield.name,
-                            index = data_shield.index,
-                            initial_time = time,
-                            time = time,
-                            duration = data_shield.duration,
-                            hasty_guard_duration = data_shield.hasty_guard_duration,
-                            armor_inv = true
-                        }
-
-                        data.block = nil
-                        player_data[name] = data
-                        
-                        user:set_properties{damage_texture_modifier = ""}
-
-                        -- Remove un-used hud element.
-                        remove_text_center(user, "pvp_revamped:block_pool")
-
-                        if use_player_api then
-                            local tex_data = armor.textures[name]
-                            -- Remove shield from left arm.
-                            set_textures(user, {
-                                tex_data.skin,
-                                tex_data.armor:gsub("%^" .. data_shield.texture .. ".png", ""),
-                                tex_data.wielditem
-                            })
-                        end
-
+                    if shield_inv(user, name, player_pdata, data) then
                         return
                     end
 
@@ -272,46 +230,7 @@ minetest.register_on_mods_loaded(function()
                     local player_pdata = player_persistent_data[name]
                     local data = get_player_data(name)
 
-                    -- Use 3d_armor inv shield if available.
-                    if armor_3d and player_pdata.inventory_armor_shield and (player_pdata.use_shield or floor(user:get_player_control_bits() / 64) % 2 == 1) then
-                        local data_shield = player_pdata.inventory_armor_shield
-                        local block_pool = data_shield.block_pool
-                        local time = get_us_time()
-
-                        create_wield_shield(user, name, "Arm_Left", data_shield.name, data_shield.groups)
-
-                        -- Write pool to hud.
-                        create_hud_text_center(user, "pvp_revamped:shield_pool", block_pool)
-
-                        data.shield = {
-                            pool = block_pool,
-                            name = data_shield.name,
-                            index = data_shield.index,
-                            initial_time = time,
-                            time = time,
-                            duration = data_shield.duration,
-                            hasty_guard_duration = data_shield.hasty_guard_duration,
-                            armor_inv = true
-                        }
-
-                        data.block = nil
-                        player_data[name] = data
-                        
-                        user:set_properties{damage_texture_modifier = ""}
-
-                        -- Remove un-used hud element.
-                        remove_text_center(user, "pvp_revamped:block_pool")
-
-                        if use_player_api then
-                            local tex_data = armor.textures[name]
-                            -- Remove shield from left arm.
-                            set_textures(user, {
-                                tex_data.skin,
-                                tex_data.armor:gsub("%^" .. data_shield.texture .. ".png", ""),
-                                tex_data.wielditem
-                            })
-                        end
-
+                    if shield_inv(user, name, player_pdata, data) then
                         return
                     end
 
@@ -373,8 +292,6 @@ end)
 
 -- See if the mod armor_3d is a thing here.
 if minetest.global_exists("armor") then
-    armor_3d = true
-    pvp_revamped.armor_3d = armor_3d
     local old_save_armor_inventory = armor.save_armor_inventory
     local old_load_armor_inventory = armor.load_armor_inventory
 

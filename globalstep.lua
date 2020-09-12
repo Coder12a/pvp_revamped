@@ -74,7 +74,7 @@ minetest.register_globalstep(function(dtime)
             active = true
         end
 
-        if v.shield then
+        if v.shield and v.entity then
             -- Check if the player is holding down the RMB key.
             if floor(player:get_player_control_bits() / 256) % 2 == 1 then
                 -- Update the shield time.
@@ -92,6 +92,20 @@ minetest.register_globalstep(function(dtime)
                 remove_text_center(player, "pvp_revamped:shield_pool")
             end
 
+            local entity = v.entity
+            -- Point arm forward.
+            player:set_bone_position(entity.bone, entity.position, entity.rotation)
+
+            active = true
+        elseif not v.shield and v.entity then
+            local entity = v.entity
+            -- Drop arms.
+            player:set_bone_position(entity.bone, entity.position, new(-180, 0, 0))
+            -- Update player's armor visual.
+            armor:update_player_visuals(player)
+
+            v.entity.object:remove()
+            v.entity = nil
             active = true
         end
 
@@ -281,11 +295,11 @@ minetest.register_globalstep(function(dtime)
                 if data.resolved or data.time + clash_duration + server_lag < time then
                     local block = v.block
                     local shield = v.shield
-
                     local damage = data.damage
+                    local timeframe = time - server_lag
                     
                     -- If the player was able to pull off a hasty guard cancel the attack.
-                     if damage > 0 and not (block and block.initial_time + block.hasty_guard_duration + server_lag > time) and not (shield and shield.initial_time + shield.hasty_guard_duration + server_lag > time) then
+                     if damage > 0 and not (block and block.initial_time + block.hasty_guard_duration > timeframe) and not (shield and shield.initial_time + shield.hasty_guard_duration > timeframe) then
                         hp = hp - damage
                         hp_change = true
                     elseif damage < 0 then
@@ -310,22 +324,6 @@ minetest.register_globalstep(function(dtime)
                 v.hit = nil
             end
 
-            active = true
-        end
-
-        if v.entity and v.shield then
-            local entity = v.entity
-            -- Point arm forward.
-            player:set_bone_position(entity.bone, entity.position, entity.rotation)
-        elseif v.entity and not v.shield then
-            local entity = v.entity
-            -- Drop arms.
-            player:set_bone_position(entity.bone, entity.position, new(-180, 0, 0))
-            -- Update player's armor visual.
-            armor:update_player_visuals(player)
-
-            v.entity.object:remove()
-            v.entity = nil
             active = true
         end
 

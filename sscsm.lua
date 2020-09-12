@@ -8,6 +8,10 @@ if sscsm then
     local create_hud_text_center = pvp_revamped.create_hud_text_center
     local remove_text_center = pvp_revamped.remove_text_center
     local use_player_api = pvp_revamped.use_player_api
+    local shield_inv = pvp_revamped.shield_inv
+    local dash = pvp_revamped.dash
+    local barrel_roll = pvp_revamped.barrel_roll
+    local dodge = pvp_revamped.dodge
     local get_us_time = minetest.get_us_time
     local get_player_by_name = minetest.get_player_by_name
     local set_textures
@@ -22,59 +26,9 @@ if sscsm then
     sscsm.register({name = "pvp_revamped:movement",
                     file = minetest.get_modpath("pvp_revamped") .. "/movement.lua"})
 
-    local function remove_hits(name)
-        local hit_data = get_player_data(name).hit
-
-        if hit_data then
-            for i = #hit_data, 1, -1 do
-                local data = hit_data[i]
-
-                if not data.resolved then
-                    local count = #hit_data
-                    
-                    hit_data[i] = hit_data[count]
-                    hit_data[count] = nil
-                end
-            end
-        end
-    end
-
-    -- Helper function to check and set the dodge cooldown.
-    local function dodge(name, player, number)
-        local dodge_data = get_player_data(name)
-        
-        if not dodge_data.dodge then
-            dodge_data.dodge = {[number] = get_us_time()}
-            player:set_properties{damage_texture_modifier = ""}
-            -- Clear out any hit data on dodge.
-            remove_hits(name)
-            -- Remove shield and block.
-            dodge_data.block = nil
-            dodge_data.shield = nil
-            -- Remove un-used hud element.
-            remove_text_center(player, "pvp_revamped:block_pool")
-            remove_text_center(player, "pvp_revamped:shield_pool")
-            -- Display words invincible to player.
-            create_hud_text_center(player, "pvp_revamped:dodge", "INVINCIBLE")
-        elseif dodge_data.dodge and not dodge_data.dodge[number] then
-            dodge_data.dodge[number] = get_us_time()
-            player:set_properties{damage_texture_modifier = ""}
-            -- Clear out any hit data on dodge.
-            remove_hits(name)
-            -- Remove shield and block.
-            dodge_data.block = nil
-            dodge_data.shield = nil
-            -- Remove un-used hud element.
-            remove_text_center(player, "pvp_revamped:block_pool")
-            remove_text_center(player, "pvp_revamped:shield_pool")
-            -- Display words invincible to player.
-            create_hud_text_center(player, "pvp_revamped:dodge", "INVINCIBLE")
-        end
-    end
-
     -- Channel for dodge request.
     sscsm.register_on_com_receive("pvp_revamped:dodge", function(name, msg)
-        if msg and type(msg) == "string" then
+        if msg and type(msg) == "string" and msg == "dodge" then
             local player = get_player_by_name(name)
             local velocity = player:get_player_velocity().y
             local aerial_points = 0
@@ -83,57 +37,10 @@ if sscsm then
                 aerial_points = 1
             end
 
-            if msg == "dodge" then
-                dodge(name, player, 1 + aerial_points)
-            else
-                return false
-            end
+            dodge(name, player, 1 + aerial_points)
         end
     end)
     
-    -- Helper function to check and set the barrel_roll cooldown.
-    local function barrel_roll(name, player, number, x, z)
-        local barrel_roll_data = get_player_data(name)
-
-        if not barrel_roll_data.barrel_roll then
-            barrel_roll_data.barrel_roll = {[number] = {time = get_us_time(), x = x, z = z}}
-            player:set_properties{damage_texture_modifier = ""}
-            -- Clear out any hit data on barrel roll.
-            remove_hits(name)
-            -- Remove shield and block.
-            barrel_roll_data.block = nil
-            barrel_roll_data.shield = nil
-            -- Remove un-used hud element.
-            remove_text_center(player, "pvp_revamped:block_pool")
-            remove_text_center(player, "pvp_revamped:shield_pool")
-            -- Display words invincible to player.
-            create_hud_text_center(player, "pvp_revamped:barrel_roll", "INVINCIBLE")
-        elseif barrel_roll_data.barrel_roll and not barrel_roll_data.barrel_roll[number] then
-            barrel_roll_data.barrel_roll[number] = {time = get_us_time(), x = x, z = z}
-            player:set_properties{damage_texture_modifier = ""}
-            -- Clear out any hit data on barrel roll.
-            remove_hits(name)
-            -- Remove shield and block.
-            barrel_roll_data.block = nil
-            barrel_roll_data.shield = nil
-            -- Remove un-used hud element.
-            remove_text_center(player, "pvp_revamped:block_pool")
-            remove_text_center(player, "pvp_revamped:shield_pool")
-            -- Display words invincible to player.
-            create_hud_text_center(player, "pvp_revamped:barrel_roll", "INVINCIBLE")
-        else
-            return
-        end
-
-        local yaw = player:get_look_horizontal()
-        local co = cos(yaw)
-        local si = sin(yaw)
-        local re_x = co * x - si * z
-        local re_z = si * x + co * z
-
-        player:add_player_velocity({x = re_x, y = 0, z = re_z})
-    end
-
     -- Channel for barrel_roll request.
     sscsm.register_on_com_receive("pvp_revamped:barrel_roll", function(name, msg)
         if msg and type(msg) == "string" then
@@ -159,26 +66,6 @@ if sscsm then
             end
         end
     end)
-
-    local function dash(player, name, dash_key, x, y, z)
-        local dash_data = get_player_data(name)
-        
-        if not dash_data.dash then
-            dash_data.dash = {[dash_key] = get_us_time()}
-        elseif dash_data.dash and not dash_data.dash[dash_key] then
-            dash_data.dash[dash_key] = get_us_time()
-        else
-            return 
-        end
-        
-        local yaw = player:get_look_horizontal()
-        local co = cos(yaw)
-        local si = sin(yaw)
-        local re_x = co * x - si * z
-        local re_z = si * x + co * z
-
-        player:add_player_velocity({x = re_x, y = y, z = re_z})
-    end
 
     -- Channel for dash request.
     sscsm.register_on_com_receive("pvp_revamped:dash", function(name, msg)
@@ -210,48 +97,11 @@ if sscsm then
     if minetest.global_exists("armor") then
         sscsm.register_on_com_receive("pvp_revamped:shield_block", function(name, msg)
             if msg and type(msg) == "string" then
-                local data_shield = player_persistent_data[name].inventory_armor_shield
+                local data = get_player_data(name)
+                local player = get_player_by_name(name)
+                local player_pdata = player_persistent_data[name]
 
-                if data_shield then
-                    local data = get_player_data(name)
-                    local time = get_us_time()
-                    local player = get_player_by_name(name)
-                    local block_pool = data_shield.block_pool
-
-                    create_wield_shield(player, name, "Arm_Left", data_shield.name, data_shield.groups)
-
-                    -- Write pool to hud.
-                    create_hud_text_center(player, "pvp_revamped:shield_pool", block_pool)
-                    
-                    data.shield = {
-                        pool = block_pool,
-                        name = data_shield.name,
-                        index = data_shield.index,
-                        initial_time = time,
-                        time = time,
-                        duration = data_shield.duration,
-                        hasty_guard_duration = data_shield.hasty_guard_duration,
-                        armor_inv = true
-                    }
-
-                    data.block = nil
-                    player_data[name] = data
-
-                    player:set_properties{damage_texture_modifier = ""}
-
-                    -- Remove un-used hud element.
-                    remove_text_center(player, "pvp_revamped:block_pool")
-
-                    if use_player_api then
-                        local tex_data = armor.textures[name]
-                        -- Remove shield from left arm.
-                        set_textures(player, {
-                            tex_data.skin,
-                            tex_data.armor:gsub("%^" .. data_shield.texture .. ".png", ""),
-                            tex_data.wielditem
-                        })
-                    end
-                end
+                shield_inv(player, name, player_pdata, data)
             end
         end)
     end
