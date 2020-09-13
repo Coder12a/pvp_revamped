@@ -37,8 +37,8 @@ minetest.register_chatcommand("throw_style", {
 -- Cmd to give you movement items.
 minetest.register_chatcommand("move_item", {
     params = "[<item>]: Gives you a movement item.",
-    description = "Gives you a movement item. Accepted values are [dodge|dash_left|dash_up|dash_right|dash_down|roll_left"
-                  .. "|roll_up|roll_right|roll_down|all]",
+    description = "Gives you a movement item. Accepted values are [dodge|dash_left|dash_up|dash_right|dash_down|dash_all|roll_left"
+                  .. "|roll_up|roll_right|roll_down|roll_all|all]",
     privs = {
         interact = true,
     },
@@ -49,39 +49,53 @@ minetest.register_chatcommand("move_item", {
         if param == "dodge" then
             inv:add_item("main", "pvp_revamped:dodge")
 
-            return true, ""
+            return true
         elseif param == "dash_left" then
             inv:add_item("main", "pvp_revamped:dash_left")
 
-            return true, ""
+            return true
         elseif param == "dash_up" then
             inv:add_item("main", "pvp_revamped:dash_up")
 
-            return true, ""
+            return true
         elseif param == "dash_right" then
             inv:add_item("main", "pvp_revamped:dash_right")
 
-            return true, ""
+            return true
         elseif param == "dash_down" then
             inv:add_item("main", "pvp_revamped:dash_down")
 
-            return true, ""
+            return true
+        elseif param == "dash_all" then
+            inv:add_item("main", "pvp_revamped:dash_left")
+            inv:add_item("main", "pvp_revamped:dash_up")
+            inv:add_item("main", "pvp_revamped:dash_right")
+            inv:add_item("main", "pvp_revamped:dash_down")
+
+            return true
         elseif param == "roll_left" then
             inv:add_item("main", "pvp_revamped:roll_left")
 
-            return true, ""
+            return true
         elseif param == "roll_up" then
             inv:add_item("main", "pvp_revamped:roll_up")
 
-            return true, ""
+            return true
         elseif param == "roll_right" then
             inv:add_item("main", "pvp_revamped:roll_right")
 
-            return true, ""
+            return true
         elseif param == "roll_down" then
             inv:add_item("main", "pvp_revamped:roll_down")
 
-            return true, ""
+            return true
+        elseif param == "roll_all" then
+            inv:add_item("main", "pvp_revamped:roll_left")
+            inv:add_item("main", "pvp_revamped:roll_up")
+            inv:add_item("main", "pvp_revamped:roll_right")
+            inv:add_item("main", "pvp_revamped:roll_down")
+
+            return true
         elseif param == "all" then
             inv:add_item("main", "pvp_revamped:dodge")
             inv:add_item("main", "pvp_revamped:dash_left")
@@ -93,11 +107,11 @@ minetest.register_chatcommand("move_item", {
             inv:add_item("main", "pvp_revamped:roll_right")
             inv:add_item("main", "pvp_revamped:roll_down")
 
-            return true, ""
+            return true
         end
 
-        return false, "Only parameters: 'dodge', 'dash_left', 'dash_up', 'dash_right', 'dash_down',\n"
-                      .. "roll_left, roll_up, roll_right, roll_down, and 'all' are accepted."
+        return false, "Only parameters: 'dodge', 'dash_left', 'dash_up', 'dash_right', 'dash_down', 'dash_all',\n"
+                      .. "'roll_left', 'roll_up', 'roll_right', 'roll_down', 'roll_all', and 'all' are accepted."
     end
 })
 

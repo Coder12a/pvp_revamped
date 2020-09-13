@@ -45,9 +45,28 @@ All tools have different throw speeds, charge times, and damages.
 
 **/tap_speed_reset** [none] Resets the tap sensitivity to 0.15 seconds. **(Requires sscsm)**
 
-**/use_shield** [boolean] If set to true, the shield plate inside your armor inventory will be used to block all incoming damage when RMB is pressed.
+**/use_shield** [boolean] If set to true, the shield plate inside your armor inventory will be used to block all incoming damage when RMB is pressed. **(Requires shields)**
 
-**/throw_style** Change how you throw an item. Accepted values are [none|spin|dip]
+**/move_item** Gives you a movement item. Accepted values are:
+- dodge
+- dash_left
+- dash_up
+- dash_right
+- dash_down
+- dash_all
+- roll_left
+- roll_up
+- roll_right
+- roll_down
+- roll_all
+- all
+
+These items offer a way to still dodge, dash, and roll without the sscsm mod.
+
+**/throw_style** Change how you throw an item. Accepted values are:
+- none
+- spin
+- dip
 
 Thrown items give better damage and distance when charged the longest.
 
@@ -114,6 +133,9 @@ Any damage from a punch in pvp is put in a queue for a duration. This makes it p
 3.	*Parry* when a player parry’s an attack all damage and bonus damages are used to mitigate the attack. This does not harm the aggressor.
 4.	*Counter* reverses all damage plus bonus damage to the aggressor. (Must be within counter duration and full punch only)
 5. *Hasty guard* when you block immediately after being hit you can block the any damage from any angle, but this has a small-time window to activate. (depends on config or tool settings)
+
+#### takedown
+If enabled full punches can only kill a player. Spam punches will only bring the hp to one (half a heart).
 
 ### effects
 
@@ -300,6 +322,10 @@ pvp_revamped.counter_dmg_mul = 1.5
 This is used to divide the range value into two parts. The parts being optimal and maximum range.
 ``` lua
 pvp_revamped.optimal_distance_mul = 0.625
+```
+If true you would need a full punch in order to kill a player. Spam punches will only bring the hp to one.
+``` lua
+pvp_revamped.takedown = true
 ```
 
 #### maneuvers
@@ -528,6 +554,5 @@ armor:register_armor("test:shield_test", {
         shield_entity_rotate = {x = -90, y = 180, z = 180},
         -- See shield_entity_scale in config.
         shield_entity_scale = {x = 0.35, y = 0.35}}
-
 })
 ```

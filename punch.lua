@@ -575,14 +575,15 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
                 end
 
                 hd.resolved = true
+                hd.full_punch = true
 
                 break
             end
         end
     elseif victim_data.hit then
-        insert(victim_data.hit, 1, {name = hitter_name, damage = damage, time = get_us_time()})
+        insert(victim_data.hit, 1, {name = hitter_name, damage = damage, full_punch = full_punch, time = get_us_time()})
     else
-        victim_data.hit = {{name = hitter_name, damage = damage, time = get_us_time()}}
+        victim_data.hit = {{name = hitter_name, damage = damage, full_punch = full_punch, time = get_us_time()}}
     end
 
     victim_data.block = nil

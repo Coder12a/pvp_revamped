@@ -15,6 +15,7 @@ local clash_duration = pvp_revamped.config.clash_duration
 local dash_cooldown = pvp_revamped.config.dash_cooldown
 local dash_cooldown = pvp_revamped.config.dash_cooldown
 local hasty_guard_duration = pvp_revamped.config.hasty_guard_duration
+local takedown = pvp_revamped.config.takedown
 local projectile_throw_style_dip = pvp_revamped.projectile_throw_style_dip
 local projectile_throw_style_spinning = pvp_revamped.projectile_throw_style_spinning
 local player_data = pvp_revamped.player_data
@@ -289,38 +290,62 @@ minetest.register_globalstep(function(dtime)
             local hp = player:get_hp()
             local hp_change
 
-            for i = #hit_data, 1, -1 do
-                local data = hit_data[i]
-
-                if data.resolved or data.time + clash_duration + server_lag < time then
-                    local block = v.block
-                    local shield = v.shield
-                    local damage = data.damage
-                    local timeframe = time - server_lag
-                    
-                    -- If the player was able to pull off a hasty guard cancel the attack.
-                     if damage > 0 and not (block and block.initial_time + block.hasty_guard_duration > timeframe) and not (shield and shield.initial_time + shield.hasty_guard_duration > timeframe) then
-                        hp = hp - damage
-                        hp_change = true
-                    elseif damage < 0 then
-                        local hitter = get_player_by_name(data.name)
-
-                        hitter:set_hp(hitter:get_hp() + damage)
+            if hp >= 1 then
+                for i = #hit_data, 1, -1 do
+                    -- End the loop if hp is below one.
+                    if hp < 1 then
+                        v.hit = nil
+                        break
                     end
+                    
+                    local data = hit_data[i]
 
-                    local count = #hit_data
+                    if data.resolved or data.time + clash_duration + server_lag < time then
+                        local block = v.block
+                        local shield = v.shield
+                        local damage = data.damage
+                        local timeframe = time - server_lag
+                        
+                        -- If the player was able to pull off a hasty guard cancel the attack.
+                        if damage > 0 and not (block and block.initial_time + block.hasty_guard_duration > timeframe) and not (shield and shield.initial_time + shield.hasty_guard_duration > timeframe) then
+                            hp = hp - damage
 
-                    hit_data[i] = hit_data[count]
-                    hit_data[count] = nil
+                            if takedown and not data.full_punch and (hp - damage) < 1 then
+                                hp = 1
+                            end
+
+                            hp_change = true
+                        elseif damage < 0 then
+                            local hitter = get_player_by_name(data.name)
+                            local hitter_hp = hitter:get_hp()
+
+                            if (takedown and data.full_punch and (hitter_hp + damage) >= 1) or (not takedown and hitter_hp >= 1) then
+                                hitter:set_hp(hitter_hp + damage)
+                            elseif takedown and hitter_hp > 1 then
+                                hitter:set_hp(max(hitter_hp + damage, 1))
+                            end
+                        end
+
+                        local count = #hit_data
+
+                        hit_data[i] = hit_data[count]
+                        hit_data[count] = nil
+                    end
                 end
-            end
 
-            if hp_change then
-                player:set_hp(hp)
-            end
+                local real_hp = player:get_hp()
 
-            -- If this table contains no more hits remove it.
-            if maxn(hit_data) < 1 then
+                if hp_change and real_hp >= 1 then
+                    player:set_hp(hp)
+                elseif real_hp < 1 then
+                    v.hit = nil
+                end
+
+                -- If this table contains no more hits remove it.
+                if maxn(hit_data) < 1 then
+                    v.hit = nil
+                end
+            else
                 v.hit = nil
             end
 
