@@ -3,9 +3,9 @@ local torso_height = pvp_revamped.config.torso_height
 local leg_height = pvp_revamped.config.leg_height
 local knee_height = pvp_revamped.config.knee_height
 local disarm_chance_mul = pvp_revamped.config.disarm_chance_mul
-local leg_stagger_mul = pvp_revamped.config.leg_stagger_mul
-local knee_stagger_mul = pvp_revamped.config.knee_stagger_mul
-local stagger_mul = pvp_revamped.config.stagger_mul
+local leg_immobilize_mul = pvp_revamped.config.leg_immobilize_mul
+local knee_immobilize_mul = pvp_revamped.config.knee_immobilize_mul
+local immobilize_mul = pvp_revamped.config.immobilize_mul
 local block_wear_mul = pvp_revamped.config.block_wear_mul
 local head_dmg_mul = pvp_revamped.config.head_dmg_mul
 local torso_dmg_mul = pvp_revamped.config.torso_dmg_mul
@@ -499,37 +499,37 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         end
     end
 
-    local function set_stagger_data(speed)
+    local function set_immobilize_data(speed)
         player:set_physics_override({speed = speed, jump = speed})
 
-        local stagger_mul = tool_capabilities.stagger_mul or stagger_mul
+        local immobilize_mul = tool_capabilities.immobilize_mul or immobilize_mul
         
-        victim_data.stagger = {time = get_us_time(), value = (1 / speed) * stagger_mul}
+        victim_data.immobilize = {time = get_us_time(), value = (1 / speed) * immobilize_mul}
     end
 
     -- Process if the player was hit in the leg.
     if leg then
-        -- Stagger the player.
-        local leg_stagger_mul = tool_capabilities.leg_stagger_mul or leg_stagger_mul
-        local speed = min(1 / max(damage - hp, 1) * leg_stagger_mul, 0.1)
-        local data_stagger = victim_data.stagger
+        -- immobilize the player.
+        local leg_immobilize_mul = tool_capabilities.leg_immobilize_mul or leg_immobilize_mul
+        local speed = min(1 / max(damage - hp, 1) * leg_immobilize_mul, 0.1)
+        local data_immobilize = victim_data.immobilize
 
-        if not data_stagger or data_stagger.value > speed then
-            set_stagger_data(speed)
+        if not data_immobilize or data_immobilize.value > speed then
+            set_immobilize_data(speed)
         end
     elseif knee then
-        -- Stagger the player.
-        local knee_stagger_mul = tool_capabilities.knee_stagger_mul or knee_stagger_mul
-        local speed = min(1 / max(damage - hp, 1.5) * knee_stagger_mul, 0.1)
-        local data_stagger = victim_data.stagger
+        -- immobilize the player.
+        local knee_immobilize_mul = tool_capabilities.knee_immobilize_mul or knee_immobilize_mul
+        local speed = min(1 / max(damage - hp, 1.5) * knee_immobilize_mul, 0.1)
+        local data_immobilize = victim_data.immobilize
 
-        if data_stagger then
-            -- Add the original value and update all stagger data.
-            speed = min(abs(speed - data_stagger.value), 0.1)
+        if data_immobilize then
+            -- Add the original value and update all immobilize data.
+            speed = min(abs(speed - data_immobilize.value), 0.1)
 
-            set_stagger_data(speed)
+            set_immobilize_data(speed)
         else
-            set_stagger_data(speed)
+            set_immobilize_data(speed)
         end
     end
 
@@ -599,7 +599,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
     return true
 end
 
--- This needs to be the first punch function to prevent knockback on a staggered player.
+-- This needs to be the first punch function to prevent knockback on a immobilizeed player.
 insert(minetest.registered_on_punchplayers, 1, punch)
 
 minetest.callback_origins[punch] = {

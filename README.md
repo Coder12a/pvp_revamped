@@ -88,8 +88,8 @@ Damage to the:
 1. *Head* gives a damage multipliable.
 2. *Torso* gives a damage multipliable. **(Also vector related)**
 3. *Arm* gives a damage multipliable, and chance to disarm item. **(Also vector related)**
-4. *Leg* gives a damage multipliable, and staggers player.
-5. Kneecaps stagger the player. **(Slows them down for a short amount of time)**
+4. *Leg* gives a damage multipliable, and immobilizes player.
+5. Kneecaps immobilize the player. **(Slows them down for a short amount of time)**
 
 #### side related damage.
 When hitting another player at an angle.
@@ -142,8 +142,8 @@ If enabled full punches can only kill a player. Spam punches will only bring the
 #### disarming
 Hitting a player in the arms gives a random chance to cause them to drop whatever item they are holding. The chance to disarm is affected by what item they are holding and the player health. Lesser health means better chance at disarming.
 
-#### staggering
-The stagger effect makes a player move slow. To stagger a player hit them in the legs or kneecaps.
+#### immobilizeing
+The immobilize effect makes a player move slow. To immobilize a player hit them in the legs or kneecaps.
 
 ### maneuvers
 Explaining in detail the different evasive maneuvers you can pull off in-game.
@@ -371,15 +371,15 @@ pvp_revamped.disarm_chance_mul = 2
 ```
 Value multiplies damage subtracted by health to set the new walk speed.
 ``` lua
-pvp_revamped.knee_stagger_mul = 1.5
+pvp_revamped.knee_immobilize_mul = 1.5
 ```
 Value multiplies damage subtracted by health to set the new walk speed.
 ``` lua
-pvp_revamped.leg_stagger_mul = 0.8
+pvp_revamped.leg_immobilize_mul = 0.8
 ```
-Multiplies the stagger duration In microseconds.
+Multiplies the immobilize duration In microseconds.
 ``` lua
-pvp_revamped.stagger_mul = 100000
+pvp_revamped.immobilize_mul = 100000
 ```
 
 #### projectile
@@ -451,12 +451,12 @@ tool_capabilities = {
     block_duration = 100000,
     -- See disarm_chance_mul in config.
     disarm_chance_mul = 2,
-    -- See leg_stagger_mul in config.
-    leg_stagger_mul = 0.8,
-    -- See knee_stagger_mul in config.
-    knee_stagger_mul = 1.5,
-    -- See stagger_mul in config.
-    stagger_mul = 100000,
+    -- See leg_immobilize_mul in config.
+    leg_immobilize_mul = 0.8,
+    -- See knee_immobilize_mul in config.
+    knee_immobilize_mul = 1.5,
+    -- See immobilize_mul in config.
+    immobilize_mul = 100000,
     -- See block_duration_mul in config.
     block_duration_mul = 100000,
     -- See block_interval_mul in config.

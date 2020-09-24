@@ -171,14 +171,14 @@ minetest.register_globalstep(function(dtime)
             active = true
         end
 
-        if v.stagger then
-            local stagger = v.stagger
+        if v.immobilize then
+            local immobilize = v.immobilize
 
-            -- Check if the stagger duration expired. 
-            if stagger.time + stagger.value + server_lag < time then
+            -- Check if the immobilize duration expired. 
+            if immobilize.time + immobilize.value + server_lag < time then
                 -- Restore the player's physics.
                 get_player_by_name(k):set_physics_override({speed = 1, jump = 1})
-                v.stagger = nil
+                v.immobilize = nil
             end
 
             active = true

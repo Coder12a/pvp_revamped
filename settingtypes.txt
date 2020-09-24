@@ -110,11 +110,11 @@ pvp_revamped.hasty_shield_mul (Hasty shield multiplier) float 1000
 # Value is used to decrease the chance of disarming another player.
 pvp_revamped.disarm_chance_mul (Disarm chance multiplier) float 2
 # Value multiplies damage subtracted by health to set the new walk speed.
-pvp_revamped.knee_stagger_mul (Knee stagger multiplier) float 1.5
+pvp_revamped.knee_immobilize_mul (Knee immobilize multiplier) float 1.5
 # Value multiplies damage subtracted by health to set the new walk speed.
-pvp_revamped.leg_stagger_mul (Leg stagger multiplier) float 0.8
-# Multiplies the stagger duration In microseconds.
-pvp_revamped.stagger_mul (Stagger multiplier) float 100000
+pvp_revamped.leg_immobilize_mul (Leg immobilize multiplier) float 0.8
+# Multiplies the immobilize duration In microseconds.
+pvp_revamped.immobilize_mul (immobilize multiplier) float 100000
 
 [Projectile]
 # This value multiplies full_punch_interval to create the time need to fully throw a tool at max speed and damage.
