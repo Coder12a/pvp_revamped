@@ -45,7 +45,7 @@ minetest.register_globalstep(function(dtime)
         local active
 
         if v.block and v.aim then
-            -- Check if the player is holding down the RMB key.
+            -- Check if the player is holding down the place key.
             if floor(player:get_player_control_bits() / 256) % 2 == 1 then
                 -- Update the block time.
                 v.block.time = time
@@ -76,7 +76,7 @@ minetest.register_globalstep(function(dtime)
         end
 
         if v.shield and v.entity then
-            -- Check if the player is holding down the RMB key.
+            -- Check if the player is holding down the place key.
             if floor(player:get_player_control_bits() / 256) % 2 == 1 then
                 -- Update the shield time.
                 v.shield.time = time
@@ -116,7 +116,7 @@ minetest.register_globalstep(function(dtime)
             local tool_capabilities = throw_data.tool_capabilities
             local full_throw = throw_data.time + tool_capabilities.full_throw
             
-            -- If neither LMB or RMB is down then throw the item.
+            -- If neither dig or place is down then throw the item.
             if (floor(control_bits / 128) % 2 ~= 1 and floor(control_bits / 256) % 2 ~= 1) or pp_data.active_dodges or pp_data.active_barrel_rolls then
                 local pos = player:get_pos()
 

@@ -31,6 +31,7 @@ local armor_3d = pvp_revamped.armor_3d
 local hit_points = pvp_revamped.hit_points
 local create_hud_text_center = pvp_revamped.create_hud_text_center
 local remove_text_center = pvp_revamped.remove_text_center
+local point_arm = pvp_revamped.point_arm
 local registered_tools = minetest.registered_tools
 local raycast = minetest.raycast
 local get_us_time = minetest.get_us_time
@@ -180,7 +181,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
                 end
             end
 
-            if near_part == 1 then
+            if near_part == point_arm then
                 -- Hit in the arm.
                 arm = true
 
@@ -547,7 +548,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
 
             if not hd.resolved and hd.name == name then
                 if floor(hitter:get_player_control_bits() / 256) % 2 == 1 then
-                    -- Attempt to parry the attack if RMB is down.
+                    -- Attempt to parry the attack if place is down.
                     local parry_dmg_mul = tool_capabilities.parry_dmg_mul or parry_dmg_mul
                     local clash_def_mul = tool_capabilities.clash_def_mul or 0
                     local c_damage = damage * clash_def_mul

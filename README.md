@@ -19,9 +19,9 @@ Double tap use key to dodge. **(Requires sscsm)**
 
 #### blocking
 
-Using any tool that can damage. Press RMB *(Right mouse button or double tap)* key to activate the tool block.
+Using any tool that can damage. Press place *(Right mouse button or double tap)* key to activate the tool block.
 
-Holding down RMB after activating will maintain the block.
+Holding down place after activating will maintain the block.
 
 Be careful though tool blocking has a guard pool taking damage reduces it on till the guard breaks and you must re-activate the tool block or risk-taking damage.
 
@@ -29,13 +29,13 @@ Be careful though tool blocking has a guard pool taking damage reduces it on til
 
 Same as tool blocking but shields have a bigger guard pool and can cover 270 degrees around the player. **(Requires shields from 3d_armor)**
 
-sneak key + RMB will block using the shield in the armor inventory. **(Requires shields from 3d_armor)**
+sneak key + place will block using the shield in the armor inventory. **(Requires shields from 3d_armor)**
 
 #### throwing
 
-To throw a tool hold down either LMB or RMB and then press the drop key to start charging up the toss.
+To throw a tool hold down either dig or place and then press the drop key to start charging up the toss.
 
-When you are ready to throw release either LMB or RMB.
+When you are ready to throw release either dig or place.
 
 All tools have different throw speeds, charge times, and damages.
 
@@ -45,7 +45,7 @@ All tools have different throw speeds, charge times, and damages.
 
 **/tap_speed_reset** [none] Resets the tap sensitivity to 0.15 seconds. **(Requires sscsm)**
 
-**/use_shield** [boolean] If set to true, the shield plate inside your armor inventory will be used to block all incoming damage when RMB is pressed. **(Requires shields)**
+**/use_shield** [boolean] If set to true, the shield plate inside your armor inventory will be used to block all incoming damage when place is pressed. **(Requires shields)**
 
 **/move_item** Gives you a movement item. Accepted values are:
 - dodge

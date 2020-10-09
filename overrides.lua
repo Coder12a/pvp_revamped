@@ -169,7 +169,7 @@ minetest.register_on_mods_loaded(function()
                     local throw_data = data.throw
                     local shield_data = data.shield
 
-                    -- If in the process of throwing, either LMB, RMB, or item name is not the same then return the old function.
+                    -- If in the process of throwing, either dig, place, or item name is not the same then return the old function.
                     if throw_data or dropper:get_wielded_item():get_name() ~= name or (floor(control_bits / 128) % 2 ~= 1 and floor(control_bits / 256) % 2 ~= 1) then 
                         return old_on_drop(itemstack, dropper, pos)
                     end

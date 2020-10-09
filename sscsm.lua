@@ -31,17 +31,15 @@ sscsm.register({name = "pvp_revamped:movement",
 
 -- Channel for dodge request.
 sscsm.register_on_com_receive("pvp_revamped:dodge", function(name, msg)
-    if msg and type(msg) == "string" and msg == "dodge" then
-        local player = get_player_by_name(name)
-        local velocity = player:get_player_velocity().y
-        local aerial_points = 0
+    local player = get_player_by_name(name)
+    local velocity = player:get_player_velocity().y
+    local aerial_points = 0
 
-        if velocity < 0.0 or velocity > 0.0 then
-            aerial_points = 1
-        end
-
-        dodge(name, player, 1 + aerial_points)
+    if velocity < 0.0 or velocity > 0.0 then
+        aerial_points = 1
     end
+
+    dodge(name, player, 1 + aerial_points)
 end)
 
 -- Channel for barrel_roll request.
@@ -96,15 +94,15 @@ sscsm.register_on_com_receive("pvp_revamped:dash", function(name, msg)
     end
 end)
 
--- Channel for shield_block request.
-if minetest.global_exists("armor") then
-    sscsm.register_on_com_receive("pvp_revamped:shield_block", function(name, msg)
-        if msg and type(msg) == "string" then
-            local data = get_player_data(name)
-            local player = get_player_by_name(name)
-            local player_pdata = player_persistent_data[name]
-
-            shield_inv(player, name, player_pdata, data)
-        end
-    end)
+if not minetest.global_exists("armor") then
+    return
 end
+
+-- Channel for shield_block request.
+sscsm.register_on_com_receive("pvp_revamped:shield_block", function(name, msg)
+    local data = get_player_data(name)
+    local player = get_player_by_name(name)
+    local player_pdata = player_persistent_data[name]
+
+    shield_inv(player, name, player_pdata, data)
+end)
