@@ -106,9 +106,7 @@ minetest.register_on_player_inventory_action(function(player)
     end
 end)
 
-local function break_guard(player)
-    local name = player:get_player_name()
-
+local function break_guard(player, name)
     if not player_data or not player_data[name] then
         return
     end
@@ -131,11 +129,15 @@ local function break_guard(player)
 end
 
 minetest.register_on_placenode(function(pos, newnode, placer)
+    local name = placer:get_player_name()
+    
     -- Break guard if player placed a node.
-    break_guard(placer)
+    break_guard(placer, name)
 end)
 
 minetest.register_on_dignode(function(pos, oldnode, digger)
+    local name = digger:get_player_name()
+    
     -- Break guard if player dug a node.
-    break_guard(digger)
+    break_guard(digger, name)
 end)

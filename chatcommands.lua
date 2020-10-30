@@ -117,29 +117,31 @@ minetest.register_chatcommand("move_item", {
 
 -- See if the mod armor_3d is a thing here.
 if minetest.global_exists("armor") then
-    -- Cmd for changing the way you block incoming damage.
-    minetest.register_chatcommand("use_shield", {
-        params = "[<boolean>]: Change how you block incoming damage.",
-        description = "If set to true, the shield plate placed in the armor inventory will be used to block all incoming damage when block key is pressed.",
-        privs = {
-            interact = true,
-        },
-        func = function(name, param)
-            -- Check the given param.
-            if param == "true" then
-                -- block key will now use the shield in the armor inv to block any incoming damage.
-                player_persistent_data[name].use_shield = true
-                
-                return true, "Shield from armor inventory will now be used to block damage."
-            elseif param == "false" then
-                -- block key will now use whatever tool selected to block any incoming damage.
-                player_persistent_data[name].use_shield = nil
-
-                return true, "Tools will now be used to block damage."
-            end
-
-            -- use_shield cmd help.
-            return false, "Only parameters: 'true', and 'false' are accepted."
-        end
-    })
+    return
 end
+
+-- Cmd for changing the way you block incoming damage.
+minetest.register_chatcommand("use_shield", {
+    params = "[<boolean>]: Change how you block incoming damage.",
+    description = "If set to true, the shield plate placed in the armor inventory will be used to block all incoming damage when block key is pressed.",
+    privs = {
+        interact = true,
+    },
+    func = function(name, param)
+        -- Check the given param.
+        if param == "true" then
+            -- block key will now use the shield in the armor inv to block any incoming damage.
+            player_persistent_data[name].use_shield = true
+            
+            return true, "Shield from armor inventory will now be used to block damage."
+        elseif param == "false" then
+            -- block key will now use whatever tool selected to block any incoming damage.
+            player_persistent_data[name].use_shield = nil
+
+            return true, "Tools will now be used to block damage."
+        end
+
+        -- use_shield cmd help.
+        return false, "Only parameters: 'true', and 'false' are accepted."
+    end
+})

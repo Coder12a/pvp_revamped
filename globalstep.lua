@@ -121,7 +121,12 @@ minetest.register_globalstep(function(dtime)
             local full_throw = throw_data.time + tool_capabilities.full_throw
             
             -- If neither dig or place is down then throw the item.
-            if (floor(control_bits / 128) % 2 ~= 1 and floor(control_bits / 256) % 2 ~= 1) or pp_data.active_dodges or pp_data.active_barrel_rolls then
+            if (floor(control_bits / 128) % 2 ~= 1 and
+               floor(control_bits / 256) % 2 ~= 1 and
+               floor(control_bits / 512) % 2 ~= 1 and
+               floor(control_bits / 32) % 2 ~= 1) or
+               pp_data.active_dodges or pp_data.active_barrel_rolls then
+                
                 local pos = player:get_pos()
 
                 pos.y = pos.y + player:get_properties().eye_height
