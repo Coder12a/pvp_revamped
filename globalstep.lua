@@ -102,8 +102,6 @@ minetest.register_globalstep(function(dtime)
             local entity = v.entity
             -- Drop arms.
             player:set_bone_position(entity.bone, entity.position, new(-180, 0, 0))
-            -- Update player's armor visual.
-            armor:update_player_visuals(player)
 
             v.entity.object:remove()
             v.entity = nil

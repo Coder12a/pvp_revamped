@@ -15,14 +15,12 @@ local block_duration = pvp_revamped.config.block_duration
 local counter_duration = pvp_revamped.config.counter_duration
 local parry_dmg_mul = pvp_revamped.config.parry_dmg_mul
 local counter_dmg_mul = pvp_revamped.config.counter_dmg_mul
-local armor_3d = pvp_revamped.armor_3d
 local get_player_data = pvp_revamped.get_player_data
 local create_wield_shield = pvp_revamped.create_wield_shield
 local player_data = pvp_revamped.player_data
 local player_persistent_data = pvp_revamped.player_persistent_data
 local create_hud_text_center = pvp_revamped.create_hud_text_center
 local remove_text_center = pvp_revamped.remove_text_center
-local use_player_api = pvp_revamped.use_player_api
 local shield_inv = pvp_revamped.shield_inv
 local registered_tools = minetest.registered_tools
 local get_item_group = minetest.get_item_group
@@ -30,11 +28,6 @@ local get_us_time = minetest.get_us_time
 local new = vector.new
 local max = math.max
 local floor = math.floor
-local set_textures
-
-if use_player_api then
-    set_textures = player_api.set_textures
-end
 
 minetest.register_on_mods_loaded(function()
     local max_armor_use
@@ -264,16 +257,6 @@ minetest.register_on_mods_loaded(function()
 
                     -- Remove un-used hud element.
                     remove_text_center(user, "pvp_revamped:block_pool")
-
-                    if use_player_api then
-                        local tex_data = armor.textures[name]
-                        -- Remove shield from right arm.
-                        set_textures(user, {
-                            tex_data.skin,
-                            tex_data.armor,
-                            "3d_armor_trans.png"
-                        })
-                    end
                 end
 
                 minetest.override_item(k, {on_secondary_use = function(itemstack, user, pointed_thing)
@@ -309,8 +292,6 @@ if minetest.global_exists("armor") then
                     if armor_shield > 0 then
                         local def = stack:get_definition()
                         local groups = def.groups
-                        local texture = def.texture or name:gsub("%:", "_")
-                        texture = texture:gsub(".png$", "")
 
                         player_persistent_data[playername].inventory_armor_shield = {
                             name = name,
@@ -318,8 +299,7 @@ if minetest.global_exists("armor") then
                             block_pool = groups.block_pool,
                             duration = groups.duration,
                             hasty_guard_duration = groups.hasty_guard_duration,
-                            groups = groups,
-                            texture = texture
+                            groups = groups
                         }
                         
                         return old_save_armor_inventory(self, player)
@@ -355,8 +335,6 @@ if minetest.global_exists("armor") then
                     if armor_shield > 0 then
                         local def = stack:get_definition()
                         local groups = def.groups
-                        local texture = def.texture or name:gsub("%:", "_")
-                        texture = texture:gsub(".png$", "")
 
                         player_persistent_data[playername].inventory_armor_shield = {
                             name = name,
@@ -364,8 +342,7 @@ if minetest.global_exists("armor") then
                             block_pool = groups.block_pool,
                             duration = groups.duration,
                             hasty_guard_duration = groups.hasty_guard_duration,
-                            groups = groups,
-                            texture = texture
+                            groups = groups
                         }
                         
                         return results
@@ -384,37 +361,5 @@ if minetest.global_exists("armor") then
         remove_text_center(player, "pvp_revamped:shield_pool")
 
         return results
-    end
-
-    armor.update_player_visuals = function(self, player)
-        if not player then
-            return
-        end
-
-        local name = player:get_player_name()
-        local tex_data = self.textures[name]
-
-        if tex_data then
-            local tex_armor = tex_data.armor
-            local wielditem = tex_data.wielditem
-            local shield_data = get_player_data(name).shield
-            local inventory_armor_shield = player_persistent_data[name].inventory_armor_shield
-
-            if inventory_armor_shield and shield_data and shield_data.armor_inv then
-                tex_armor = tex_armor:gsub("%^" .. inventory_armor_shield.texture .. ".png", "")
-            end
-
-            if shield_data and not shield_data.armor_inv then
-                wielditem = "3d_armor_trans.png"
-            end
-
-            set_textures(player, {
-                tex_data.skin,
-                tex_armor,
-                wielditem
-            })
-        end
-
-        self:run_callbacks("on_update", player)
     end
 end

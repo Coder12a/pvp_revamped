@@ -6,7 +6,7 @@ local shield_entity_pos = pvp_revamped.config.shield_entity_pos
 local shield_entity_rotate = pvp_revamped.config.shield_entity_rotate
 local shield_entity_scale = pvp_revamped.config.shield_entity_scale
 local hudkit = pvp_revamped.hudkit
-local armor_3d = pvp_revamped.armor_3d
+local armor_3d = minetest.global_exists("armor")
 local maxn = table.maxn
 local new = vector.new
 local cos = math.cos
@@ -101,12 +101,6 @@ end
 local create_wield_shield = pvp_revamped.create_wield_shield
 local create_hud_text_center = pvp_revamped.create_hud_text_center
 local remove_text_center = pvp_revamped.remove_text_center
-local use_player_api = pvp_revamped.use_player_api
-local set_textures
-
-if use_player_api then
-    set_textures = player_api.set_textures
-end
 
 local function remove_hits(name)
     local hit_data = get_player_data(name).hit
@@ -251,16 +245,6 @@ function pvp_revamped.shield_inv(user, name, player_pdata, data)
 
         -- Remove un-used hud element.
         remove_text_center(user, "pvp_revamped:block_pool")
-
-        if use_player_api then
-            local tex_data = armor.textures[name]
-            -- Remove shield from left arm.
-            set_textures(user, {
-                tex_data.skin,
-                tex_data.armor:gsub("%^" .. data_shield.texture .. ".png", ""),
-                tex_data.wielditem
-            })
-        end
 
         return true
     end
