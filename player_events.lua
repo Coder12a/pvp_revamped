@@ -105,3 +105,37 @@ minetest.register_on_player_inventory_action(function(player)
         remove_text_center(player, "pvp_revamped:block_pool")
     end
 end)
+
+local function break_guard(player)
+    local name = player:get_player_name()
+
+    if not player_data or not player_data[name] then
+        return
+    end
+
+    local pdata = player_data[name]
+
+    if pdata.shield then
+        player_data[name].shield = nil
+
+        -- Remove hud element.
+        remove_text_center(player, "pvp_revamped:shield_pool")
+    end
+
+    if pdata.block then
+        player_data[name].block = nil
+
+        -- Remove hud element.
+        remove_text_center(player, "pvp_revamped:block_pool")
+    end
+end
+
+minetest.register_on_placenode(function(pos, newnode, placer)
+    -- Break guard if player placed a node.
+    break_guard(placer)
+end)
+
+minetest.register_on_dignode(function(pos, oldnode, digger)
+    -- Break guard if player dug a node.
+    break_guard(digger)
+end)

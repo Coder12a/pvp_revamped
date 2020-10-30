@@ -27,7 +27,6 @@ local counter_duration = pvp_revamped.config.counter_duration
 local get_player_data = pvp_revamped.get_player_data
 local player_data = pvp_revamped.player_data
 local player_persistent_data = pvp_revamped.player_persistent_data
-local armor_3d = minetest.global_exists("armor")
 local hit_points = pvp_revamped.hit_points
 local create_hud_text_center = pvp_revamped.create_hud_text_center
 local remove_text_center = pvp_revamped.remove_text_center
@@ -38,6 +37,7 @@ local get_us_time = minetest.get_us_time
 local get_player_information = minetest.get_player_information
 local add_item = minetest.add_item
 local get_inventory = minetest.get_inventory
+local armor_3d = minetest.global_exists("armor")
 local insert = table.insert
 local add = vector.add
 local multiply = vector.multiply
@@ -500,23 +500,24 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         end
     end
 
-    local function set_immobilize_data(speed)
+    local function set_immobilize_data(speed, damage)
         player:set_physics_override({speed = speed, jump = speed})
 
         local immobilize_mul = tool_capabilities.immobilize_mul or immobilize_mul
         
-        victim_data.immobilize = {time = get_us_time(), value = (1 / speed) * immobilize_mul}
+        victim_data.immobilize = {time = get_us_time(), value = damage * immobilize_mul}
     end
 
     -- Process if the player was hit in the leg.
     if leg then
         -- immobilize the player.
         local leg_immobilize_mul = tool_capabilities.leg_immobilize_mul or leg_immobilize_mul
-        local speed = min(1 / max(damage - hp, 1) * leg_immobilize_mul, 0.1)
+        local dmg = max(damage - hp, 1)
+        local speed = min(1 / dmg * leg_immobilize_mul, 0.1)
         local data_immobilize = victim_data.immobilize
 
         if not data_immobilize or data_immobilize.value > speed then
-            set_immobilize_data(speed)
+            set_immobilize_data(speed, dmg)
         end
     elseif knee then
         -- immobilize the player.
@@ -528,9 +529,9 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
             -- Add the original value and update all immobilize data.
             speed = min(abs(speed - data_immobilize.value), 0.1)
 
-            set_immobilize_data(speed)
+            set_immobilize_data(speed, dmg)
         else
-            set_immobilize_data(speed)
+            set_immobilize_data(speed, dmg)
         end
     end
 

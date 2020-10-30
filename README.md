@@ -277,7 +277,7 @@ pvp_revamped.back_dmg_mul = 1.1
 ```
 Damage multiplier for being above the victim's y position.
 ``` lua
-pvp_revamped.elevated_dmg_mul = 1.5
+pvp_revamped.elevated_dmg_mul = 1.1
 ```
 Damage multiplier for having equal y position.
 ``` lua
@@ -341,7 +341,7 @@ pvp_revamped.barrel_roll_speed = 1
 #### blocking
 The value is used to multiply tool damage subtracted by full_punch_interval.
 ``` lua
-pvp_revamped.block_pool_mul = 2
+pvp_revamped.block_pool_mul = 4
 ```
 The value is used to multiply armor use, heal, shield, and fleshy after they are added first.
 ``` lua
@@ -462,7 +462,7 @@ tool_capabilities = {
     -- See block_interval_mul in config.
     block_interval_mul = 0.15,
     -- See block_pool_mul in config.
-    block_pool_mul = 2,
+    block_pool_mul = 4,
     -- See block_wear_mul in config.
     block_wear_mul = 9000,
     -- See shield_axe_dmg_mul in config.
@@ -482,7 +482,7 @@ tool_capabilities = {
     -- See back_dmg_mul in config.
     back_dmg_mul = 1.1,
     -- See elevated_dmg_mul in config.
-    elevated_dmg_mul = 1.5,
+    elevated_dmg_mul = 1.1,
     -- See equal_height_dmg_mul in config.
     equal_height_dmg_mul = nil,
     -- See lower_elevation_dmg_mul in config.

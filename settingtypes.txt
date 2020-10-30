@@ -60,7 +60,7 @@ pvp_revamped.side_dmg_mul (Side damage multiplier) float 1.05
 # Damage multiplier for punching a player on the back.
 pvp_revamped.back_dmg_mul (Back damage multiplier) float 1.1
 # Damage multiplier for being above the victim's y position.
-pvp_revamped.elevated_dmg_mul (Elevated damage multiplier) float 1.5
+pvp_revamped.elevated_dmg_mul (Elevated damage multiplier) float 1.1
 # Damage multiplier for having equal y position.
 pvp_revamped.equal_height_dmg_mul (Equal height damage multiplier) float 1
 # Damage multiplier for being below the victim's y position.
@@ -94,7 +94,7 @@ pvp_revamped.barrel_roll_speed (Barrel roll speed) float 1
 
 [Blocking]
 # The value is used to multiply tool damage subtracted by full_punch_interval.
-pvp_revamped.block_pool_mul (Block pool multiplier) float 2
+pvp_revamped.block_pool_mul (Block pool multiplier) float 4
 # The value is used to multiply armor use, heal, shield, and fleshy after they are added first.
 pvp_revamped.shield_pool_mul (Shield pool multiplier) float 4
 # Used to multiply wear from any tool blocking or shielding.

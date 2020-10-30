@@ -32,9 +32,12 @@ local cos = math.cos
 local sin = math.sin
 local max = math.max
 local floor = math.floor
+local check_item_time = 1
+local check_item_iterate = 0
 
 minetest.register_globalstep(function(dtime)
     local lag = dtime * 1000000
+    local check_item = check_item_iterate >= check_item_time
     pvp_revamped.lag = lag
 
     for k, v in pairs(player_data) do
@@ -57,7 +60,9 @@ minetest.register_globalstep(function(dtime)
             player:set_bone_position(aim.bone, aim.position, aim.rotation)
             
             -- Remove the block table if it's past duration.
-            if block.time + block.duration + server_lag < time then
+            -- Or if the guard item is not selected.
+            if block.time + block.duration + server_lag < time or
+               (check_item and player:get_wielded_item():get_name() ~= block.name) then
                 -- Revert the damage texture modifier.
                 player:set_properties{damage_texture_modifier = pp_data.damage_texture_modifier}
                 v.block = nil
@@ -85,7 +90,8 @@ minetest.register_globalstep(function(dtime)
             local shield = v.shield
 
             -- Remove the shield table if it's past duration.
-            if shield.time + shield.duration + server_lag < time then
+            if shield.time + shield.duration + server_lag < time or
+            (check_item and not shield.armor_inv and player:get_wielded_item():get_name() ~= shield.name) then
                 -- Revert the damage texture modifier.
                 player:set_properties{damage_texture_modifier = pp_data.damage_texture_modifier}
                 v.shield = nil
@@ -353,5 +359,12 @@ minetest.register_globalstep(function(dtime)
         if not active then
             player_data[k] = nil
         end
+    end
+    
+    -- Reset or add the check item iterater.
+    if check_item then
+        check_item_iterate = 0
+    else
+        check_item_iterate = check_item_iterate + dtime
     end
 end)
