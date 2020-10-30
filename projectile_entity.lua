@@ -11,6 +11,7 @@ local deserialize = minetest.deserialize
 local raycast = minetest.raycast
 local get_player_by_name = minetest.get_player_by_name
 local add_item = minetest.add_item
+local calculate_knockback = minetest.calculate_knockback
 local add = vector.add
 local multiply = vector.multiply
 local distance = vector.distance
