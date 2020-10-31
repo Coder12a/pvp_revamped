@@ -437,6 +437,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
             if tool_capabilities and tool_capabilities.damage_groups and tool_capabilities.damage_groups.shield then
                 axe_wear = tool_capabilities.damage_groups.shield
             end
+            
             if stack and stack:get_name() == inventory_armor_shield.name then
                 local pool = data_shield.pool
                 -- Wear down the shield plus axe damage.
@@ -561,6 +562,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
                     local counter_dmg_mul = tool_capabilities.counter_dmg_mul or counter_dmg_mul
 
                     hd.damage = -(hd.damage + (damage * counter_dmg_mul))
+                    hd.full_punch = true
                 else
                     -- Reduce, remove, or reverse the damage and resolve the clash.
                     -- Negative damage will be applied to the hitter.
@@ -577,7 +579,6 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
                 end
 
                 hd.resolved = true
-                hd.full_punch = true
 
                 break
             end
