@@ -198,7 +198,7 @@ minetest.register_on_mods_loaded(function()
                     return itemstack
                 end, tool_capabilities = tool_capabilities})
             end
-        elseif max_armor_use and v.groups and v.groups.armor_shield then
+        elseif v.groups and v.groups.armor_shield then
             -- Block feature for shields.
             local groups = v.groups
             local armor_heal = groups.armor_heal or 0
@@ -215,11 +215,17 @@ minetest.register_on_mods_loaded(function()
 
             local value = armor_heal + armor_shield + fleshy
             local shield_pool_mul = groups.shield_pool_mul or shield_pool_mul
-            local block_pool = groups.block_pool or max_armor_use - armor_use + value * shield_pool_mul
+            local block_pool
             local shield_duration = groups.shield_duration or shield_duration
             local duration = groups.duration or shield_duration + (armor_use + value) * shield_duration_mul
             local hasty_shield_mul = groups.hasty_shield_mul or hasty_shield_mul
             local hasty_guard_duration = hasty_guard_duration
+
+            if max_armor_use then
+                block_pool = groups.block_pool or max_armor_use - armor_use + value * shield_pool_mul
+            else
+                block_pool = groups.block_pool or 40
+            end
 
             -- Write new capabilities if they are nil.
             groups.block_pool = groups.block_pool or block_pool
