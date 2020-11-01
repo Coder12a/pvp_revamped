@@ -90,7 +90,8 @@ minetest.register_on_mods_loaded(function()
             local old_on_drop = v.on_drop
             local hasty_guard_mul = tool_capabilities.hasty_guard_mul or hasty_guard_mul
             local hasty_guard_duration = tool_capabilities.hasty_guard_duration or hasty_guard_duration
-            
+            local on_block_activate = v.on_block_activate or nil
+
             -- Override some custom capabilities if they are nil.
             tool_capabilities.block_pool = tool_capabilities.block_pool or block_pool
             tool_capabilities.duration = tool_capabilities.duration or duration
@@ -136,6 +137,11 @@ minetest.register_on_mods_loaded(function()
 
                         -- Remove un-used hud element.
                         remove_text_center(user, "pvp_revamped:shield_pool")
+
+                        -- Run user on_block_activate function.
+                        if on_block_activate then
+                            on_block_activate(user)
+                        end
                     end
 
                     -- Disable the damage texture modifier on tool block.
@@ -201,7 +207,8 @@ minetest.register_on_mods_loaded(function()
             local old_on_secondary_use = v.on_secondary_use
             local old_on_place = v.on_place
             local fleshy = 1
-            
+            local on_block_activate = v.on_block_activate or nil
+
             if v.armor_groups and v.armor_groups.fleshy then
                 fleshy = v.armor_groups.fleshy
             end
@@ -260,6 +267,11 @@ minetest.register_on_mods_loaded(function()
 
                     -- Remove un-used hud element.
                     remove_text_center(user, "pvp_revamped:block_pool")
+
+                    -- Run user on_block_activate function.
+                    if on_block_activate then
+                        on_block_activate(user)
+                    end
                 end
 
                 minetest.override_item(k, {on_secondary_use = function(itemstack, user, pointed_thing)

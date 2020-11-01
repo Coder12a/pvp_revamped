@@ -534,7 +534,7 @@ tool_capabilities = {
 
 ### shield groups only
 ``` lua
-armor:register_armor("test:shield_test", {
+armor:register_tool("test:shield_test", {
     groups = {
         -- See shield_pool_mul in config.
         shield_pool_mul = 4,
@@ -555,4 +555,12 @@ armor:register_armor("test:shield_test", {
         -- See shield_entity_scale in config.
         shield_entity_scale = {x = 0.35, y = 0.35}}
 })
+```
+
+### tool
+``` lua
+minetest.register_tool("pvp_shields:shield_steel", {
+    on_block_activate = function(player)
+        -- Invokes when the player activates the tool's block ability.
+    end,
 ```

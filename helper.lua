@@ -220,6 +220,7 @@ function pvp_revamped.shield_inv(user, name, player_pdata, data)
     if armor_3d and player_pdata.inventory_armor_shield and (player_pdata.use_shield or floor(user:get_player_control_bits() / 64) % 2 == 1) then
         local data_shield = player_pdata.inventory_armor_shield
         local block_pool = data_shield.block_pool
+        local on_block_activate = data_shield.on_block_activate or nil
         local time = get_us_time()
 
         create_wield_shield(user, name, "Arm_Left", data_shield.name, data_shield.groups)
@@ -245,6 +246,11 @@ function pvp_revamped.shield_inv(user, name, player_pdata, data)
 
         -- Remove un-used hud element.
         remove_text_center(user, "pvp_revamped:block_pool")
+
+        -- Run user func if any.
+        if on_block_activate then
+            on_block_activate(user)
+        end
 
         return true
     end

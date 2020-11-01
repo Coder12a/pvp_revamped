@@ -33,7 +33,8 @@ armor.save_armor_inventory = function(self, player)
                         block_pool = groups.block_pool,
                         duration = groups.duration,
                         hasty_guard_duration = groups.hasty_guard_duration,
-                        groups = groups
+                        groups = groups,
+                        on_block_activate = def.on_block_activate
                     }
                     
                     return old_save_armor_inventory(self, player)
@@ -76,7 +77,8 @@ armor.load_armor_inventory = function(self, player)
                         block_pool = groups.block_pool,
                         duration = groups.duration,
                         hasty_guard_duration = groups.hasty_guard_duration,
-                        groups = groups
+                        groups = groups,
+                        on_block_activate = def.on_block_activate
                     }
                     
                     return results
