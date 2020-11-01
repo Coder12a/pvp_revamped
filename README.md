@@ -534,7 +534,7 @@ tool_capabilities = {
 
 ### shield groups only
 ``` lua
-armor:register_tool("test:shield_test", {
+minetest.register_tool("test:shield_test", {
     groups = {
         -- See shield_pool_mul in config.
         shield_pool_mul = 4,
@@ -557,10 +557,19 @@ armor:register_tool("test:shield_test", {
 })
 ```
 
-### tool
+### tool functions
 ``` lua
-minetest.register_tool("pvp_shields:shield_steel", {
+minetest.register_tool("test:tool", {
     on_block_activate = function(player)
         -- Invokes when the player activates the tool's block ability.
     end,
+    on_block_deactivated = function(player)
+        -- Invokes when the player's block ability is deactivated.
+    end,
+    on_block_damage = function(player, damage)
+        -- Invokes when the player blocks damage.
+    end,
+    on_guard_break = function(player)
+        -- Invokes when the player's guard pool is zero or below.
+    end
 ```

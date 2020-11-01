@@ -11,10 +11,12 @@ function wieldview.update_wielded_item(self, player)
     
 	local name = player:get_player_name()
 	local stack = player:get_wielded_item()
-	local item = stack:get_name()
+    local item = stack:get_name()
+    
 	if not item then
 		return
-	end
+    end
+    
     if self.wielded_item[name] then
         local pdata = player_data[name]
 
@@ -30,6 +32,7 @@ function wieldview.update_wielded_item(self, player)
 
         armor.textures[name].wielditem = self:get_item_texture(item)
 		armor:update_player_visuals(player)
-	end
+    end
+    
 	self.wielded_item[name] = item
 end

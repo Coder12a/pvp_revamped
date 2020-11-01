@@ -346,7 +346,22 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
 
     if not projectile then
         -- Remove the hitter's blocking data.
+        local on_block_deactivated = hitter_data.block.on_block_deactivated
+
+        -- Invoke deactivate block function if any.
+        if on_block_deactivated then
+            on_block_deactivated(player)
+        end
+        
         hitter_data.block = nil
+        
+        on_block_deactivated = hitter_data.shield.on_block_deactivated
+
+        -- Invoke deactivate block function if any.
+        if on_block_deactivated then
+            on_block_deactivated(player)
+        end
+
         hitter_data.shield = nil
         player_data[hitter_name] = hitter_data
 
@@ -372,12 +387,26 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
 
         -- Remove block table if pool is zero or below.
         if pool <= 0 then
+            local on_guard_break = data_block.on_guard_break
+
+            -- Invoke deactivate block function if any.
+            if on_guard_break then
+                on_guard_break(player)
+            end
+
             victim_data.block = nil
 
             -- Remove un-used hud element.
             remove_text_center(player, "pvp_revamped:block_pool")
 
             return true
+        end
+
+        local on_block_damage = data_block.on_block_damage
+
+        -- Run damage blocked function.
+        if on_block_damage then
+            on_block_damage(player, damage)
         end
 
         -- Update block pool text.
@@ -409,12 +438,26 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
 
         -- Remove shield table if pool is zero or below.
         if pool <= 0 then
+            local on_guard_break = data_shield.on_guard_break
+
+            -- Invoke guard break function if any.
+            if on_guard_break then
+                on_guard_break(player)
+            end
+
             victim_data.shield = nil
 
             -- Remove un-used hud element.
             remove_text_center(player, "pvp_revamped:shield_pool")
 
             return true
+        end
+
+        local on_block_damage = data_shield.on_block_damage
+
+        -- Run damage blocked function.
+        if on_block_damage then
+            on_block_damage(player, damage)
         end
 
         -- Update shield pool text.
@@ -448,12 +491,26 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
 
                 -- Remove shield table if pool is zero or below.
                 if pool <= 0 then
+                    local on_guard_break = data_shield.on_guard_break
+
+                    -- Invoke guard break function if any.
+                    if on_guard_break then
+                        on_guard_break(player)
+                    end
+
                     victim_data.shield = nil
 
                     -- Remove un-used hud element.
                     remove_text_center(player, "pvp_revamped:shield_pool")
 
                     return true
+                end
+
+                local on_block_damage = data_shield.on_block_damage
+
+                -- Run damage blocked function.
+                if on_block_damage then
+                    on_block_damage(player, damage)
                 end
 
                 -- Update shield pool text.
@@ -587,6 +644,20 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         insert(victim_data.hit, 1, {name = hitter_name, damage = damage, full_punch = full_punch, time = get_us_time()})
     else
         victim_data.hit = {{name = hitter_name, damage = damage, full_punch = full_punch, time = get_us_time()}}
+    end
+
+    local on_block_deactivated = victim_data.block.on_block_deactivated
+
+    -- Invoke deactivate block function if any.
+    if on_block_deactivated then
+        on_block_deactivated(player)
+    end
+
+    on_block_deactivated = victim_data.shield.on_block_deactivated
+
+    -- Invoke deactivate block function if any.
+    if on_block_deactivated then
+        on_block_deactivated(player)
     end
 
     victim_data.block = nil

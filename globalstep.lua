@@ -12,8 +12,6 @@ local projectile_dmg_mul = pvp_revamped.config.projectile_dmg_mul
 local projectile_spinning_gravity_mul = pvp_revamped.config.projectile_spinning_gravity_mul
 local projectile_dip_gravity_mul = pvp_revamped.config.projectile_dip_gravity_mul
 local clash_duration = pvp_revamped.config.clash_duration
-local dash_cooldown = pvp_revamped.config.dash_cooldown
-local dash_cooldown = pvp_revamped.config.dash_cooldown
 local hasty_guard_duration = pvp_revamped.config.hasty_guard_duration
 local takedown = pvp_revamped.config.takedown
 local projectile_throw_style_dip = pvp_revamped.projectile_throw_style_dip
@@ -65,6 +63,14 @@ minetest.register_globalstep(function(dtime)
                (check_item and player:get_wielded_item():get_name() ~= block.name) then
                 -- Revert the damage texture modifier.
                 player:set_properties{damage_texture_modifier = pp_data.damage_texture_modifier}
+
+                local on_block_deactivated = block.on_block_deactivated
+
+                -- Invoke deactivate block function if any.
+                if on_block_deactivated then
+                    on_block_deactivated(player)
+                end
+
                 v.block = nil
                 -- Remove un-used hud element.
                 remove_text_center(player, "pvp_revamped:block_pool")
@@ -94,6 +100,14 @@ minetest.register_globalstep(function(dtime)
             (check_item and not shield.armor_inv and player:get_wielded_item():get_name() ~= shield.name) then
                 -- Revert the damage texture modifier.
                 player:set_properties{damage_texture_modifier = pp_data.damage_texture_modifier}
+                
+                local on_block_deactivated = shield.on_block_deactivated
+
+                -- Invoke deactivate block function if any.
+                if on_block_deactivated then
+                    on_block_deactivated(player)
+                end
+
                 v.shield = nil
                 -- Remove un-used hud element.
                 remove_text_center(player, "pvp_revamped:shield_pool")

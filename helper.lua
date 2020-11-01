@@ -128,8 +128,24 @@ function pvp_revamped.dodge(name, player, number)
         player:set_properties{damage_texture_modifier = ""}
         -- Clear out any hit data on dodge.
         remove_hits(name)
+
+        local on_block_deactivated = dodge_data.block.on_block_deactivated
+
+        -- Invoke deactivate block function if any.
+        if on_block_deactivated then
+            on_block_deactivated(player)
+        end
+
         -- Remove shield and block.
         dodge_data.block = nil
+
+        on_block_deactivated = dodge_data.shield.on_block_deactivated
+
+        -- Invoke deactivate block function if any.
+        if on_block_deactivated then
+            on_block_deactivated(player)
+        end
+
         dodge_data.shield = nil
         -- Remove un-used hud element.
         remove_text_center(player, "pvp_revamped:block_pool")
@@ -141,8 +157,24 @@ function pvp_revamped.dodge(name, player, number)
         player:set_properties{damage_texture_modifier = ""}
         -- Clear out any hit data on dodge.
         remove_hits(name)
+
+        local on_block_deactivated = dodge_data.block.on_block_deactivated
+
+        -- Invoke deactivate block function if any.
+        if on_block_deactivated then
+            on_block_deactivated(player)
+        end
+
         -- Remove shield and block.
         dodge_data.block = nil
+
+        on_block_deactivated = dodge_data.shield.on_block_deactivated
+
+        -- Invoke deactivate block function if any.
+        if on_block_deactivated then
+            on_block_deactivated(player)
+        end
+
         dodge_data.shield = nil
         -- Remove un-used hud element.
         remove_text_center(player, "pvp_revamped:block_pool")
@@ -162,7 +194,22 @@ function pvp_revamped.barrel_roll(name, player, number, x, z)
         -- Clear out any hit data on barrel roll.
         remove_hits(name)
         -- Remove shield and block.
+        local on_block_deactivated = barrel_roll_data.block.on_block_deactivated
+
+        -- Invoke deactivate block function if any.
+        if on_block_deactivated then
+            on_block_deactivated(player)
+        end
+
         barrel_roll_data.block = nil
+
+        on_block_deactivated = barrel_roll_data.shield.on_block_deactivated
+
+        -- Invoke deactivate block function if any.
+        if on_block_deactivated then
+            on_block_deactivated(player)
+        end
+
         barrel_roll_data.shield = nil
         -- Remove un-used hud element.
         remove_text_center(player, "pvp_revamped:block_pool")
@@ -175,7 +222,22 @@ function pvp_revamped.barrel_roll(name, player, number, x, z)
         -- Clear out any hit data on barrel roll.
         remove_hits(name)
         -- Remove shield and block.
+        local on_block_deactivated = barrel_roll_data.block.on_block_deactivated
+
+        -- Invoke deactivate block function if any.
+        if on_block_deactivated then
+            on_block_deactivated(player)
+        end
+        
         barrel_roll_data.block = nil
+
+        on_block_deactivated = barrel_roll_data.shield.on_block_deactivated
+
+        -- Invoke deactivate block function if any.
+        if on_block_deactivated then
+            on_block_deactivated(player)
+        end
+
         barrel_roll_data.shield = nil
         -- Remove un-used hud element.
         remove_text_center(player, "pvp_revamped:block_pool")
@@ -236,8 +298,19 @@ function pvp_revamped.shield_inv(user, name, player_pdata, data)
             time = time,
             duration = data_shield.duration,
             hasty_guard_duration = data_shield.hasty_guard_duration,
-            armor_inv = true
+            armor_inv = true,
+            on_block_activate = data_shield.on_block_activate,
+            on_block_deactivated = data_shield.on_block_deactivated,
+            on_block_damage = data_shield.on_block_damage,
+            on_guard_break = data_shield.on_guard_break
         }
+
+        local on_block_deactivated = data.block.on_block_deactivated
+
+        -- Invoke deactivate block function if any.
+        if on_block_deactivated then
+            on_block_deactivated(user)
+        end
 
         data.block = nil
         player_data[name] = data

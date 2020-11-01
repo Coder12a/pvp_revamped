@@ -133,7 +133,16 @@ minetest.register_on_mods_loaded(function()
                         -- Write pool to hud.
                         create_hud_text_center(user, "pvp_revamped:block_pool", block_pool)
 
-                        data.shield = nil
+                        if data.shield then
+                            local on_block_deactivated = data.shield.on_block_deactivated
+    
+                            -- Invoke deactivate block function if any.
+                            if on_block_deactivated then
+                                on_block_deactivated(user)
+                            end
+                            
+                            data.shield = nil
+                        end
 
                         -- Remove un-used hud element.
                         remove_text_center(user, "pvp_revamped:shield_pool")
@@ -176,13 +185,29 @@ minetest.register_on_mods_loaded(function()
                         return old_on_drop(itemstack, dropper, pos)
                     end
 
-                    data.block = nil
+                    if data.block then
+                        local on_block_deactivated = data.block.on_block_deactivated
+
+                        -- Invoke deactivate block function if any.
+                        if on_block_deactivated then
+                            on_block_deactivated(dropper)
+                        end
+
+                        data.block = nil
+                    end
 
                     -- Remove un-used block hud element.
                     remove_text_center(dropper, "pvp_revamped:block_pool")
 
                     -- Only clear shield if it is not from the armor inv.
                     if shield_data and not shield_data.armor_inv then
+                        local on_block_deactivated = shield_data.on_block_deactivated
+
+                        -- Invoke deactivate block function if any.
+                        if on_block_deactivated then
+                            on_block_deactivated(dropper)
+                        end
+                        
                         data.shield = nil
                         -- Remove shield pool hud element.
                         remove_text_center(dropper, "pvp_revamped:shield_pool")
@@ -220,6 +245,10 @@ minetest.register_on_mods_loaded(function()
             local duration = groups.duration or shield_duration + (armor_use + value) * shield_duration_mul
             local hasty_shield_mul = groups.hasty_shield_mul or hasty_shield_mul
             local hasty_guard_duration = hasty_guard_duration
+            local on_block_activate = v.on_block_activate
+            local on_block_deactivated = v.on_block_deactivated
+            local on_block_damage = v.on_block_damage
+            local on_guard_break = v.on_guard_break
 
             if max_armor_use then
                 block_pool = groups.block_pool or max_armor_use - armor_use + value * shield_pool_mul
@@ -267,10 +296,23 @@ minetest.register_on_mods_loaded(function()
                         initial_time = time,
                         time = time,
                         duration = duration,
-                        hasty_guard_duration = hasty_guard_duration
+                        hasty_guard_duration = hasty_guard_duration,
+                        on_block_activate = on_block_activate,
+                        on_block_deactivated = on_block_deactivated,
+                        on_block_damage = on_block_damage,
+                        on_guard_break = on_guard_break
                     }
-                    
-                    data.block = nil
+
+                    if data.block then
+                        local on_block_deactivated = data.block.on_block_deactivated
+
+                        -- Invoke deactivate block function if any.
+                        if on_block_deactivated then
+                            on_block_deactivated(user)
+                        end
+                        
+                        data.block = nil
+                    end
 
                     player_data[name] = data
 

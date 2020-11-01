@@ -114,6 +114,13 @@ local function break_guard(player, name)
     local pdata = player_data[name]
 
     if pdata.shield then
+        local on_block_deactivated = pdata.shield.on_block_deactivated
+
+        -- Invoke deactivate block function if any.
+        if on_block_deactivated then
+            on_block_deactivated(player)
+        end
+
         player_data[name].shield = nil
 
         -- Remove hud element.
@@ -121,6 +128,13 @@ local function break_guard(player, name)
     end
 
     if pdata.block then
+        local on_block_deactivated = pdata.block.on_block_deactivated
+
+        -- Invoke deactivate block function if any.
+        if on_block_deactivated then
+            on_block_deactivated(player)
+        end
+
         player_data[name].block = nil
 
         -- Remove hud element.
