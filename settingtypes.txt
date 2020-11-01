@@ -83,8 +83,6 @@ pvp_revamped.parry_dmg_mul (Parry damage multiplier) float 1.2
 pvp_revamped.counter_dmg_mul (Counter damage multiplier) float 1.5
 # This is used to divide the range value into two parts. The parts being optimal and maximum range.
 pvp_revamped.optimal_distance_mul (Optimal distance multiplier) float 0.625
-# If true you would need a full punch in order to kill a player. Spam punches will only bring the hp to 1.
-pvp_revamped.takedown (Take down) bool true
 
 [Maneuvers]
 # Set how fast eachh player should dash.

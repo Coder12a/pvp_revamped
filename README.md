@@ -134,9 +134,6 @@ Any damage from a punch in pvp is put in a queue for a duration. This makes it p
 4.	*Counter* reverses all damage plus bonus damage to the aggressor. (Must be within counter duration and full punch only)
 5. *Hasty guard* when you block immediately after being hit you can block the any damage from any angle, but this has a small-time window to activate. (depends on config or tool settings)
 
-#### takedown
-If enabled full punches can only kill a player. Spam punches will only bring the hp to one (half a heart).
-
 ### effects
 
 #### disarming
@@ -322,10 +319,6 @@ pvp_revamped.counter_dmg_mul = 1.5
 This is used to divide the range value into two parts. The parts being optimal and maximum range.
 ``` lua
 pvp_revamped.optimal_distance_mul = 0.625
-```
-If true you would need a full punch in order to kill a player. Spam punches will only bring the hp to one.
-``` lua
-pvp_revamped.takedown = true
 ```
 
 #### maneuvers

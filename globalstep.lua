@@ -13,7 +13,6 @@ local projectile_spinning_gravity_mul = pvp_revamped.config.projectile_spinning_
 local projectile_dip_gravity_mul = pvp_revamped.config.projectile_dip_gravity_mul
 local clash_duration = pvp_revamped.config.clash_duration
 local hasty_guard_duration = pvp_revamped.config.hasty_guard_duration
-local takedown = pvp_revamped.config.takedown
 local projectile_throw_style_dip = pvp_revamped.projectile_throw_style_dip
 local projectile_throw_style_spinning = pvp_revamped.projectile_throw_style_spinning
 local player_data = pvp_revamped.player_data
@@ -333,20 +332,11 @@ minetest.register_globalstep(function(dtime)
                         if damage > 0 and not (block and block.initial_time + block.hasty_guard_duration > timeframe) and not (shield and shield.initial_time + shield.hasty_guard_duration > timeframe) then
                             hp = hp - damage
 
-                            if takedown and not data.full_punch and (hp - damage) < 1 then
-                                hp = 1
-                            end
-
                             hp_change = true
                         elseif damage < 0 then
                             local hitter = get_player_by_name(data.name)
-                            local hitter_hp = hitter:get_hp()
 
-                            if (takedown and data.full_punch and (hitter_hp + damage) >= 1) or (not takedown and hitter_hp >= 1) then
-                                hitter:set_hp(hitter_hp + damage)
-                            elseif takedown and hitter_hp > 1 then
-                                hitter:set_hp(max(hitter_hp + damage, 1))
-                            end
+                            hitter:set_hp(hitter:get_hp() + damage)
                         end
 
                         local count = #hit_data

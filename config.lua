@@ -39,7 +39,6 @@ pvp_revamped.config.lower_elevation_dmg_mul = tonumber(minetest.settings:get("pv
 pvp_revamped.config.velocity_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.velocity_dmg_mul")) or 0.15
 pvp_revamped.config.optimal_distance_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.optimal_distance_dmg_mul")) or 0.2
 pvp_revamped.config.maximum_distance_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.maximum_distance_dmg_mul")) or 0.1
-pvp_revamped.config.takedown = minetest.settings:get_bool("pvp_revamped.takedown")
 pvp_revamped.config.optimal_distance_mul = tonumber(minetest.settings:get("pvp_revamped.optimal_distance_mul")) or 0.625
 pvp_revamped.config.projectile_full_throw_mul = tonumber(minetest.settings:get("pvp_revamped.projectile_full_throw_mul")) or 2
 pvp_revamped.config.projectile_half_throw_mul = tonumber(minetest.settings:get("pvp_revamped.projectile_half_throw_mul")) or 0.000005
@@ -81,7 +80,3 @@ pvp_revamped.config.shield_entity_rotate = {x = tonumber(xyz[1]), y = tonumber(x
 
 xyz = split("pvp_revamped.shield_entity_scale", {0.35, 0.35})
 pvp_revamped.config.shield_entity_scale = {x = tonumber(xyz[1]), y = tonumber(xyz[2]), z = tonumber(xyz[3])}
-
-if pvp_revamped.config.takedown == nil then
-    pvp_revamped.config.takedown = true
-end

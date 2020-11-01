@@ -619,7 +619,6 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
                     local counter_dmg_mul = tool_capabilities.counter_dmg_mul or counter_dmg_mul
 
                     hd.damage = -(hd.damage + (damage * counter_dmg_mul))
-                    hd.full_punch = true
                 else
                     -- Reduce, remove, or reverse the damage and resolve the clash.
                     -- Negative damage will be applied to the hitter.
