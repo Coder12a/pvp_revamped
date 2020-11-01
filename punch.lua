@@ -346,20 +346,24 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
 
     if not projectile then
         -- Remove the hitter's blocking data.
-        local on_block_deactivated = hitter_data.block.on_block_deactivated
+        if hitter_data.block then
+            local on_block_deactivated = hitter_data.block.on_block_deactivated
 
-        -- Invoke deactivate block function if any.
-        if on_block_deactivated then
-            on_block_deactivated(player)
+            -- Invoke deactivate block function if any.
+            if on_block_deactivated then
+                on_block_deactivated(player)
+            end
+            
+            hitter_data.block = nil
         end
         
-        hitter_data.block = nil
-        
-        on_block_deactivated = hitter_data.shield.on_block_deactivated
+        if hitter_data.shield then
+            on_block_deactivated = hitter_data.shield.on_block_deactivated
 
-        -- Invoke deactivate block function if any.
-        if on_block_deactivated then
-            on_block_deactivated(player)
+            -- Invoke deactivate block function if any.
+            if on_block_deactivated then
+                on_block_deactivated(player)
+            end
         end
 
         hitter_data.shield = nil
@@ -645,22 +649,27 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         victim_data.hit = {{name = hitter_name, damage = damage, full_punch = full_punch, time = get_us_time()}}
     end
 
-    local on_block_deactivated = victim_data.block.on_block_deactivated
+    if victim_data.block then
+        local on_block_deactivated = victim_data.block.on_block_deactivated
 
-    -- Invoke deactivate block function if any.
-    if on_block_deactivated then
-        on_block_deactivated(player)
+        -- Invoke deactivate block function if any.
+        if on_block_deactivated then
+            on_block_deactivated(player)
+        end
+
+        victim_data.block = nil
     end
 
-    on_block_deactivated = victim_data.shield.on_block_deactivated
+    if victim_data.shield then
+        on_block_deactivated = victim_data.shield.on_block_deactivated
 
-    -- Invoke deactivate block function if any.
-    if on_block_deactivated then
-        on_block_deactivated(player)
+        -- Invoke deactivate block function if any.
+        if on_block_deactivated then
+            on_block_deactivated(player)
+        end
+
+        victim_data.shield = nil
     end
-
-    victim_data.block = nil
-    victim_data.shield = nil
 
     -- Remove un-used hud element.
     remove_text_center(player, "pvp_revamped:block_pool")
