@@ -16,6 +16,8 @@ minetest.register_on_leaveplayer(function(player)
     local name = player:get_player_name()
     local pdata = player_data[name]
 
+    player_persistent_data[name] = nil
+
     if not pdata then
         return
     end
@@ -33,7 +35,6 @@ minetest.register_on_leaveplayer(function(player)
     end
 
     player_data[name] = nil
-    player_persistent_data[name] = nil
 end)
 
 -- Drop any item the player is about to throw on death.
@@ -41,6 +42,8 @@ end)
 minetest.register_on_dieplayer(function(player)
     local name = player:get_player_name()
     local pdata = player_data[name]
+
+    player_persistent_data[name] = {damage_texture_modifier = player:get_properties().damage_texture_modifier}
 
     if not pdata then
         return
@@ -50,19 +53,15 @@ minetest.register_on_dieplayer(function(player)
     
     if throw_data then
         drop(player, throw_data.item)
-        
-        pdata.throw = nil
     end
 
     local entity = pdata.entity
 
     if entity then
         entity:remove()
-
-        pdata.entity = nil
     end
 
-    player_data[name] = pdata
+    player_data[name] = nil
 end)
 
 -- Drop any item the player is about to throw on shutdown.
