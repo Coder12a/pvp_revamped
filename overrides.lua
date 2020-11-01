@@ -45,7 +45,7 @@ minetest.register_on_mods_loaded(function()
             local uxml = choppy.uses * choppy.maxlevel
             local shield_axe_dmg_mul = tool_capabilities.shield_axe_dmg_mul or shield_axe_dmg_mul
 
-            tool_capabilities.damage_groups.shield = uxml * shield_axe_dmg_mul
+            tool_capabilities.damage_groups.shield = tool_capabilities.damage_groups.shield or uxml * shield_axe_dmg_mul
 
             minetest.override_item(k, {tool_capabilities = tool_capabilities})
         end
@@ -55,7 +55,7 @@ minetest.register_on_mods_loaded(function()
             local tool_capabilities = v.tool_capabilities
             local projectile_full_throw_mul = tool_capabilities.projectile_full_throw_mul or projectile_full_throw_mul
 
-            tool_capabilities.full_throw = (v.tool_capabilities.full_punch_interval * projectile_full_throw_mul) * 1000000
+            tool_capabilities.full_throw = tool_capabilities.full_throw or (v.tool_capabilities.full_punch_interval * projectile_full_throw_mul) * 1000000
             
             minetest.override_item(k, {tool_capabilities = tool_capabilities})
         end
@@ -66,7 +66,7 @@ minetest.register_on_mods_loaded(function()
             local range = v.tool_capabilities.range or 4
             local projectile_speed_mul = tool_capabilities.projectile_speed_mul or projectile_speed_mul
 
-            tool_capabilities.throw_speed = range * projectile_speed_mul
+            tool_capabilities.throw_speed = tool_capabilities.throw_speed or range * projectile_speed_mul
 
             minetest.override_item(k, {tool_capabilities = tool_capabilities})
         end
@@ -79,12 +79,12 @@ minetest.register_on_mods_loaded(function()
             local full_punch_interval = tool_capabilities.full_punch_interval
             local punch_number = max(tool_capabilities.damage_groups.fleshy - full_punch_interval, 0.1)
             local block_pool_mul = tool_capabilities.block_pool_mul or block_pool_mul
-            local block_pool = punch_number * block_pool_mul
+            local block_pool = tool_capabilities.block_pool or punch_number * block_pool_mul
             local block_interval_mul = tool_capabilities.block_interval_mul or block_interval_mul
             local full_block_interval = (full_punch_interval * block_interval_mul) * 1000000
             local block_duration = tool_capabilities.block_duration or block_duration
             local block_duration_mul = tool_capabilities.block_duration_mul or block_duration_mul
-            local duration = block_duration + (punch_number * block_duration_mul)
+            local duration = tool_capabilities.duration or block_duration + (punch_number * block_duration_mul)
             local old_on_secondary_use = v.on_secondary_use
             local old_on_place = v.on_place
             local old_on_drop = v.on_drop
@@ -212,19 +212,25 @@ minetest.register_on_mods_loaded(function()
             if v.armor_groups and v.armor_groups.fleshy then
                 fleshy = v.armor_groups.fleshy
             end
-            
+
             local value = armor_heal + armor_shield + fleshy
             local shield_pool_mul = groups.shield_pool_mul or shield_pool_mul
-            local block_pool = max_armor_use - armor_use + value * shield_pool_mul
+            local block_pool = groups.block_pool or max_armor_use - armor_use + value * shield_pool_mul
             local shield_duration = groups.shield_duration or shield_duration
-            local duration = shield_duration + (armor_use + value) * shield_duration_mul
+            local duration = groups.duration or shield_duration + (armor_use + value) * shield_duration_mul
             local hasty_shield_mul = groups.hasty_shield_mul or hasty_shield_mul
+            local hasty_guard_duration = hasty_guard_duration
 
             -- Write new capabilities if they are nil.
             groups.block_pool = groups.block_pool or block_pool
             groups.duration = groups.duration or duration
-            groups.hasty_guard_duration = groups.hasty_guard_duration or hasty_guard_duration
-            groups.hasty_guard_duration = groups.hasty_guard_duration + value * hasty_shield_mul
+
+            if not groups.hasty_guard_duration then
+                hasty_guard_duration = hasty_guard_duration + value * hasty_shield_mul
+                groups.hasty_guard_duration = hasty_guard_duration
+            else
+                hasty_guard_duration = groups.hasty_guard_duration
+            end
 
             if block_pool > 0 then
                 -- Allow the shield to block damage.
