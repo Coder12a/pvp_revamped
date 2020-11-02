@@ -340,8 +340,11 @@ minetest.register_globalstep(function(dtime)
                             data.on_hasty_guard(player, damage)
                         elseif damage < 0 then
                             local hitter = get_player_by_name(data.name)
+                            local hitter_hp = hitter:get_hp()
 
-                            hitter:set_hp(hitter:get_hp() + damage)
+                            if hitter_hp >= 1 then
+                                hitter:set_hp(hitter_hp + damage)
+                            end
                         end
 
                         local count = #hit_data
