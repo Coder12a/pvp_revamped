@@ -1,13 +1,11 @@
 local add_item = minetest.add_item
 local get_us_time = minetest.get_us_time
-local get_player_by_name = minetest.get_player_by_name
 local player_data = pvp_revamped.player_data
 local shield_entity_pos = pvp_revamped.config.shield_entity_pos
 local shield_entity_rotate = pvp_revamped.config.shield_entity_rotate
 local shield_entity_scale = pvp_revamped.config.shield_entity_scale
 local hudkit = pvp_revamped.hudkit
 local armor_3d = minetest.global_exists("armor")
-local maxn = table.maxn
 local new = vector.new
 local cos = math.cos
 local sin = math.sin
@@ -302,7 +300,8 @@ function pvp_revamped.shield_inv(user, name, player_pdata, data)
             on_block_activate = data_shield.on_block_activate,
             on_block_deactivated = data_shield.on_block_deactivated,
             on_block_damage = data_shield.on_block_damage,
-            on_guard_break = data_shield.on_guard_break
+            on_guard_break = data_shield.on_guard_break,
+            on_hasty_guard = data_shield.on_hasty_guard
         }
 
         local on_block_deactivated = data.block.on_block_deactivated

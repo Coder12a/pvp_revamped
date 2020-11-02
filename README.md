@@ -33,9 +33,9 @@ sneak key + place will block using the shield in the armor inventory. **(Require
 
 #### throwing
 
-To throw a tool hold down either dig or place and then press the drop key to start charging up the toss.
+To throw a tool hold down either dig, place, use, or zoom and then press the drop key to start charging up the toss.
 
-When you are ready to throw release either dig or place.
+When you are ready to throw release either dig, place, use, or zoom.
 
 All tools have different throw speeds, charge times, and damages.
 
@@ -564,5 +564,8 @@ minetest.register_tool("test:tool", {
     end,
     on_guard_break = function(player)
         -- Invokes when the player's guard pool is zero or below.
+    end,
+    on_hasty_guard = function(player, damage)
+        -- Invokes when the player performs a hasty guard on time.
     end
 ```

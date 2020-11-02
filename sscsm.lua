@@ -7,17 +7,11 @@ local barrel_roll_speed = pvp_revamped.config.barrel_roll_speed
 local get_player_data = pvp_revamped.get_player_data
 local player_data = pvp_revamped.player_data
 local player_persistent_data = pvp_revamped.player_persistent_data
-local create_wield_shield = pvp_revamped.create_wield_shield
-local create_hud_text_center = pvp_revamped.create_hud_text_center
-local remove_text_center = pvp_revamped.remove_text_center
 local shield_inv = pvp_revamped.shield_inv
 local dash = pvp_revamped.dash
 local barrel_roll = pvp_revamped.barrel_roll
 local dodge = pvp_revamped.dodge
-local get_us_time = minetest.get_us_time
 local get_player_by_name = minetest.get_player_by_name
-local cos = math.cos
-local sin = math.sin
 
 -- Register a sscsm for dodging and dashing.
 sscsm.register({name = "pvp_revamped:movement",

@@ -355,6 +355,9 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
             end
             
             hitter_data.block = nil
+
+            -- Remove un-used hud element.
+            remove_text_center(hitter, "pvp_revamped:block_pool")
         end
         
         if hitter_data.shield then
@@ -364,14 +367,14 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
             if on_block_deactivated then
                 on_block_deactivated(player)
             end
+
+            hitter_data.shield = nil
+
+            -- Remove un-used hud element.
+            remove_text_center(hitter, "pvp_revamped:shield_pool")
         end
 
-        hitter_data.shield = nil
         player_data[hitter_name] = hitter_data
-
-        -- Remove un-used hud element.
-        remove_text_center(hitter, "pvp_revamped:block_pool")
-        remove_text_center(hitter, "pvp_revamped:shield_pool")
     end
 
     local data_throw = victim_data.throw
@@ -659,6 +662,9 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         end
 
         victim_data.block = nil
+
+        -- Remove un-used hud element.
+        remove_text_center(player, "pvp_revamped:block_pool")
     end
 
     if victim_data.shield then
@@ -670,11 +676,10 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         end
 
         victim_data.shield = nil
-    end
 
-    -- Remove un-used hud element.
-    remove_text_center(player, "pvp_revamped:block_pool")
-    remove_text_center(player, "pvp_revamped:shield_pool")
+        -- Remove un-used hud element.
+        remove_text_center(player, "pvp_revamped:shield_pool")
+    end
 
     -- Save new player data to the table.
     player_data[name] = victim_data

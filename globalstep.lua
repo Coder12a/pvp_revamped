@@ -327,12 +327,17 @@ minetest.register_globalstep(function(dtime)
                         local shield = v.shield
                         local damage = data.damage
                         local timeframe = time - server_lag
+                        local hasty_guard_block = block and block.initial_time + block.hasty_guard_duration > timeframe
+                        local hasty_guard_shield = shield and shield.initial_time + shield.hasty_guard_duration > timeframe
+                        local damage_larger = damage > 0
                         
                         -- If the player was able to pull off a hasty guard cancel the attack.
-                        if damage > 0 and not (block and block.initial_time + block.hasty_guard_duration > timeframe) and not (shield and shield.initial_time + shield.hasty_guard_duration > timeframe) then
+                        if damage_larger and not hasty_guard_block and not hasty_guard_shield then
                             hp = hp - damage
 
                             hp_change = true
+                        elseif damage_larger and data.on_hasty_guard and (hasty_guard_block or hasty_guard_shield) then
+                            data.on_hasty_guard(player, damage)
                         elseif damage < 0 then
                             local hitter = get_player_by_name(data.name)
 
@@ -366,6 +371,10 @@ minetest.register_globalstep(function(dtime)
         end
 
         if not active then
+            -- Just in case there is still guard pool stuff on screen.
+            remove_text_center(player, "pvp_revamped:block_pool")
+            remove_text_center(player, "pvp_revamped:shield_pool")
+
             player_data[k] = nil
         end
     end

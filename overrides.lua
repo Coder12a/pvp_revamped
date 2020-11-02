@@ -90,7 +90,11 @@ minetest.register_on_mods_loaded(function()
             local old_on_drop = v.on_drop
             local hasty_guard_mul = tool_capabilities.hasty_guard_mul or hasty_guard_mul
             local hasty_guard_duration = tool_capabilities.hasty_guard_duration or hasty_guard_duration
-            local on_block_activate = v.on_block_activate or nil
+            local on_block_activate = v.on_block_activate
+            local on_block_deactivated = v.on_block_deactivated
+            local on_block_damage = v.on_block_damage
+            local on_guard_break = v.on_guard_break
+            local on_hasty_guard = v.on_hasty_guard
 
             -- Override some custom capabilities if they are nil.
             tool_capabilities.block_pool = tool_capabilities.block_pool or block_pool
@@ -122,7 +126,19 @@ minetest.register_on_mods_loaded(function()
 
                     -- Prevent spam blocking.
                     if not data.block or time - data.block.time > full_block_interval then
-                        data.block = {pool = block_pool, name = k, initial_time = time, time = time, duration = duration, hasty_guard_duration = hasty_guard_duration}
+                        data.block = {
+                            pool = block_pool,
+                            name = k,
+                            initial_time = time,
+                            time = time,
+                            duration = duration,
+                            hasty_guard_duration = hasty_guard_duration,
+                            on_block_activate = on_block_activate,
+                            on_block_deactivated = on_block_deactivated,
+                            on_block_damage = on_block_damage,
+                            on_guard_break = on_guard_break,
+                            on_hasty_guard = on_hasty_guard
+                        }
                         
                         if aim then
                             user:set_bone_position(aim.bone, aim.position, new(-180, 0, 0))
@@ -142,10 +158,10 @@ minetest.register_on_mods_loaded(function()
                             end
                             
                             data.shield = nil
-                        end
 
-                        -- Remove un-used hud element.
-                        remove_text_center(user, "pvp_revamped:shield_pool")
+                            -- Remove un-used hud element.
+                            remove_text_center(user, "pvp_revamped:shield_pool")
+                        end
 
                         -- Run user on_block_activate function.
                         if on_block_activate then
@@ -194,10 +210,10 @@ minetest.register_on_mods_loaded(function()
                         end
 
                         data.block = nil
-                    end
 
-                    -- Remove un-used block hud element.
-                    remove_text_center(dropper, "pvp_revamped:block_pool")
+                        -- Remove un-used block hud element.
+                        remove_text_center(dropper, "pvp_revamped:block_pool")
+                    end
 
                     -- Only clear shield if it is not from the armor inv.
                     if shield_data and not shield_data.armor_inv then
@@ -209,6 +225,7 @@ minetest.register_on_mods_loaded(function()
                         end
                         
                         data.shield = nil
+
                         -- Remove shield pool hud element.
                         remove_text_center(dropper, "pvp_revamped:shield_pool")
                     end
@@ -232,7 +249,6 @@ minetest.register_on_mods_loaded(function()
             local old_on_secondary_use = v.on_secondary_use
             local old_on_place = v.on_place
             local fleshy = 1
-            local on_block_activate = v.on_block_activate or nil
 
             if v.armor_groups and v.armor_groups.fleshy then
                 fleshy = v.armor_groups.fleshy
@@ -249,6 +265,7 @@ minetest.register_on_mods_loaded(function()
             local on_block_deactivated = v.on_block_deactivated
             local on_block_damage = v.on_block_damage
             local on_guard_break = v.on_guard_break
+            local on_hasty_guard = v.on_hasty_guard
 
             if max_armor_use then
                 block_pool = groups.block_pool or max_armor_use - armor_use + value * shield_pool_mul
@@ -300,7 +317,8 @@ minetest.register_on_mods_loaded(function()
                         on_block_activate = on_block_activate,
                         on_block_deactivated = on_block_deactivated,
                         on_block_damage = on_block_damage,
-                        on_guard_break = on_guard_break
+                        on_guard_break = on_guard_break,
+                        on_hasty_guard = on_hasty_guard
                     }
 
                     if data.block then
@@ -312,15 +330,15 @@ minetest.register_on_mods_loaded(function()
                         end
                         
                         data.block = nil
+
+                        -- Remove un-used hud element.
+                        remove_text_center(user, "pvp_revamped:block_pool")
                     end
 
                     player_data[name] = data
 
                     -- Disable the damage texture modifier on shield block.
                     user:set_properties{damage_texture_modifier = ""}
-
-                    -- Remove un-used hud element.
-                    remove_text_center(user, "pvp_revamped:block_pool")
 
                     -- Run user on_block_activate function.
                     if on_block_activate then

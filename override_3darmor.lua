@@ -37,7 +37,8 @@ armor.save_armor_inventory = function(self, player)
                         on_block_activate = def.on_block_activate,
                         on_block_deactivated = def.on_block_deactivated,
                         on_block_damage = def.on_block_damage,
-                        on_guard_break = def.on_guard_break
+                        on_guard_break = def.on_guard_break,
+                        on_hasty_guard = def.on_hasty_guard
                     }
                     
                     return old_save_armor_inventory(self, player)
@@ -84,7 +85,8 @@ armor.load_armor_inventory = function(self, player)
                         on_block_activate = def.on_block_activate,
                         on_block_deactivated = def.on_block_deactivated,
                         on_block_damage = def.on_block_damage,
-                        on_guard_break = def.on_guard_break
+                        on_guard_break = def.on_guard_break,
+                        on_hasty_guard = def.on_hasty_guard
                     }
                     
                     return results

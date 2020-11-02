@@ -43,7 +43,7 @@ minetest.register_on_dieplayer(function(player)
     local name = player:get_player_name()
     local pdata = player_data[name]
 
-    player_persistent_data[name] = {damage_texture_modifier = player:get_properties().damage_texture_modifier}
+    player_persistent_data[name] = {damage_texture_modifier = player_persistent_data[name].damage_texture_modifier}
 
     if not pdata then
         return
@@ -91,8 +91,6 @@ minetest.register_on_player_inventory_action(function(player)
 
         -- Remove un-used hud element.
         remove_text_center(player, "pvp_revamped:shield_pool")
-
-        return
     end
 
     local data_block = pdata.block
