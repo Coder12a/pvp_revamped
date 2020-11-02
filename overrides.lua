@@ -135,6 +135,7 @@ minetest.register_on_mods_loaded(function()
                         initial_time = time,
                         time = time,
                         duration = duration,
+                        block_cooldown = block_cooldown,
                         hasty_guard_duration = hasty_guard_duration,
                         on_block_activate = on_block_activate,
                         on_block_deactivated = on_block_deactivated,
@@ -275,7 +276,7 @@ minetest.register_on_mods_loaded(function()
                 block_pool = groups.block_pool or 40
             end
 
-            local block_cooldown = v.block_cooldown or block_pool * 100000
+            local block_cooldown = groups.block_cooldown or block_pool * 100000
 
             -- Write new capabilities if they are nil.
             groups.block_pool = groups.block_pool or block_pool
