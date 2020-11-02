@@ -454,6 +454,8 @@ tool_capabilities = {
     block_duration_mul = 100000,
     -- See block_interval_mul in config.
     block_interval_mul = 0.15,
+    -- How long before you can block again in microseconds.
+    block_cooldown = 1000000,
     -- See block_pool_mul in config.
     block_pool_mul = 4,
     -- See block_wear_mul in config.
@@ -537,6 +539,8 @@ minetest.register_tool("test:shield_test", {
         block_pool = 1960,
         -- Guard pool's max duration in microseconds.
         duration = 100802,
+        -- How long before you can block again in microseconds.
+        block_cooldown = 1000000,
         -- See hasty_guard_duration in config.
         hasty_guard_duration = 50000,
         -- See hasty_shield_mul in config.

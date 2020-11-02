@@ -81,7 +81,7 @@ minetest.register_on_mods_loaded(function()
             local block_pool_mul = tool_capabilities.block_pool_mul or block_pool_mul
             local block_pool = tool_capabilities.block_pool or punch_number * block_pool_mul
             local block_interval_mul = tool_capabilities.block_interval_mul or block_interval_mul
-            local full_block_interval = (full_punch_interval * block_interval_mul) * 1000000
+            local block_cooldown = tool_capabilities.block_cooldown or (full_punch_interval * block_interval_mul) * 1000000
             local block_duration = tool_capabilities.block_duration or block_duration
             local block_duration_mul = tool_capabilities.block_duration_mul or block_duration_mul
             local duration = tool_capabilities.duration or block_duration + (punch_number * block_duration_mul)
@@ -111,6 +111,12 @@ minetest.register_on_mods_loaded(function()
                     local name = user:get_player_name()
                     local player_pdata = player_persistent_data[name]
                     local data = get_player_data(name)
+                    local time = get_us_time()
+
+                    -- Prevent spam blocking.
+                    if data.block and time - data.block.time > data.block.block_cooldown then
+                        return
+                    end
 
                     if shield_inv(user, name, player_pdata, data) then
                         return
@@ -122,51 +128,47 @@ minetest.register_on_mods_loaded(function()
                     end
 
                     local aim = data.aim
-                    local time = get_us_time()
 
-                    -- Prevent spam blocking.
-                    if not data.block or time - data.block.time > full_block_interval then
-                        data.block = {
-                            pool = block_pool,
-                            name = k,
-                            initial_time = time,
-                            time = time,
-                            duration = duration,
-                            hasty_guard_duration = hasty_guard_duration,
-                            on_block_activate = on_block_activate,
-                            on_block_deactivated = on_block_deactivated,
-                            on_block_damage = on_block_damage,
-                            on_guard_break = on_guard_break,
-                            on_hasty_guard = on_hasty_guard
-                        }
-                        
-                        if aim then
-                            user:set_bone_position(aim.bone, aim.position, new(-180, 0, 0))
+                    data.block = {
+                        pool = block_pool,
+                        name = k,
+                        initial_time = time,
+                        time = time,
+                        duration = duration,
+                        hasty_guard_duration = hasty_guard_duration,
+                        on_block_activate = on_block_activate,
+                        on_block_deactivated = on_block_deactivated,
+                        on_block_damage = on_block_damage,
+                        on_guard_break = on_guard_break,
+                        on_hasty_guard = on_hasty_guard
+                    }
+                    
+                    if aim then
+                        user:set_bone_position(aim.bone, aim.position, new(-180, 0, 0))
+                    end
+                    
+                    data.aim = {bone = "Arm_Right", position = new(-3, 5.7, 0), rotation = new(-90, 0, 0)}
+
+                    -- Write pool to hud.
+                    create_hud_text_center(user, "pvp_revamped:block_pool", block_pool)
+
+                    if data.shield then
+                        local on_block_deactivated = data.shield.on_block_deactivated
+
+                        -- Invoke deactivate block function if any.
+                        if on_block_deactivated then
+                            on_block_deactivated(user)
                         end
                         
-                        data.aim = {bone = "Arm_Right", position = new(-3, 5.7, 0), rotation = new(-90, 0, 0)}
+                        data.shield = nil
 
-                        -- Write pool to hud.
-                        create_hud_text_center(user, "pvp_revamped:block_pool", block_pool)
+                        -- Remove un-used hud element.
+                        remove_text_center(user, "pvp_revamped:shield_pool")
+                    end
 
-                        if data.shield then
-                            local on_block_deactivated = data.shield.on_block_deactivated
-    
-                            -- Invoke deactivate block function if any.
-                            if on_block_deactivated then
-                                on_block_deactivated(user)
-                            end
-                            
-                            data.shield = nil
-
-                            -- Remove un-used hud element.
-                            remove_text_center(user, "pvp_revamped:shield_pool")
-                        end
-
-                        -- Run user on_block_activate function.
-                        if on_block_activate then
-                            on_block_activate(user)
-                        end
+                    -- Run user on_block_activate function.
+                    if on_block_activate then
+                        on_block_activate(user)
                     end
 
                     -- Disable the damage texture modifier on tool block.
@@ -273,6 +275,8 @@ minetest.register_on_mods_loaded(function()
                 block_pool = groups.block_pool or 40
             end
 
+            local block_cooldown = v.block_cooldown or block_pool * 100000
+
             -- Write new capabilities if they are nil.
             groups.block_pool = groups.block_pool or block_pool
             groups.duration = groups.duration or duration
@@ -290,6 +294,11 @@ minetest.register_on_mods_loaded(function()
                     local name = user:get_player_name()
                     local player_pdata = player_persistent_data[name]
                     local data = get_player_data(name)
+                    local time = get_us_time()
+
+                    if data.shield and time - data.shield.time > data.shield.block_cooldown then
+                        return false
+                    end
 
                     if shield_inv(user, name, player_pdata, data) then
                         return
@@ -299,8 +308,6 @@ minetest.register_on_mods_loaded(function()
                     if data.throw or player_pdata.active_dodges or player_pdata.active_barrel_rolls then
                         return
                     end
-
-                    local time = get_us_time()
 
                     create_wield_shield(user, name, "Arm_Right", k, groups)
 
@@ -313,6 +320,7 @@ minetest.register_on_mods_loaded(function()
                         initial_time = time,
                         time = time,
                         duration = duration,
+                        block_cooldown = block_cooldown,
                         hasty_guard_duration = hasty_guard_duration,
                         on_block_activate = on_block_activate,
                         on_block_deactivated = on_block_deactivated,

@@ -279,9 +279,14 @@ function pvp_revamped.shield_inv(user, name, player_pdata, data)
     -- Use 3d_armor inv shield if available.
     if armor_3d and player_pdata.inventory_armor_shield and (player_pdata.use_shield or floor(user:get_player_control_bits() / 64) % 2 == 1) then
         local data_shield = player_pdata.inventory_armor_shield
+        local time = get_us_time()
+
+        if data.shield and time - data.shield.time > data.shield.block_cooldown then
+            return false
+        end
+
         local block_pool = data_shield.block_pool
         local on_block_activate = data_shield.on_block_activate or nil
-        local time = get_us_time()
 
         create_wield_shield(user, name, "Arm_Left", data_shield.name, data_shield.groups)
 
@@ -295,6 +300,7 @@ function pvp_revamped.shield_inv(user, name, player_pdata, data)
             initial_time = time,
             time = time,
             duration = data_shield.duration,
+            block_cooldown = data_shield.block_cooldown,
             hasty_guard_duration = data_shield.hasty_guard_duration,
             armor_inv = true,
             on_block_activate = data_shield.on_block_activate,
