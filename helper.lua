@@ -281,7 +281,8 @@ function pvp_revamped.shield_inv(user, name, player_pdata, data)
         local data_shield = player_pdata.inventory_armor_shield
         local time = get_us_time()
 
-        if data.shield and time - data.shield.time > data.shield.block_cooldown then
+        -- Prevent spam blocking.
+        if data.shield and time - data.shield.initial_time < data.shield.block_cooldown then
             return false
         end
 

@@ -114,7 +114,7 @@ minetest.register_on_mods_loaded(function()
                     local time = get_us_time()
 
                     -- Prevent spam blocking.
-                    if data.block and time - data.block.time > data.block.block_cooldown then
+                    if data.block and time - data.block.initial_time < data.block.block_cooldown then
                         return
                     end
 
@@ -296,8 +296,9 @@ minetest.register_on_mods_loaded(function()
                     local data = get_player_data(name)
                     local time = get_us_time()
 
-                    if data.shield and time - data.shield.time > data.shield.block_cooldown then
-                        return false
+                    -- Prevent spam blocking.
+                    if data.shield and time - data.shield.initial_time < data.shield.block_cooldown then
+                        return
                     end
 
                     if shield_inv(user, name, player_pdata, data) then
