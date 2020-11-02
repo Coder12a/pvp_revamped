@@ -31,7 +31,7 @@ minetest.register_on_leaveplayer(function(player)
     local entity = pdata.entity
 
     if entity then
-        entity:remove()
+        entity.object:remove()
     end
 
     player_data[name] = nil
@@ -58,7 +58,7 @@ minetest.register_on_dieplayer(function(player)
     local entity = pdata.entity
 
     if entity then
-        entity:remove()
+        entity.object:remove()
     end
 
     player_data[name] = nil
