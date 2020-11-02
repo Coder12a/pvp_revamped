@@ -584,7 +584,8 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
     elseif knee then
         -- immobilize the player.
         local knee_immobilize_mul = tool_capabilities.knee_immobilize_mul or knee_immobilize_mul
-        local speed = min(1 / max(damage - hp, 1.5) * knee_immobilize_mul, 0.1)
+        local dmg = max(damage - hp, 1.5)
+        local speed = min(1 / dmg * knee_immobilize_mul, 0.1)
         local data_immobilize = victim_data.immobilize
 
         if data_immobilize then
