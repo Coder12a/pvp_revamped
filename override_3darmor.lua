@@ -1,5 +1,5 @@
 -- See if the mod armor_3d is a thing here.
-if not armor then
+if not minetest.global_exists("armor") then
     return
 end
 

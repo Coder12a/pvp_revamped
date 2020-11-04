@@ -6,7 +6,10 @@ local get_player_by_name = minetest.get_player_by_name
 
 -- Create an empty data sheet for the player.
 minetest.register_on_joinplayer(function(player)
-    player_persistent_data[player:get_player_name()] = {damage_texture_modifier = player:get_properties().damage_texture_modifier}
+    player_persistent_data[player:get_player_name()] = {
+        damage_texture_modifier = player:get_properties().damage_texture_modifier,
+        throw_style = player:get_meta():get_int("pvp_revamped.throw_style")
+    }
 end)
 
 -- Clear up memory if the player leaves.
@@ -42,8 +45,12 @@ end)
 minetest.register_on_dieplayer(function(player)
     local name = player:get_player_name()
     local pdata = player_data[name]
+    local old_ppd = player_persistent_data[name]
 
-    player_persistent_data[name] = {damage_texture_modifier = player_persistent_data[name].damage_texture_modifier}
+    player_persistent_data[name] = {
+        damage_texture_modifier = old_ppd.damage_texture_modifier,
+        throw_style = old_ppd.throw_style
+    }
 
     if not pdata then
         return

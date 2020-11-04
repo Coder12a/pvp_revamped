@@ -27,8 +27,8 @@ local rad90 = pi * 0.5
 -- Entity for thrown items.
 minetest.register_entity("pvp_revamped:projectile", {
 	initial_properties = {
-        collisionbox = {-0.3, -0.3, -0.3, 0.3, 0.3, 0.3},
-        visual_size = {x = 0.4, y = 0.4, z = 0.4},
+        collisionbox = {0, 0, 0, 0, 0, 0},
+        visual_size = {x = 0, y = 0, z = 0},
         visual = "wielditem",
         textures = {""},
         physical = true,

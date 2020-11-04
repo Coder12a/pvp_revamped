@@ -1,5 +1,6 @@
 local add_item = minetest.add_item
 local get_us_time = minetest.get_us_time
+local add_entity = minetest.add_entity
 local player_data = pvp_revamped.player_data
 local shield_entity_pos = pvp_revamped.config.shield_entity_pos
 local shield_entity_rotate = pvp_revamped.config.shield_entity_rotate
@@ -38,34 +39,37 @@ end
 local get_player_data = pvp_revamped.get_player_data
 
 function pvp_revamped.create_wield_shield(player, name, bone, itemname, groups)
-    local data = get_player_data(name)
-    local object = minetest.add_entity(player:get_pos(), "pvp_revamped:shield", name)
+    local object = add_entity(player:get_pos(), "pvp_revamped:shield", name)
 
-    if object then
-        object:set_attach(player, bone, groups.shield_entity_pos or shield_entity_pos, groups.shield_entity_rotate or shield_entity_rotate)
-        object:set_properties({
-            textures = {itemname},
-            visual_size = groups.shield_entity_scale or shield_entity_scale
-        })
-
-        local entity = data.entity
-        
-        if entity and entity.object then
-            player:set_bone_position(entity.bone, entity.position, new(-180, 0, 0))
-
-            entity.object:remove()
-        end
-
-        entity = {object = object, bone = bone, rotation = new(-90, 0, 0)}
-
-        if bone == "Arm_Left" then
-            entity.position = new(3, 5.7, 0)
-        elseif bone == "Arm_Right" then
-            entity.position = new(-3, 5.7, 0)
-        end
-
-        data.entity = entity
+    if not object or not object:get_luaentity() then
+        return
     end
+
+    local data = get_player_data(name)
+
+    object:set_attach(player, bone, groups.shield_entity_pos or shield_entity_pos, groups.shield_entity_rotate or shield_entity_rotate)
+    object:set_properties({
+        textures = {itemname},
+        visual_size = groups.shield_entity_scale or shield_entity_scale
+    })
+
+    local entity = data.entity
+    
+    if entity and entity.object then
+        player:set_bone_position(entity.bone, entity.position, new(-180, 0, 0))
+
+        entity.object:remove()
+    end
+
+    entity = {object = object, bone = bone, rotation = new(-90, 0, 0)}
+
+    if bone == "Arm_Left" then
+        entity.position = new(3, 5.7, 0)
+    elseif bone == "Arm_Right" then
+        entity.position = new(-3, 5.7, 0)
+    end
+
+    data.entity = entity
 end
 
 function pvp_revamped.remove_text_center(player, hud_name)

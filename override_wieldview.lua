@@ -1,4 +1,4 @@
-if not wieldview then
+if not minetest.global_exists("wieldview") then
     return
 end
 

@@ -1,4 +1,4 @@
-if not sscsm then
+if not minetest.global_exists("sscsm") then
     return
 end
 

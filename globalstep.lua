@@ -138,45 +138,49 @@ minetest.register_globalstep(function(dtime)
                floor(control_bits / 256) % 2 ~= 1 and
                floor(control_bits / 512) % 2 ~= 1 and
                floor(control_bits / 32) % 2 ~= 1) or
-               pp_data.active_dodges or pp_data.active_barrel_rolls then
+               pp_data.active_dodges or
+               pp_data.active_barrel_rolls then
                 
                 local pos = player:get_pos()
 
                 pos.y = pos.y + player:get_properties().eye_height
                 
                 local obj = add_entity(pos, "pvp_revamped:projectile")
-                local ent = obj:get_luaentity()
 
-                if ent then
-                    local throw_style = pp_data.throw_style
-                    local throw_speed = tool_capabilities.throw_speed
-                    local damage = tool_capabilities.damage_groups.fleshy
-                    local projectile_gravity = tool_capabilities.projectile_gravity or projectile_gravity
-                    local gravity = projectile_gravity
-                    local projectile_dmg_mul = tool_capabilities.projectile_dmg_mul or projectile_dmg_mul
-                    local projectile_spinning_gravity_mul = tool_capabilities.projectile_spinning_gravity_mul or projectile_spinning_gravity_mul
-                    local projectile_dip_gravity_mul = tool_capabilities.projectile_dip_gravity_mul or projectile_dip_gravity_mul
-                    local spin
+                if obj then
+                    local ent = obj:get_luaentity()
 
-                    if not throw_data.ready then
-                        local projectile_half_throw_mul = tool_capabilities.projectile_half_throw_mul or projectile_half_throw_mul
-                        local re = (full_throw - time) * projectile_half_throw_mul
+                    if ent then
+                        local throw_style = pp_data.throw_style
+                        local throw_speed = tool_capabilities.throw_speed
+                        local damage = tool_capabilities.damage_groups.fleshy
+                        local projectile_gravity = tool_capabilities.projectile_gravity or projectile_gravity
+                        local gravity = projectile_gravity
+                        local projectile_dmg_mul = tool_capabilities.projectile_dmg_mul or projectile_dmg_mul
+                        local projectile_spinning_gravity_mul = tool_capabilities.projectile_spinning_gravity_mul or projectile_spinning_gravity_mul
+                        local projectile_dip_gravity_mul = tool_capabilities.projectile_dip_gravity_mul or projectile_dip_gravity_mul
+                        local spin
 
-                        if re > 0.5 then
-                            damage = tool_capabilities.damage_groups.fleshy - re
-                            throw_speed = throw_speed - re
+                        if not throw_data.ready then
+                            local projectile_half_throw_mul = tool_capabilities.projectile_half_throw_mul or projectile_half_throw_mul
+                            local re = (full_throw - time) * projectile_half_throw_mul
+
+                            if re > 0.5 then
+                                damage = tool_capabilities.damage_groups.fleshy - re
+                                throw_speed = throw_speed - re
+                            end
                         end
-                    end
 
-                    if throw_style == projectile_throw_style_spinning then
-                        spin = throw_speed
-                        gravity = gravity * projectile_spinning_gravity_mul
-                    elseif throw_style == projectile_throw_style_dip then
-                        gravity = gravity * projectile_dip_gravity_mul
-                    end
+                        if throw_style == projectile_throw_style_spinning then
+                            spin = throw_speed
+                            gravity = gravity * projectile_spinning_gravity_mul
+                        elseif throw_style == projectile_throw_style_dip then
+                            gravity = gravity * projectile_dip_gravity_mul
+                        end
 
-                    ent:set_item(k, throw_data.item)
-                    ent:throw(player, throw_speed, {x = 0, y = gravity, z = 0}, max(damage * projectile_dmg_mul, 0.1), throw_style, spin)
+                        ent:set_item(k, throw_data.item)
+                        ent:throw(player, throw_speed, {x = 0, y = gravity, z = 0}, max(damage * projectile_dmg_mul, 0.1), throw_style, spin)
+                    end
                 end
 
                 -- Remove throwing hud.

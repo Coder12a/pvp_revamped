@@ -8,23 +8,26 @@ minetest.register_chatcommand("throw_style", {
     params = "[<style>]: Change how you throw an item.",
     description = "Change how you throw an item. Accepted values are [none|spin|dip]",
     privs = {
-        interact = true,
+        interact = true
     },
     func = function(name, param)
         -- Check the given param.
         if param == "none" then
             -- Set the style to none.
             player_persistent_data[name].throw_style = nil
+            get_player_by_name(name):get_meta():set_int("pvp_revamped.throw_style", 0)
             
             return true, "Throw style set to none."
         elseif param == "spin" then
             -- Give the item a little spin.
             player_persistent_data[name].throw_style = projectile_throw_style_spinning
+            get_player_by_name(name):get_meta():set_int("pvp_revamped.throw_style", projectile_throw_style_spinning)
 
             return true, "Throw style set to spin."
         elseif param == "dip" then
             -- Bullet drop.
             player_persistent_data[name].throw_style = projectile_throw_style_dip
+            get_player_by_name(name):get_meta():set_int("pvp_revamped.throw_style", projectile_throw_style_dip)
 
             return true, "Throw style set to dip."
         end
@@ -40,7 +43,7 @@ minetest.register_chatcommand("move_item", {
     description = "Gives you a movement item. Accepted values are [dodge|dash_left|dash_up|dash_right|dash_down|dash_all|roll_left"
                   .. "|roll_up|roll_right|roll_down|roll_all|all]",
     privs = {
-        interact = true,
+        interact = true
     },
     func = function(name, param)
         local inv = get_player_by_name(name):get_inventory()
@@ -125,7 +128,7 @@ minetest.register_chatcommand("use_shield", {
     params = "[<boolean>]: Change how you block incoming damage.",
     description = "If set to true, the shield plate placed in the armor inventory will be used to block all incoming damage when block key is pressed.",
     privs = {
-        interact = true,
+        interact = true
     },
     func = function(name, param)
         -- Check the given param.
