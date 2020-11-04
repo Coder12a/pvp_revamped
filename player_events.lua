@@ -3,6 +3,7 @@ local player_persistent_data = pvp_revamped.player_persistent_data
 local remove_text_center = pvp_revamped.remove_text_center
 local drop = pvp_revamped.drop
 local get_player_by_name = minetest.get_player_by_name
+local new = vector.new
 
 -- Create an empty data sheet for the player.
 minetest.register_on_joinplayer(function(player)
@@ -66,6 +67,13 @@ minetest.register_on_dieplayer(function(player)
 
     if entity then
         entity.object:remove()
+    end
+
+    local aim = pdata.aim
+
+    if aim then
+        -- Drop hand.
+        player:set_bone_position(aim.bone, aim.position, new(-180, 0, 0))
     end
 
     player_data[name] = nil
@@ -147,15 +155,19 @@ local function break_guard(player, name)
 end
 
 minetest.register_on_placenode(function(pos, newnode, placer)
-    local name = placer:get_player_name()
-    
-    -- Break guard if player placed a node.
-    break_guard(placer, name)
+    if placer then
+        local name = placer:get_player_name()
+        
+        -- Break guard if player placed a node.
+        break_guard(placer, name)
+    end
 end)
 
 minetest.register_on_dignode(function(pos, oldnode, digger)
-    local name = digger:get_player_name()
-    
-    -- Break guard if player dug a node.
-    break_guard(digger, name)
+    if digger then
+        local name = digger:get_player_name()
+        
+        -- Break guard if player dug a node.
+        break_guard(digger, name)
+    end
 end)
