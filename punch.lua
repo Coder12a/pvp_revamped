@@ -120,7 +120,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         tool_capabilities = item.tool_capabilities
     end
 
-    -- I got this rare error where tool_capabilities was nil so I put this here to safe guard.
+    -- I got this rare error were tool_capabilities was nil so I put this here to safe guard.
     if not tool_capabilities then
         return true
     end
@@ -227,10 +227,10 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
 
             -- Add or remove damage based on the distance.
             -- Full punches are not affected by any maximum distance.
-            if (not full_punch or maximum_distance_dmg_mul < 0) and maximum_distance_dmg_mul and dist_rounded > optimal_range then
-                damage = damage - range * maximum_distance_dmg_mul
-            elseif (not full_punch or optimal_distance_dmg_mul > 0) and optimal_distance_dmg_mul and dist_rounded < optimal_range then
-                damage = damage + range * optimal_distance_dmg_mul
+            if (not full_punch or maximum_distance_dmg_mul < 1.0) and maximum_distance_dmg_mul and dist_rounded > optimal_range then
+                damage = damage * maximum_distance_dmg_mul
+            elseif (not full_punch or optimal_distance_dmg_mul > 0.0) and optimal_distance_dmg_mul and dist_rounded < optimal_range then
+                damage = damage * optimal_distance_dmg_mul
             end
         end
 
@@ -608,6 +608,13 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
 
     -- If there is a damage queue for the hitter tigger the clash.
     local hitter_hitdata = hitter_data.hit
+    local none = true
+
+    local on_hit = item.on_hit
+
+    if on_hit then
+        on_hit(player, hitter, damage)
+    end
 
     if hitter_hitdata then
         for i = #hitter_hitdata, 1, -1 do
@@ -619,38 +626,65 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
                     local parry_dmg_mul = tool_capabilities.parry_dmg_mul or parry_dmg_mul
                     local clash_def_mul = tool_capabilities.clash_def_mul or 0
                     local c_damage = damage * clash_def_mul
+                    local final_damage = max(hd.damage - (damage + c_damage) * parry_dmg_mul, 0)
+                    local on_parry = item.on_parry
                     
-                    hd.damage = max(hd.damage - (damage + c_damage) * parry_dmg_mul, 0)
+                    hd.damage = final_damage
+
+                    if on_parry then
+                        on_parry(player, hitter, final_damage)
+                    end
                 elseif full_punch and tool_capabilities.counter_duration and hd.time + tool_capabilities.counter_duration + pvp_revamped.lag + get_player_information(hitter_name).avg_jitter * 1000000 > get_us_time() then
                     -- All damage gets reversed on counter.
                     -- Current damage gets added to it plus the damage multipliable.
                     local counter_dmg_mul = tool_capabilities.counter_dmg_mul or counter_dmg_mul
+                    local final_damage = hd.damage + (damage * counter_dmg_mul)
+                    local on_counter = item.on_counter
 
-                    hd.damage = -(hd.damage + (damage * counter_dmg_mul))
+                    hd.damage = -final_damage
+
+                    if on_counter then
+                        on_counter(player, hitter, final_damage)
+                    end
                 else
                     -- Reduce, remove, or reverse the damage and resolve the clash.
                     -- Negative damage will be applied to the hitter.
                     local clash_def_mul = tool_capabilities.clash_def_mul or 0
                     local c_damage = damage * clash_def_mul
+                    local final_damage = max(hd.damage - (damage + c_damage), 0)
+                    local on_clash = item.on_clash
 
-                    hd.damage = hd.damage - damage
+                    hd.damage = final_damage
 
-                    if hd.damage > 0 and hd.damage - c_damage < 0 then
-                        hd.damage = 0
-                    elseif hd.damage > 0 and hd.damage - c_damage >= 0 then
-                        hd.damage = hd.damage - c_damage
+                    if on_clash then
+                        on_clash(player, hitter, final_damage)
                     end
                 end
 
                 hd.resolved = true
+                none = nil
 
                 break
             end
         end
-    elseif victim_data.hit then
-        insert(victim_data.hit, 1, {name = hitter_name, damage = damage, full_punch = full_punch, time = get_us_time()})
-    else
-        victim_data.hit = {{name = hitter_name, damage = damage, full_punch = full_punch, time = get_us_time()}}
+    end
+
+    if none and victim_data.hit then
+        insert(victim_data.hit, 1, {name = hitter_name, damage = damage, time = get_us_time()})
+
+        local on_first_hit = item.on_first_hit
+
+        if on_first_hit then
+            on_first_hit(player, hitter, damage)
+        end
+    elseif none then
+        victim_data.hit = {{name = hitter_name, damage = damage, time = get_us_time()}}
+
+        local on_first_hit = item.on_first_hit
+
+        if on_first_hit then
+            on_first_hit(player, hitter, damage)
+        end
     end
 
     if victim_data.block then
@@ -687,7 +721,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
     return true
 end
 
--- This needs to be the first punch function to prevent knockback on a immobilizeed player.
+-- This needs to be the first punch function to prevent knockback on a immobilized player.
 insert(minetest.registered_on_punchplayers, 1, punch)
 
 minetest.callback_origins[punch] = {

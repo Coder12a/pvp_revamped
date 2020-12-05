@@ -38,6 +38,14 @@ minetest.register_on_leaveplayer(function(player)
         entity.object:remove()
     end
 
+    if pdata.block then
+        remove_text_center(player, "pvp_revamped:block_pool")
+    end
+
+    if pdata.shield then
+        remove_text_center(player, "pvp_revamped:shield_pool")
+    end
+
     player_data[name] = nil
 end)
 
@@ -74,6 +82,14 @@ minetest.register_on_dieplayer(function(player)
     if aim then
         -- Drop hand.
         player:set_bone_position(aim.bone, aim.position, new(-180, 0, 0))
+    end
+
+    if pdata.block then
+        remove_text_center(player, "pvp_revamped:block_pool")
+    end
+
+    if pdata.shield then
+        remove_text_center(player, "pvp_revamped:shield_pool")
     end
 
     player_data[name] = nil

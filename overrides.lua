@@ -178,7 +178,8 @@ minetest.register_on_mods_loaded(function()
                     player_data[name] = data
                 end
 
-                minetest.override_item(k, {on_secondary_use = function(itemstack, user, pointed_thing)
+                minetest.override_item(k, {
+                on_secondary_use = function(itemstack, user, pointed_thing)
                     block_action(user)
 
                     return old_on_secondary_use(itemstack, user, pointed_thing)

@@ -290,11 +290,11 @@ pvp_revamped.velocity_dmg_mul = 0.15
 ```
 Damage multiplier when the hitter is within optimal range.
 ``` lua
-pvp_revamped.optimal_distance_dmg_mul = 0.2
+pvp_revamped.optimal_distance_dmg_mul = 1.1
 ```
 Damage multiplier when the hitter is at maximum range.
 ``` lua
-pvp_revamped.maximum_distance_dmg_mul = 0.1
+pvp_revamped.maximum_distance_dmg_mul = 0.9
 ```
 Damage multiplier for thrown tools.
 ``` lua
@@ -485,9 +485,9 @@ tool_capabilities = {
     -- See velocity_dmg_mul in config.
     velocity_dmg_mul = 0.15,
     -- See optimal_distance_dmg_mul in config.
-    optimal_distance_dmg_mul = 0.2,
+    optimal_distance_dmg_mul = 1.1,
     -- See maximum_distance_dmg_mul in config.
-    maximum_distance_dmg_mul = 0.1,
+    maximum_distance_dmg_mul = 0.9,
     -- See optimal_distance_mul in config.
     optimal_distance_mul = 0.625,
     -- See projectile_full_throw_mul in config.
@@ -571,5 +571,20 @@ minetest.register_tool("test:tool", {
     end,
     on_hasty_guard = function(player, damage)
         -- Invokes when the player performs a hasty guard on time.
+    end,
+    on_parry = function(player, hitter, damage)
+        -- Invokes when the player parries an attack.
+    end,
+    on_counter = function(player, hitter, damage)
+        -- Invokes when the player counters an attack.
+    end,
+    on_clash = function(player, hitter, damage)
+        -- Invokes when the player clashes.
+    end,
+    on_hit = function(player, hitter, damage)
+        -- Invokes when the player lands a hit.
+    end,
+    on_first_hit = function(player, hitter, damage)
+        -- Invokes when the player's attack is the first in the queue.
     end
 ```

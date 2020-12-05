@@ -317,7 +317,9 @@ minetest.register_globalstep(function(dtime)
             local hp_change
 
             if hp >= 1 then
-                for i = #hit_data, 1, -1 do
+                local count = #hit_data
+
+                for i = count, 1, -1 do
                     -- End the loop if hp is below one.
                     if hp < 1 then
                         v.hit = nil
@@ -351,10 +353,10 @@ minetest.register_globalstep(function(dtime)
                             end
                         end
 
-                        local count = #hit_data
-
                         hit_data[i] = hit_data[count]
                         hit_data[count] = nil
+                        
+                        count = count - 1
                     end
                 end
 

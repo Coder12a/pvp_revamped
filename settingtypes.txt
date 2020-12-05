@@ -68,9 +68,9 @@ pvp_revamped.lower_elevation_dmg_mul (Lower elevation damage multiplier) float 0
 # Damage multiplier for how fast the hitter is moving.
 pvp_revamped.velocity_dmg_mul (Velocity damage multiplier) float 0.15
 # Damage multiplier when the hitter is within optimal range.
-pvp_revamped.optimal_distance_dmg_mul (Optimal damage multiplier) float 0.2
+pvp_revamped.optimal_distance_dmg_mul (Optimal damage multiplier) float 1.1
 # Damage multiplier when the hitter is at maximum range.
-pvp_revamped.maximum_distance_dmg_mul (Maximum damage multiplier) float 0.1
+pvp_revamped.maximum_distance_dmg_mul (Maximum damage multiplier) float 0.9
 # Damage multiplier for thrown tools.
 pvp_revamped.projectile_dmg_mul (Projectile damage multiplier) float 0.5
 # Damage multiplier for a thrown tool's velocity.
