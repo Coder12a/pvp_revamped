@@ -148,7 +148,7 @@ minetest.register_on_mods_loaded(function()
                         user:set_bone_position(aim.bone, aim.position, new(-180, 0, 0))
                     end
                     
-                    data.aim = {bone = "Arm_Right", position = new(-3, 5.7, 0), rotation = new(-90, 0, 0)}
+                    data.aim = {bone = "Arm_Right", position = new(-3.2, 5.3, 0), rotation = new(-90, 0, 0)}
 
                     -- Write pool to hud.
                     create_hud_text_center(user, "pvp_revamped:block_pool", block_pool)

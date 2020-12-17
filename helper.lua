@@ -64,9 +64,9 @@ function pvp_revamped.create_wield_shield(player, name, bone, itemname, groups)
     entity = {object = object, bone = bone, rotation = new(-90, 0, 0)}
 
     if bone == "Arm_Left" then
-        entity.position = new(3, 5.7, 0)
+        entity.position = new(3.2, 5.3, 0)
     elseif bone == "Arm_Right" then
-        entity.position = new(-3, 5.7, 0)
+        entity.position = new(-3.2, 5.3, 0)
     end
 
     data.entity = entity
