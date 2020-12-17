@@ -104,12 +104,21 @@ local create_wield_shield = pvp_revamped.create_wield_shield
 local create_hud_text_center = pvp_revamped.create_hud_text_center
 local remove_text_center = pvp_revamped.remove_text_center
 
-local function remove_hits(name)
+local function remove_hits(player, name)
     local hit_data = get_player_data(name).hit
 
     if hit_data then
-        hit_data = nil
+        for i = #hit_data, 1, -1 do
+            local data = hit_data[i]
+
+            -- Restore any lost health.
+            if not data.parry then
+                player:set_hp(player:get_hp() + data.damage)
+            end
+        end
     end
+
+    hit_data = nil
 end
 
 -- Helper function to check and set the dodge cooldown.
@@ -120,7 +129,7 @@ function pvp_revamped.dodge(name, player, number)
         dodge_data.dodge = {[number] = get_us_time()}
         player:set_properties{damage_texture_modifier = ""}
         -- Clear out any hit data on dodge.
-        remove_hits(name)
+        remove_hits(player, name)
 
         local on_block_deactivated = dodge_data.block.on_block_deactivated
 
@@ -149,7 +158,7 @@ function pvp_revamped.dodge(name, player, number)
         dodge_data.dodge[number] = get_us_time()
         player:set_properties{damage_texture_modifier = ""}
         -- Clear out any hit data on dodge.
-        remove_hits(name)
+        remove_hits(player, name)
 
         local on_block_deactivated = dodge_data.block.on_block_deactivated
 
@@ -185,7 +194,7 @@ function pvp_revamped.barrel_roll(name, player, number, x, z)
         barrel_roll_data.barrel_roll = {[number] = {time = get_us_time(), x = x, z = z}}
         player:set_properties{damage_texture_modifier = ""}
         -- Clear out any hit data on barrel roll.
-        remove_hits(name)
+        remove_hits(player, name)
         -- Remove shield and block.
         local on_block_deactivated = barrel_roll_data.block.on_block_deactivated
 
@@ -213,7 +222,7 @@ function pvp_revamped.barrel_roll(name, player, number, x, z)
         barrel_roll_data.barrel_roll[number] = {time = get_us_time(), x = x, z = z}
         player:set_properties{damage_texture_modifier = ""}
         -- Clear out any hit data on barrel roll.
-        remove_hits(name)
+        remove_hits(player, name)
         -- Remove shield and block.
         local on_block_deactivated = barrel_roll_data.block.on_block_deactivated
 
