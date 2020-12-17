@@ -12,7 +12,6 @@ local projectile_dmg_mul = pvp_revamped.config.projectile_dmg_mul
 local projectile_spinning_gravity_mul = pvp_revamped.config.projectile_spinning_gravity_mul
 local projectile_dip_gravity_mul = pvp_revamped.config.projectile_dip_gravity_mul
 local clash_duration = pvp_revamped.config.clash_duration
-local hasty_guard_duration = pvp_revamped.config.hasty_guard_duration
 local projectile_throw_style_dip = pvp_revamped.projectile_throw_style_dip
 local projectile_throw_style_spinning = pvp_revamped.projectile_throw_style_spinning
 local player_data = pvp_revamped.player_data
@@ -313,66 +312,21 @@ minetest.register_globalstep(function(dtime)
 
         if v.hit then
             local hit_data = v.hit
-            local hp = player:get_hp()
-            local hp_change
+            local count = #hit_data
 
-            if hp >= 1 then
-                local count = #hit_data
+            for i = count, 1, -1 do
+                local data = hit_data[i]
 
-                for i = count, 1, -1 do
-                    -- End the loop if hp is below one.
-                    if hp < 1 then
-                        v.hit = nil
-                        break
-                    end
+                if data.time + clash_duration + server_lag < time then
+                    hit_data[i] = hit_data[count]
+                    hit_data[count] = nil
                     
-                    local data = hit_data[i]
-
-                    if data.resolved or data.time + clash_duration + server_lag < time then
-                        local block = v.block
-                        local shield = v.shield
-                        local damage = data.damage
-                        local timeframe = time - server_lag
-                        local hasty_guard_block = block and block.initial_time + block.hasty_guard_duration > timeframe
-                        local hasty_guard_shield = shield and shield.initial_time + shield.hasty_guard_duration > timeframe
-                        local damage_larger = damage > 0
-                        
-                        -- If the player was able to pull off a hasty guard cancel the attack.
-                        if damage_larger and not hasty_guard_block and not hasty_guard_shield then
-                            hp = hp - damage
-
-                            hp_change = true
-                        elseif damage_larger and data.on_hasty_guard and (hasty_guard_block or hasty_guard_shield) then
-                            data.on_hasty_guard(player, damage)
-                        elseif damage < 0 then
-                            local hitter = get_player_by_name(data.name)
-                            local hitter_hp = hitter:get_hp()
-
-                            if hitter_hp >= 1 then
-                                hitter:set_hp(hitter_hp + damage)
-                            end
-                        end
-
-                        hit_data[i] = hit_data[count]
-                        hit_data[count] = nil
-                        
-                        count = count - 1
-                    end
+                    count = count - 1
                 end
+            end
 
-                local real_hp = player:get_hp()
-
-                if hp_change and real_hp >= 1 then
-                    player:set_hp(hp)
-                elseif real_hp < 1 then
-                    v.hit = nil
-                end
-
-                -- If this table contains no more hits remove it.
-                if maxn(hit_data) < 1 then
-                    v.hit = nil
-                end
-            else
+            -- If this table contains no more hits remove it.
+            if maxn(hit_data) < 1 then
                 v.hit = nil
             end
 
