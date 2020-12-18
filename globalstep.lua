@@ -202,7 +202,7 @@ minetest.register_globalstep(function(dtime)
             -- Check if the immobilize duration expired. 
             if immobilize.time + immobilize.value + server_lag < time then
                 -- Restore the player's physics.
-                get_player_by_name(k):set_physics_override({speed = 1, jump = 1})
+                --get_player_by_name(k):set_physics_override({speed = 1, jump = 1})
                 v.immobilize = nil
             end
 

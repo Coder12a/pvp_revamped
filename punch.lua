@@ -567,7 +567,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
     end
 
     local function set_immobilize_data(speed, damage)
-        player:set_physics_override({speed = speed, jump = speed})
+        --player:set_physics_override({speed = speed, jump = speed})
 
         local immobilize_mul = tool_capabilities.immobilize_mul or immobilize_mul
         
