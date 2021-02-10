@@ -563,13 +563,13 @@ minetest.register_tool("test:tool", {
     on_block_deactivated = function(player)
         -- Invokes when the player's block ability is deactivated.
     end,
-    on_block_damage = function(player, damage)
+    on_block_damage = function(player, hitter, damage)
         -- Invokes when the player blocks damage.
     end,
-    on_guard_break = function(player)
+    on_guard_break = function(player, hitter, damage)
         -- Invokes when the player's guard pool is zero or below.
     end,
-    on_hasty_guard = function(player, damage)
+    on_hasty_guard = function(player, hitter, damage)
         -- Invokes when the player performs a hasty guard on time.
     end,
     on_parry = function(player, hitter, damage)

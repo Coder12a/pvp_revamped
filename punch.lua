@@ -399,7 +399,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         if hasty_guard_block then
             local on_hasty_guard = data_block.on_hasty_guard
             if on_hasty_guard then
-                on_hasty_guard(player, damage)
+                on_hasty_guard(player, hitter, damage)
             end
 
             -- End on punch if true.
@@ -418,7 +418,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
 
             -- Invoke deactivate block function if any.
             if on_guard_break then
-                on_guard_break(player)
+                on_guard_break(player, hitter, damage)
             end
 
             victim_data.block = nil
@@ -433,7 +433,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
 
         -- Run damage blocked function.
         if on_block_damage then
-            on_block_damage(player, damage)
+            on_block_damage(player, hitter, damage)
         end
 
         -- Update block pool text.
@@ -459,7 +459,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         if hasty_guard_shield then
             local on_hasty_guard = data_shield.on_hasty_guard
             if on_hasty_guard then
-                on_hasty_guard(player, damage)
+                on_hasty_guard(player, hitter, damage)
             end
 
             -- End on punch if true.
@@ -486,7 +486,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
 
             -- Invoke guard break function if any.
             if on_guard_break then
-                on_guard_break(player)
+                on_guard_break(player, hitter, damage)
             end
 
             victim_data.shield = nil
@@ -501,7 +501,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
 
         -- Run damage blocked function.
         if on_block_damage then
-            on_block_damage(player, damage)
+            on_block_damage(player, hitter, damage)
         end
 
         -- Update shield pool text.
@@ -530,7 +530,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
                 if hasty_guard_shield then
                     local on_hasty_guard = data_shield.on_hasty_guard
                     if on_hasty_guard then
-                        on_hasty_guard(player, damage)
+                        on_hasty_guard(player, hitter, damage)
                     end
 
                     -- End on punch if true.
@@ -550,7 +550,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
 
                     -- Invoke guard break function if any.
                     if on_guard_break then
-                        on_guard_break(player)
+                        on_guard_break(player, hitter, damage)
                     end
 
                     victim_data.shield = nil
@@ -565,7 +565,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
 
                 -- Run damage blocked function.
                 if on_block_damage then
-                    on_block_damage(player, damage)
+                    on_block_damage(player, hitter, damage)
                 end
 
                 -- Update shield pool text.
