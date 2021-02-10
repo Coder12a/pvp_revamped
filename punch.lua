@@ -384,9 +384,28 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
     local wielded_item = player:get_wielded_item()
     local item_name = wielded_item:get_name()
     local block_wear_mul = tool_capabilities.block_wear_mul or block_wear_mul
+    local server_lag = pvp_revamped.lag + get_player_information(name).avg_jitter * 1000000
+    local timeframe = get_us_time() - server_lag
+    local hasty_guard_block = data_block and data_block.initial_time + data_block.hasty_guard_duration > timeframe
 
     -- Process if the player is blocking with a tool or not.
-    if front and not data_throw and data_block and data_block.pool > 0 and data_block.name == item_name then
+    if (front or hasty_guard_block) and
+        data_block and
+        not data_throw and
+        data_block.pool > 0 and
+        data_block.name == item_name then
+        
+        -- Is hasty guard true?
+        if hasty_guard_block then
+            local on_hasty_guard = data_block.on_hasty_guard
+            if on_hasty_guard then
+                on_hasty_guard(player, damage)
+            end
+
+            -- End on punch if true.
+            return true
+        end
+        
         -- Block the damage and add it as wear to the tool.
         wielded_item:add_wear(((damage - full_punch_interval) / 75) * block_wear_mul)
         player:set_wielded_item(wielded_item)
@@ -427,9 +446,26 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
     end
 
     local data_shield = victim_data.shield
+    local hasty_guard_shield = data_shield and data_shield.initial_time + data_shield.hasty_guard_duration > timeframe
 
     -- Process if the player is blocking with a shield or not.
-    if data_shield and not data_shield.armor_inv and not data_throw and data_shield.pool > 0 and data_shield.name == item_name and (front or side) then
+    if data_shield and
+       not data_shield.armor_inv and
+       not data_throw and data_shield.pool > 0 and
+       data_shield.name == item_name and
+       (front or side or hasty_guard_shield) then
+        
+        -- Is hasty guard true?
+        if hasty_guard_shield then
+            local on_hasty_guard = data_shield.on_hasty_guard
+            if on_hasty_guard then
+                on_hasty_guard(player, damage)
+            end
+
+            -- End on punch if true.
+            return true
+        end
+        
         -- Block the damage and add it as wear to the tool.
         local axe_wear = 0
         local pool = data_shield.pool
@@ -490,6 +526,17 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
             end
             
             if stack and stack:get_name() == inventory_armor_shield.name then
+                -- Is hasty guard true?
+                if hasty_guard_shield then
+                    local on_hasty_guard = data_shield.on_hasty_guard
+                    if on_hasty_guard then
+                        on_hasty_guard(player, damage)
+                    end
+
+                    -- End on punch if true.
+                    return true
+                end
+                
                 local pool = data_shield.pool
                 -- Wear down the shield plus axe damage.
                 stack:add_wear((((damage - full_punch_interval) / 75) * block_wear_mul) + axe_wear)
@@ -566,15 +613,15 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         end
     end
 
-    local function set_immobilize_data(speed, damage)
-        --player:set_physics_override({speed = speed, jump = speed})
+     local function set_immobilize_data(speed, damage)
+        player:set_physics_override({speed = speed, jump = speed})
 
         local immobilize_mul = tool_capabilities.immobilize_mul or immobilize_mul
         
         victim_data.immobilize = {time = get_us_time(), value = damage * immobilize_mul}
     end
 
-    -- Process if the player was hit in the leg.
+     -- Process if the player was hit in the leg.
     if leg then
         -- immobilize the player.
         local leg_immobilize_mul = tool_capabilities.leg_immobilize_mul or leg_immobilize_mul
@@ -618,7 +665,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
     end
 
     if hitter_hitdata then
-        local server_lag = pvp_revamped.lag + get_player_information(hitter_name).avg_jitter * 1000000
+        server_lag = pvp_revamped.lag + get_player_information(hitter_name).avg_jitter * 1000000
         local count = #hitter_hitdata
 
         for i = count, 1, -1 do
