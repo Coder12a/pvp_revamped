@@ -181,6 +181,30 @@ minetest.register_on_mods_loaded(function()
                     -- Disable the damage texture modifier on tool block.
                     user:set_properties{damage_texture_modifier = ""}
 
+                    local hitdata = data.hit
+
+                    if hitdata then
+                        local server_lag = pvp_revamped.lag + get_player_information(name).avg_jitter * 1000000
+                        local timeframe = get_us_time() - server_lag
+
+                        local count = #hitdata
+
+                        for i = count, 1, -1 do
+                            local hd = hitdata[i]
+                            
+                            if hd.time >= timeframe then
+                                user:set_hp(user:get_hp() + hd.damage)
+                                
+                                hitdata[i] = hitdata[count]
+                                hitdata[count] = nil
+                            end
+
+                            count = count - 1
+                        end
+
+                        data.hit = hitdata
+                    end
+
                     player_data[name] = data
                 end
 
@@ -360,6 +384,30 @@ minetest.register_on_mods_loaded(function()
                     -- Run user on_block_activate function.
                     if on_block_activate then
                         on_block_activate(user)
+                    end
+
+                    local hitdata = data.hit
+
+                    if hitdata then
+                        local server_lag = pvp_revamped.lag + get_player_information(name).avg_jitter * 1000000
+                        local timeframe = get_us_time() - server_lag
+            
+                        local count = #hitdata
+            
+                        for i = count, 1, -1 do
+                            local hd = hitdata[i]
+                            
+                            if hd.time >= timeframe then
+                                user:set_hp(user:get_hp() + hd.damage)
+                                
+                                hitdata[i] = hitdata[count]
+                                hitdata[count] = nil
+                            end
+            
+                            count = count - 1
+                        end
+            
+                        data.hit = hitdata
                     end
                 end
 

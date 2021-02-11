@@ -335,6 +335,30 @@ function pvp_revamped.shield_inv(user, name, player_pdata, data)
             on_block_activate(user)
         end
 
+        local hitdata = data.hit
+
+        if hitdata then
+            local server_lag = pvp_revamped.lag + get_player_information(name).avg_jitter * 1000000
+            local timeframe = get_us_time() - server_lag
+
+            local count = #hitdata
+
+            for i = count, 1, -1 do
+                local hd = hitdata[i]
+                
+                if hd.time >= timeframe then
+                    user:set_hp(user:get_hp() + hd.damage)
+                    
+                    hitdata[i] = hitdata[count]
+                    hitdata[count] = nil
+                end
+
+                count = count - 1
+            end
+
+            data.hit = hitdata
+        end
+
         return true
     end
 
