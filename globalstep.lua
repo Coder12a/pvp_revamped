@@ -36,7 +36,7 @@ minetest.register_globalstep(function(dtime)
     local check_item = check_item_iterate >= check_item_time
 
     for k, v in pairs(player_data) do
-        local server_lag = get_player_information(k).avg_jitter * 1000000
+        local player_lag = get_player_information(k).avg_jitter * 1000000
         local player = get_player_by_name(k)
         local time = get_us_time()
         local pp_data = player_persistent_data[k]
@@ -56,7 +56,7 @@ minetest.register_globalstep(function(dtime)
             
             -- Remove the block table if it's past duration.
             -- Or if the guard item is not selected.
-            if block.time + block.duration + server_lag < time or
+            if block.time + block.duration + player_lag < time or
                (check_item and player:get_wielded_item():get_name() ~= block.name) then
                 -- Revert the damage texture modifier.
                 player:set_properties{damage_texture_modifier = pp_data.damage_texture_modifier}
@@ -93,7 +93,7 @@ minetest.register_globalstep(function(dtime)
             local shield = v.shield
 
             -- Remove the shield table if it's past duration.
-            if shield.time + shield.duration + server_lag < time or
+            if shield.time + shield.duration + player_lag < time or
             (check_item and not shield.armor_inv and player:get_wielded_item():get_name() ~= shield.name) then
                 -- Revert the damage texture modifier.
                 player:set_properties{damage_texture_modifier = pp_data.damage_texture_modifier}
@@ -185,7 +185,7 @@ minetest.register_globalstep(function(dtime)
                 remove_text_center(player, "pvp_revamped:throw_item")
 
                 v.throw = nil
-            elseif not throw_data.ready and full_throw < time + server_lag then
+            elseif not throw_data.ready and full_throw < time + player_lag then
                 -- To prevent changing the hud repeatedly.
                 v.throw.ready = true
 
@@ -199,7 +199,7 @@ minetest.register_globalstep(function(dtime)
             local immobilize = v.immobilize
 
             -- Check if the immobilize duration expired. 
-            if immobilize.time + immobilize.value + server_lag < time then
+            if immobilize.time + immobilize.value + player_lag < time then
                 -- Restore the player's physics.
                 get_player_by_name(k):set_physics_override({speed = 1, jump = 1})
                 v.immobilize = nil
@@ -214,11 +214,11 @@ minetest.register_globalstep(function(dtime)
             -- Process the player's barrel_roll table cooldown.
             for j, l in pairs(v.barrel_roll) do
                 -- Find if it's aerial or not.
-                if j > 4 and l.time + barrel_roll_aerial_cooldown + server_lag < time then
+                if j > 4 and l.time + barrel_roll_aerial_cooldown + player_lag < time then
                     v.barrel_roll[j] = nil
-                elseif j < 5 and l.time + barrel_roll_cooldown + server_lag < time then
+                elseif j < 5 and l.time + barrel_roll_cooldown + player_lag < time then
                     v.barrel_roll[j] = nil
-                elseif l.time + barrel_roll_duration + server_lag > time then
+                elseif l.time + barrel_roll_duration + player_lag > time then
 
                     local yaw = player:get_look_horizontal()
                     local co = cos(yaw)
@@ -260,11 +260,11 @@ minetest.register_globalstep(function(dtime)
             -- Process the player's dodge table cooldown.
             for j, l in pairs(v.dodge) do
                 -- Find if it's aerial or not.
-                if j > 4 and l + dodge_aerial_cooldown + server_lag < time then
+                if j > 4 and l + dodge_aerial_cooldown + player_lag < time then
                     v.dodge[j] = nil
-                elseif j < 5 and l + dodge_cooldown + server_lag < time then
+                elseif j < 5 and l + dodge_cooldown + player_lag < time then
                     v.dodge[j] = nil
-                elseif l + dodge_duration + server_lag > time then
+                elseif l + dodge_duration + player_lag > time then
                     active_dodges = true
                 end
             end
@@ -294,9 +294,9 @@ minetest.register_globalstep(function(dtime)
             -- Process the player's dash table cooldown.
             for j, l in pairs(v.dash) do
                 -- Find if it's aerial or not.
-                if j > 4 and l + dash_aerial_cooldown + server_lag < time then
+                if j > 4 and l + dash_aerial_cooldown + player_lag < time then
                     v.dash[j] = nil
-                elseif j < 5 and l + dash_cooldown + server_lag < time then
+                elseif j < 5 and l + dash_cooldown + player_lag < time then
                     v.dash[j] = nil
                 end
             end
@@ -316,7 +316,7 @@ minetest.register_globalstep(function(dtime)
             for i = count, 1, -1 do
                 local data = hit_data[i]
 
-                if data.time + clash_duration + server_lag < time then
+                if data.time + clash_duration + player_lag < time then
                     hit_data[i] = hit_data[count]
                     hit_data[count] = nil
                     

@@ -130,10 +130,10 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         range = item.range
     end
 
-    local server_lag = get_player_information(name).avg_jitter
+    local player_lag = get_player_information(name).avg_jitter
 
     -- Get whether this is a full punch.
-    if tool_capabilities and time_from_last_punch >= tool_capabilities.full_punch_interval - server_lag then
+    if tool_capabilities and time_from_last_punch >= tool_capabilities.full_punch_interval - player_lag then
         full_punch = true
         full_punch_interval = tool_capabilities.full_punch_interval
     elseif tool_capabilities and tool_capabilities.full_punch_interval then
@@ -391,8 +391,8 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
     local wielded_item = player:get_wielded_item()
     local item_name = wielded_item:get_name()
     local block_wear_mul = tool_capabilities.block_wear_mul or block_wear_mul
-    server_lag = server_lag * 1000000
-    local timeframe = get_us_time() - server_lag
+    player_lag = player_lag * 1000000
+    local timeframe = get_us_time() - player_lag
     local hasty_guard_block = data_block and data_block.initial_time + data_block.hasty_guard_duration > timeframe
 
     -- Process if the player is blocking with a tool or not.
@@ -670,12 +670,12 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
     end
 
     if hitter_hitdata then
-        server_lag = get_player_information(hitter_name).avg_jitter * 1000000
+        player_lag = get_player_information(hitter_name).avg_jitter * 1000000
         local count = #hitter_hitdata
 
         for i = count, 1, -1 do
             local hd = hitter_hitdata[i]
-            local active = hd.time + clash_duration + server_lag < get_us_time()
+            local active = hd.time + clash_duration + player_lag < get_us_time()
 
             if hd.name == name and active then
                 if hd.parry then
@@ -687,7 +687,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
                     if on_parry then
                         on_parry(player, hitter, damage)
                     end
-                elseif full_punch and tool_capabilities.counter_duration and hd.time + tool_capabilities.counter_duration + server_lag > get_us_time() then
+                elseif full_punch and tool_capabilities.counter_duration and hd.time + tool_capabilities.counter_duration + player_lag > get_us_time() then
                     -- All damage gets reversed on counter.
                     -- Current damage gets added to it plus the damage multipliable.
                     local counter_dmg_mul = tool_capabilities.counter_dmg_mul or counter_dmg_mul

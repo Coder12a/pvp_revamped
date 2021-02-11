@@ -338,8 +338,8 @@ function pvp_revamped.shield_inv(user, name, player_pdata, data)
         local hitdata = data.hit
 
         if hitdata then
-            local server_lag = get_player_information(name).avg_jitter * 1000000
-            local timeframe = get_us_time() - server_lag
+            local player_lag = get_player_information(name).avg_jitter * 1000000
+            local timeframe = get_us_time() - player_lag
 
             local count = #hitdata
 
