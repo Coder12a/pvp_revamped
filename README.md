@@ -240,7 +240,7 @@ pvp_revamped.dash_aerial_cooldown = 4000000
 ```
 
 #### damage
-Sets non-full punch damage to an absolute number.
+Sets non-full punch damage to an absolute number. Set to -1 to disable.
 ``` lua
 pvp_revamped.spam_damage = 0.1
 ```

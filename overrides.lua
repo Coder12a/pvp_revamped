@@ -106,6 +106,10 @@ minetest.register_on_mods_loaded(function()
             tool_capabilities.counter_duration = tool_capabilities.counter_duration or counter_duration
             tool_capabilities.hasty_guard_duration = tool_capabilities.hasty_guard_duration or hasty_guard_duration + punch_number * hasty_guard_mul
             tool_capabilities.spam_damage = tool_capabilities.spam_damage or spam_damage
+
+            if tool_capabilities.spam_damage == -1 then
+                tool_capabilities.spam_damage = nil
+            end
             
             if block_pool > 0 then
                 -- Allow the tool to block damage.

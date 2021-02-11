@@ -43,7 +43,7 @@ pvp_revamped.barrel_roll_aerial_cooldown (Barrel roll aerial cooldown) float 100
 pvp_revamped.dash_aerial_cooldown (Dash aerial cooldown) float 4000000
 
 [Damage]
-# Sets non-full punch damage to an absolute number.
+# Sets non-full punch damage to an absolute number. Set to -1 to disable.
 pvp_revamped.spam_damage (Spam damage) float 0.1
 # Multiplies how much wear an axe does to a shield, also affects the shield’s guard pool.
 pvp_revamped.shield_axe_dmg_mul (Shield axe damage) float 20
