@@ -198,7 +198,7 @@ minetest.register_entity("pvp_revamped:projectile", {
                         pvp_revamped.projectile_data = {pos = pos, name = self.itemname, dir = dir, velocity = velocity, intersection_point = pointed_thing.intersection_point}
 
                         obj:punch(get_player_by_name(self.owner), nil, tool_capabilities)
-                        self:die()
+                        self:die(pos)
                         
                         return
                     end
@@ -207,7 +207,7 @@ minetest.register_entity("pvp_revamped:projectile", {
 
             -- If there is no velocity then drop the item.
             if velocity.y == 0 or velocity.x == 0 and velocity.z == 0 then
-                self:die()
+                self:die(pos)
 
                 return
             end
