@@ -1,5 +1,6 @@
 local projectile_full_throw_mul = pvp_revamped.config.projectile_full_throw_mul
 local projectile_speed_mul = pvp_revamped.config.projectile_speed_mul
+local spam_damage = pvp_revamped.config.spam_damage
 local shield_axe_dmg_mul = pvp_revamped.config.shield_axe_dmg_mul
 local block_pool_mul = pvp_revamped.config.block_pool_mul
 local block_interval_mul = pvp_revamped.config.block_interval_mul
@@ -104,6 +105,7 @@ minetest.register_on_mods_loaded(function()
             tool_capabilities.counter_dmg_mul = tool_capabilities.counter_dmg_mul or counter_dmg_mul
             tool_capabilities.counter_duration = tool_capabilities.counter_duration or counter_duration
             tool_capabilities.hasty_guard_duration = tool_capabilities.hasty_guard_duration or hasty_guard_duration + punch_number * hasty_guard_mul
+            tool_capabilities.spam_damage = tool_capabilities.spam_damage or spam_damage
             
             if block_pool > 0 then
                 -- Allow the tool to block damage.

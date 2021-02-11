@@ -96,7 +96,7 @@ When hitting another player at an angle.
 
 Damage from the:
 1. *Front* gives a damage multipliable. **(Off by default)**
-2. *Left* or right gives a damage multipliable.
+2. *Left* or *right* gives a damage multipliable.
 3. *Back* side gives a damage multipliable.
 
 #### elevation related damage.
@@ -240,9 +240,13 @@ pvp_revamped.dash_aerial_cooldown = 4000000
 ```
 
 #### damage
+Sets non-full punch damage to an absolute number.
+``` lua
+pvp_revamped.spam_damage = 0.1
+```
 Multiplies how much wear an axe does to a shield, also affects the shield’s guard pool.
 ``` lua
-pvp_revamped.shield_axe_dmg_mul =20
+pvp_revamped.shield_axe_dmg_mul = 20
 ```
 Damage multiplier for headshots.
 ``` lua
@@ -460,6 +464,8 @@ tool_capabilities = {
     block_pool_mul = 4,
     -- See block_wear_mul in config.
     block_wear_mul = 9000,
+    -- See spam_damage in config.
+    spam_damage = 0.1,
     -- See shield_axe_dmg_mul in config.
     shield_axe_dmg_mul = 20,
     -- See head_dmg_mul in config.

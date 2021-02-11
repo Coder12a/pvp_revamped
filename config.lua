@@ -25,6 +25,7 @@ pvp_revamped.config.shield_duration = tonumber(minetest.settings:get("pvp_revamp
 pvp_revamped.config.shield_duration_mul = tonumber(minetest.settings:get("pvp_revamped.shield_duration_mul")) or 100000
 pvp_revamped.config.shield_pool_mul = tonumber(minetest.settings:get("pvp_revamped.shield_pool_mul")) or 4
 pvp_revamped.config.block_wear_mul = tonumber(minetest.settings:get("pvp_revamped.block_wear_mul")) or 9000
+pvp_revamped.config.spam_damage = tonumber(minetest.settings:get("pvp_revamped.spam_damage")) or 0.1
 pvp_revamped.config.shield_axe_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.shield_axe_dmg_mul")) or 20
 pvp_revamped.config.head_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.head_dmg_mul")) or 1.2
 pvp_revamped.config.torso_dmg_mul = tonumber(minetest.settings:get("pvp_revamped.torso_dmg_mul")) or 1.0

@@ -130,12 +130,19 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         range = item.range
     end
 
+    local server_lag = pvp_revamped.lag + get_player_information(name).avg_jitter
+
     -- Get whether this is a full punch.
-    if tool_capabilities and time_from_last_punch >= tool_capabilities.full_punch_interval then
+    if tool_capabilities and time_from_last_punch >= tool_capabilities.full_punch_interval - server_lag then
         full_punch = true
         full_punch_interval = tool_capabilities.full_punch_interval
     elseif tool_capabilities and tool_capabilities.full_punch_interval then
         full_punch_interval = tool_capabilities.full_punch_interval
+        local spam_damage = tool_capabilities.spam_damage
+        
+        if spam_damage then
+            damage = spam_damage
+        end
     end
 
     -- Get the second position from the direction of the hitter.
@@ -384,7 +391,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
     local wielded_item = player:get_wielded_item()
     local item_name = wielded_item:get_name()
     local block_wear_mul = tool_capabilities.block_wear_mul or block_wear_mul
-    local server_lag = pvp_revamped.lag + get_player_information(name).avg_jitter * 1000000
+    server_lag = server_lag * 1000000
     local timeframe = get_us_time() - server_lag
     local hasty_guard_block = data_block and data_block.initial_time + data_block.hasty_guard_duration > timeframe
 
@@ -658,10 +665,8 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
     local hitter_hitdata = hitter_data.hit
     local none = true
 
-    local on_hit = item.on_hit
-
-    if on_hit then
-        on_hit(player, hitter, damage)
+    if item and item.on_hit then
+        item.on_hit(player, hitter, damage)
     end
 
     if hitter_hitdata then
@@ -686,23 +691,21 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
                     -- All damage gets reversed on counter.
                     -- Current damage gets added to it plus the damage multipliable.
                     local counter_dmg_mul = tool_capabilities.counter_dmg_mul or counter_dmg_mul
-                    local on_counter = item.on_counter
 
                     damage = hd.damage + (damage * counter_dmg_mul)
 
-                    if on_counter then
-                        on_counter(player, hitter, damage)
+                    if item and item.on_counter then
+                        item.on_counter(player, hitter, damage)
                     end
                 else
                     -- Reduce or, remove the damage and resolve the clash.
                     -- Negative damage will be applied to the hitter.
                     local c_damage = damage * tool_capabilities.clash_def_mul or 0
-                    local on_clash = item.on_clash
 
                     damage = max(hd.damage - (damage + c_damage), 0)
 
-                    if on_clash then
-                        on_clash(player, hitter, damage)
+                    if item and item.on_clash then
+                        item.on_clash(player, hitter, damage)
                     end
                 end
 
@@ -723,7 +726,12 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
 
     if none and victim_data.hit then
         local parry = floor(hitter:get_player_control_bits() / 256) % 2 == 1
-        local on_parry = item.on_parry
+        local on_parry
+
+        if item and item.on_parry then
+            on_parry = item.on_parry
+        end
+
         local data = {
             name = hitter_name,
             damage = damage,
@@ -740,14 +748,17 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         
         insert(victim_data.hit, 1, data)
 
-        local on_first_hit = item.on_first_hit
-
-        if on_first_hit then
-            on_first_hit(player, hitter, damage)
+        if item and item.on_first_hit then
+            item.on_first_hit(player, hitter, damage)
         end
     elseif none then
         local parry = floor(hitter:get_player_control_bits() / 256) % 2 == 1
-        local on_parry = item.on_parry
+        local on_parry
+
+        if item and item.on_parry then
+            on_parry = item.on_parry
+        end
+        
         local data = {
             name = hitter_name,
             damage = damage,
@@ -764,10 +775,8 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
 
         victim_data.hit = {data}
 
-        local on_first_hit = item.on_first_hit
-
-        if on_first_hit then
-            on_first_hit(player, hitter, damage)
+        if item and item.on_first_hit then
+            item.on_first_hit(player, hitter, damage)
         end
     end
 
