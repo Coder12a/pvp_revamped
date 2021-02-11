@@ -1,3 +1,4 @@
+local get_player_information = minetest.get_player_information
 local projectile_full_throw_mul = pvp_revamped.config.projectile_full_throw_mul
 local projectile_speed_mul = pvp_revamped.config.projectile_speed_mul
 local spam_damage = pvp_revamped.config.spam_damage

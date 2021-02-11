@@ -1,3 +1,4 @@
+local get_player_information = minetest.get_player_information
 local add_item = minetest.add_item
 local get_us_time = minetest.get_us_time
 local add_entity = minetest.add_entity
