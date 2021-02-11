@@ -34,10 +34,9 @@ local check_item_iterate = 0
 minetest.register_globalstep(function(dtime)
     local lag = dtime * 1000000
     local check_item = check_item_iterate >= check_item_time
-    pvp_revamped.lag = lag
 
     for k, v in pairs(player_data) do
-        local server_lag = lag + get_player_information(k).avg_jitter * 1000000
+        local server_lag = get_player_information(k).avg_jitter * 1000000
         local player = get_player_by_name(k)
         local time = get_us_time()
         local pp_data = player_persistent_data[k]
@@ -73,7 +72,7 @@ minetest.register_globalstep(function(dtime)
                 -- Remove un-used hud element.
                 remove_text_center(player, "pvp_revamped:block_pool")
             end
-
+            
             active = true
         elseif not v.block and v.aim then
             local aim = v.aim

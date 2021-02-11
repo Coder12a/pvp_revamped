@@ -130,7 +130,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         range = item.range
     end
 
-    local server_lag = pvp_revamped.lag + get_player_information(name).avg_jitter
+    local server_lag = get_player_information(name).avg_jitter
 
     -- Get whether this is a full punch.
     if tool_capabilities and time_from_last_punch >= tool_capabilities.full_punch_interval - server_lag then
@@ -670,7 +670,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
     end
 
     if hitter_hitdata then
-        server_lag = pvp_revamped.lag + get_player_information(hitter_name).avg_jitter * 1000000
+        server_lag = get_player_information(hitter_name).avg_jitter * 1000000
         local count = #hitter_hitdata
 
         for i = count, 1, -1 do

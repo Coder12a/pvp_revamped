@@ -389,7 +389,7 @@ minetest.register_on_mods_loaded(function()
                     local hitdata = data.hit
 
                     if hitdata then
-                        local server_lag = pvp_revamped.lag + get_player_information(name).avg_jitter * 1000000
+                        local server_lag = get_player_information(name).avg_jitter * 1000000
                         local timeframe = get_us_time() - server_lag
             
                         local count = #hitdata

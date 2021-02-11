@@ -1,4 +1,3 @@
-pvp_revamped.lag = 0
 pvp_revamped.projectile_data = nil
 pvp_revamped.player_data = {}
 pvp_revamped.player_persistent_data = {}
