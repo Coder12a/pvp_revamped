@@ -24,8 +24,6 @@ local get_us_time = minetest.get_us_time
 local add_entity = minetest.add_entity
 local maxn = table.maxn
 local new = vector.new
-local cos = math.cos
-local sin = math.sin
 local max = math.max
 local floor = math.floor
 local check_item_time = 1
@@ -220,13 +218,7 @@ minetest.register_globalstep(function(dtime)
                     v.barrel_roll[j] = nil
                 elseif l.time + barrel_roll_duration + player_lag > time then
 
-                    local yaw = player:get_look_horizontal()
-                    local co = cos(yaw)
-                    local si = sin(yaw)
-                    local x = l.x
-                    local z = l.z
-                    local re_x = co * x - si * z
-                    local re_z = si * x + co * z
+                    local re_x, re_z = rotate_point(player:get_look_horizontal(), x, z)
 
                     player:add_player_velocity({x = re_x, y = 0, z = re_z})
                     active_barrel_rolls = true

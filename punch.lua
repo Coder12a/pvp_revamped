@@ -44,8 +44,6 @@ local add = vector.add
 local multiply = vector.multiply
 local subtract = vector.subtract
 local distance = vector.distance
-local cos = math.cos
-local sin = math.sin
 local abs = math.abs
 local atan = math.atan
 local random = math.random
@@ -177,10 +175,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
                 local x = point.x
                 local y = point.y
                 local z = point.z
-                local co = cos(yaw)
-                local si = sin(yaw)
-                local re_x = co * x - si * z
-                local re_z = si * x + co * z
+                local re_x, re_z = rotate_point(yaw, x, z)
                 local dist = distance(newpos, {x = re_x, y = y, z = re_z})
                 
                 if dist < past_distance or past_distance == -1 then

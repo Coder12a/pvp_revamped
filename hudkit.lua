@@ -69,4 +69,4 @@ function hudkit()
 	}
 end
 
-pvp_revamped.hudkit = hudkit()
+hudkit = hudkit()
