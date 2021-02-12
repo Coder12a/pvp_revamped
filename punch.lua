@@ -591,21 +591,16 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
 
     -- Process if the player was hit in the arm.
     if arm then
-        local item2 = registered_tools[item_name]
-        local chance
+        local chance = 1
         
-        if item2 and not data_shield and not data_block and item2.tool_capabilities and item2.tool_capabilities.damage_groups.fleshy and item2.tool_capabilities.full_punch_interval then
-            -- Compute the chance to disarm by the victim's hp and tool stats.
+        if not data_shield and not data_block then
             local disarm_chance_mul = tool_capabilities.disarm_chance_mul or disarm_chance_mul
 
-            chance = random(0, ((hp + (item2.tool_capabilities.damage_groups.fleshy - item2.tool_capabilities.full_punch_interval) * disarm_chance_mul) - damage) + 1)
-        elseif not item2 and not data_shield and not data_block then
-            -- Compute the chance to disarm by the victim's hp.
-            chance = random(0, (hp - damage) + 1)
+            chance = random(0, max(1, hp - damage * disarm_chance_mul))
         end
 
         -- Disarm the player if chance equals zero.
-        if chance and chance <= 0 then
+        if chance <= 0 then
             local drop_item = wielded_item:take_item()
             local obj = add_item(pos2, drop_item)
 
