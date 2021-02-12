@@ -6,5 +6,5 @@ function rotate_point(yaw, x, z)
     local co = cos(yaw)
     local si = sin(yaw)
 
-    return co * x - si * z, re_z = si * x + co * z
+    return co * x - si * z, si * x + co * z
 end
