@@ -258,15 +258,17 @@ minetest.register_entity("pvp_revamped:projectile", {
 
     die = function(self, pos, itemstring, velocity)
         -- Drop the item while giving it the same velocity.
-        local obj = add_item(pos, itemstring)
+        if pos and itemstring and velocity and self.object then
+            local obj = add_item(pos, itemstring)
 
-        if obj then
-            obj:get_luaentity().collect = true
+            if obj then
+                obj:get_luaentity().collect = true
 
-            obj:set_velocity(velocity)
+                obj:set_velocity(velocity)
+            end
+
+            self.object:remove()
         end
-
-        self.object:remove()
     end,
 
     on_death = function(self)
