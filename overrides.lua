@@ -205,11 +205,11 @@ minetest.register_on_mods_loaded(function()
                         return old_on_drop(itemstack, dropper, pos)
                     end
 
-                    clear_blockdata(data.block, dropper, name)
+                    clear_blockdata(data.block, dropper, player_name)
 
                     -- Only clear shield if it is not from the armor inv.
                     if shield_data and not shield_data.armor_inv then
-                        clear_shielddata(data.shield, dropper, name)
+                        clear_shielddata(data.shield, dropper, player_name)
                     end
 
                     -- Tell the player that a toss is being charged up.
