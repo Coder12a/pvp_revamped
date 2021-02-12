@@ -125,6 +125,23 @@ local function remove_hits(player, name)
     hit_data = nil
 end
 
+-- Creates a table with the entry or sets it.
+local function add_entry(table, sub, entry, number)
+    local t = table[sub]
+
+    if t and not t[number] then
+        table[sub][number] = entry
+
+        return true
+    elseif not t then
+        table[sub] = {[number] = entry}
+
+        return true
+    end
+
+    return false
+end
+
 function pvp_revamped.clear_blockdata(block, player, name)
     if block then
         local on_block_deactivated = block.on_block_deactivated
@@ -174,18 +191,7 @@ local clear_shielddata = pvp_revamped.clear_shielddata
 function pvp_revamped.dodge(name, player, number)
     local dodge_data = get_player_data(name)
     
-    if not dodge_data.dodge then
-        dodge_data.dodge = {[number] = get_us_time()}
-        player:set_properties{damage_texture_modifier = ""}
-        -- Clear out any hit data on dodge.
-        remove_hits(player, name)
-        clear_blockdata(dodge_data.block, player, name)
-        clear_shielddata(dodge_data.shield, player, name)
-
-        -- Display words invincible to player.
-        create_hud_text_center(player, "pvp_revamped:dodge", "INVINCIBLE")
-    elseif dodge_data.dodge and not dodge_data.dodge[number] then
-        dodge_data.dodge[number] = get_us_time()
+    if add_entry(dodge_data, "dodge", get_us_time(), number) then
         player:set_properties{damage_texture_modifier = ""}
         -- Clear out any hit data on dodge.
         remove_hits(player, name)
@@ -201,18 +207,7 @@ end
 function pvp_revamped.barrel_roll(name, player, number, x, z)
     local barrel_roll_data = get_player_data(name)
 
-    if not barrel_roll_data.barrel_roll then
-        barrel_roll_data.barrel_roll = {[number] = {time = get_us_time(), x = x, z = z}}
-        player:set_properties{damage_texture_modifier = ""}
-        -- Clear out any hit data on barrel roll.
-        remove_hits(player, name)
-        clear_blockdata(barrel_roll_data.block, player, name)
-        clear_shielddata(barrel_roll_data.shield, player, name)
-
-        -- Display words invincible to player.
-        create_hud_text_center(player, "pvp_revamped:barrel_roll", "INVINCIBLE")
-    elseif barrel_roll_data.barrel_roll and not barrel_roll_data.barrel_roll[number] then
-        barrel_roll_data.barrel_roll[number] = {time = get_us_time(), x = x, z = z}
+    if add_entry(barrel_roll_data, "barrel_roll", {time = get_us_time(), x = x, z = z}, number) then
         player:set_properties{damage_texture_modifier = ""}
         -- Clear out any hit data on barrel roll.
         remove_hits(player, name)
@@ -233,11 +228,7 @@ end
 function pvp_revamped.dash(player, name, dash_key, x, y, z)
     local dash_data = get_player_data(name)
     
-    if not dash_data.dash then
-        dash_data.dash = {[dash_key] = get_us_time()}
-    elseif dash_data.dash and not dash_data.dash[dash_key] then
-        dash_data.dash[dash_key] = get_us_time()
-    else
+    if not add_entry(dash_data, "dash", get_us_time(), dash_key) then
         return 
     end
     
