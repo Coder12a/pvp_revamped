@@ -237,6 +237,32 @@ function pvp_revamped.dash(player, name, dash_key, x, y, z)
     player:add_player_velocity({x = re_x, y = y, z = re_z})
 end
 
+function pvp_revamped.restore_hits(hitdata, name, user)
+    if hitdata then
+        local player_lag = get_player_information(name).avg_jitter * 1000000
+        local timeframe = get_us_time() - player_lag
+
+        local count = #hitdata
+
+        for i = count, 1, -1 do
+            local hd = hitdata[i]
+            
+            if hd.time >= timeframe then
+                user:set_hp(user:get_hp() + hd.damage)
+                
+                hitdata[i] = hitdata[count]
+                hitdata[count] = nil
+            end
+
+            count = count - 1
+        end
+
+        return hitdata
+    end
+end
+
+local restore_hits = pvp_revamped.restore_hits
+
 function pvp_revamped.shield_inv(user, name, player_pdata, data)
     -- Use 3d_armor inv shield if available.
     if armor_3d and player_pdata.inventory_armor_shield and (player_pdata.use_shield or floor(user:get_player_control_bits() / 64) % 2 == 1) then
@@ -275,37 +301,15 @@ function pvp_revamped.shield_inv(user, name, player_pdata, data)
 
         clear_blockdata(data.block, user, name)
 
+        data.hit = restore_hits(data.hit, name, user)
+
         player_data[name] = data
-        
+
         user:set_properties{damage_texture_modifier = ""}
 
         -- Run user func if any.
         if on_block_activate then
             on_block_activate(user)
-        end
-
-        local hitdata = data.hit
-
-        if hitdata then
-            local player_lag = get_player_information(name).avg_jitter * 1000000
-            local timeframe = get_us_time() - player_lag
-
-            local count = #hitdata
-
-            for i = count, 1, -1 do
-                local hd = hitdata[i]
-                
-                if hd.time >= timeframe then
-                    user:set_hp(user:get_hp() + hd.damage)
-                    
-                    hitdata[i] = hitdata[count]
-                    hitdata[count] = nil
-                end
-
-                count = count - 1
-            end
-
-            data.hit = hitdata
         end
 
         return true
