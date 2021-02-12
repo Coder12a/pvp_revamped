@@ -11,22 +11,6 @@ local new = vector.new
 local floor = math.floor
 local y = 0
 
--- Drops an item at the given or player's position.
-function pvp_revamped.drop(player, item, pos)
-    -- Check if the param is true or not.
-    if not pos then
-        -- Get the player's position.
-        pos = player:get_pos()
-    end
-
-    -- Create the item.
-    local obj = add_item(pos, item)
-
-    if obj then
-        obj:get_luaentity().collect = true
-    end
-end
-
 -- Get or create player data.
 function pvp_revamped.get_player_data(name)
     -- Get or set the table.

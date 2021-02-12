@@ -3,7 +3,6 @@ local player_persistent_data = pvp_revamped.player_persistent_data
 local remove_text_center = pvp_revamped.remove_text_center
 local clear_blockdata = pvp_revamped.clear_blockdata
 local clear_shielddata = pvp_revamped.clear_shielddata
-local drop = pvp_revamped.drop
 local get_player_by_name = minetest.get_player_by_name
 local new = vector.new
 
@@ -14,6 +13,22 @@ minetest.register_on_joinplayer(function(player)
         throw_style = player:get_meta():get_int("pvp_revamped.throw_style")
     }
 end)
+
+-- Drops an item at the given or player's position.
+local function drop(player, item, pos)
+    -- Check if the param is true or not.
+    if not pos then
+        -- Get the player's position.
+        pos = player:get_pos()
+    end
+
+    -- Create the item.
+    local obj = add_item(pos, item)
+
+    if obj then
+        obj:get_luaentity().collect = true
+    end
+end
 
 -- Clear up memory if the player leaves.
 -- Drop any item the player is about to throw on leave.

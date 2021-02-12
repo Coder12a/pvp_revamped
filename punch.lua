@@ -142,6 +142,8 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         
         if spam_damage then
             damage = spam_damage
+            
+            return true
         end
     end
 
@@ -231,10 +233,9 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
             local optimal_range = range * optimal_distance_mul
 
             -- Add or remove damage based on the distance.
-            -- Full punches are not affected by any maximum distance.
-            if (not full_punch or maximum_distance_dmg_mul < 1.0) and maximum_distance_dmg_mul and dist_rounded > optimal_range then
+            if maximum_distance_dmg_mul < 1.0 and maximum_distance_dmg_mul and dist_rounded > optimal_range then
                 damage = damage * maximum_distance_dmg_mul
-            elseif (not full_punch or optimal_distance_dmg_mul > 0.0) and optimal_distance_dmg_mul and dist_rounded < optimal_range then
+            elseif optimal_distance_dmg_mul > 0.0 and optimal_distance_dmg_mul and dist_rounded < optimal_range then
                 damage = damage * optimal_distance_dmg_mul
             end
         end
@@ -328,7 +329,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
     -- This damage bonus can only be used if this is a full interval punch.
     local velocity_dmg_mul = tool_capabilities.velocity_dmg_mul or velocity_dmg_mul
 
-    if full_punch and velocity_dmg_mul then
+    if velocity_dmg_mul then
         local vv
 
         if front then
@@ -679,7 +680,7 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
                     if on_parry then
                         on_parry(player, hitter, damage)
                     end
-                elseif full_punch and tool_capabilities.counter_duration and hd.time + tool_capabilities.counter_duration + player_lag > get_us_time() then
+                elseif tool_capabilities.counter_duration and hd.time + tool_capabilities.counter_duration + player_lag > get_us_time() then
                     -- All damage gets reversed on counter.
                     -- Current damage gets added to it plus the damage multipliable.
                     local counter_dmg_mul = tool_capabilities.counter_dmg_mul or counter_dmg_mul
