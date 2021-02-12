@@ -44,6 +44,7 @@ minetest.register_entity("pvp_revamped:projectile", {
     owner = "",
     itemname = "",
     tool_capabilities = nil,
+    damage = 1,
 
     set_item = function(self, owner, item)
         -- Get the stack from item or itemstring.
@@ -92,9 +93,9 @@ minetest.register_entity("pvp_revamped:projectile", {
 
         -- If no damage value, auto set the damage times projectile_dmg_mul.
         if not damage and self.tool_capabilities and self.tool_capabilities.damage_groups and self.tool_capabilities.damage_groups.fleshy then
-            self.tool_capabilities.damage_groups.fleshy = self.tool_capabilities.damage_groups.fleshy * projectile_dmg_mul
+            self.damage = self.tool_capabilities.damage_groups.fleshy * projectile_dmg_mul
         elseif damage and self.tool_capabilities and self.tool_capabilities.damage_groups and self.tool_capabilities.damage_groups.fleshy then
-            self.tool_capabilities.damage_groups.fleshy = damage
+            self.damage = damage
         end
 
         if spin_rate then
@@ -103,7 +104,7 @@ minetest.register_entity("pvp_revamped:projectile", {
 
         self.throw_style = throw_style
         -- Set the hp to the damage.
-        self.object:set_hp(max(self.tool_capabilities.damage_groups.fleshy, 1))
+        self.object:set_hp(max(self.damage, 1))
     end,
     
     get_staticdata = function(self)
@@ -115,7 +116,8 @@ minetest.register_entity("pvp_revamped:projectile", {
             tool_capabilities = self.tool_capabilities,
             throw_style = self.throw_style,
             spin_rate = self.spin_rate,
-            step = self.step
+            step = self.step,
+            damage = self.damage
         })
     end,
     
@@ -133,6 +135,7 @@ minetest.register_entity("pvp_revamped:projectile", {
             self.throw_style = data.throw_style
             self.spin_rate = data.spin_rate
             self.step = data.step
+            self.damage = data.damage
         end
 
         self.timer = self.step
@@ -177,6 +180,7 @@ minetest.register_entity("pvp_revamped:projectile", {
                     if obj:get_armor_groups().fleshy then
                         -- Add up the velocity damage.
                         local projectile_velocity_dmg_mul = tool_capabilities.projectile_velocity_dmg_mul or projectile_velocity_dmg_mul
+                        local damage = self.damage
 
                         if projectile_velocity_dmg_mul and tool_capabilities.damage_groups and tool_capabilities.damage_groups.fleshy then
                             local vv
@@ -190,14 +194,23 @@ minetest.register_entity("pvp_revamped:projectile", {
 
                             if vv > 0 then
                                 -- Give a damage bonus based on the tool's velocity.
-                                tool_capabilities.damage_groups.fleshy = tool_capabilities.damage_groups.fleshy + vv * projectile_velocity_dmg_mul
+                                damage = damage + vv * projectile_velocity_dmg_mul
                             end
                         end
 
                         -- Set the table for later use in the punch function.
                         pvp_revamped.projectile_data = {pos = pos, name = self.itemname, dir = dir, velocity = velocity, intersection_point = pointed_thing.intersection_point}
+                        
+                        if tool_capabilities.damage_groups and tool_capabilities.damage_groups.fleshy then
+                            local old_damage = tool_capabilities.damage_groups.fleshy
+                            
+                            tool_capabilities.damage_groups.fleshy = damage
+                            obj:punch(get_player_by_name(self.owner), nil, tool_capabilities)
+                            tool_capabilities.damage_groups.fleshy = old_damage
+                        else
+                            obj:punch(get_player_by_name(self.owner), nil, tool_capabilities)
+                        end
 
-                        obj:punch(get_player_by_name(self.owner), nil, tool_capabilities)
                         self:die(pos)
                         
                         return

@@ -146,7 +146,7 @@ minetest.register_globalstep(function(dtime)
                             local re = (full_throw - time) * projectile_half_throw_mul
 
                             if re > 0.5 then
-                                damage = tool_capabilities.damage_groups.fleshy - re
+                                damage = damage - re
                                 throw_speed = throw_speed - re
                             end
                         end
@@ -157,9 +157,9 @@ minetest.register_globalstep(function(dtime)
                         elseif throw_style == projectile_throw_style_dip then
                             gravity = gravity * projectile_dip_gravity_mul
                         end
-
+                        
                         ent:set_item(k, throw_data.item)
-                        ent:throw(player, throw_speed, {x = 0, y = gravity, z = 0}, max(damage * projectile_dmg_mul, 0.1), throw_style, spin)
+                        ent:throw(player, throw_speed, {x = 0, y = gravity, z = 0}, max(damage * projectile_dmg_mul, 1), throw_style, spin)
                     end
                 end
 
