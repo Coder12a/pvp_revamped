@@ -1,6 +1,8 @@
 local player_data = pvp_revamped.player_data
 local player_persistent_data = pvp_revamped.player_persistent_data
 local remove_text_center = pvp_revamped.remove_text_center
+local clear_blockdata = pvp_revamped.clear_blockdata
+local clear_shielddata = pvp_revamped.clear_shielddata
 local drop = pvp_revamped.drop
 local get_player_by_name = minetest.get_player_by_name
 local new = vector.new
@@ -141,33 +143,10 @@ local function break_guard(player, name)
 
     local pdata = player_data[name]
 
-    if pdata.shield then
-        local on_block_deactivated = pdata.shield.on_block_deactivated
+    clear_shielddata(pdata.shield, player, name)
+    clear_blockdata(pdata.block, player, name)
 
-        -- Invoke deactivate block function if any.
-        if on_block_deactivated then
-            on_block_deactivated(player)
-        end
-
-        player_data[name].shield = nil
-
-        -- Remove hud element.
-        remove_text_center(player, "pvp_revamped:shield_pool")
-    end
-
-    if pdata.block then
-        local on_block_deactivated = pdata.block.on_block_deactivated
-
-        -- Invoke deactivate block function if any.
-        if on_block_deactivated then
-            on_block_deactivated(player)
-        end
-
-        player_data[name].block = nil
-
-        -- Remove hud element.
-        remove_text_center(player, "pvp_revamped:block_pool")
-    end
+    player_data[name] = pdata
 end
 
 minetest.register_on_placenode(function(pos, newnode, placer)

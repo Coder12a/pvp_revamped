@@ -32,6 +32,8 @@ local hit_points = pvp_revamped.hit_points
 local create_hud_text_center = pvp_revamped.create_hud_text_center
 local remove_text_center = pvp_revamped.remove_text_center
 local point_arm = pvp_revamped.point_arm
+local clear_blockdata = pvp_revamped.clear_blockdata
+local clear_shielddata = pvp_revamped.clear_shielddata
 local registered_tools = minetest.registered_tools
 local raycast = minetest.raycast
 local get_us_time = minetest.get_us_time
@@ -775,33 +777,8 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         end
     end
 
-    if victim_data.block then
-        local on_block_deactivated = victim_data.block.on_block_deactivated
-
-        -- Invoke deactivate block function if any.
-        if on_block_deactivated then
-            on_block_deactivated(player)
-        end
-
-        victim_data.block = nil
-
-        -- Remove un-used hud element.
-        remove_text_center(player, "pvp_revamped:block_pool")
-    end
-
-    if victim_data.shield then
-        on_block_deactivated = victim_data.shield.on_block_deactivated
-
-        -- Invoke deactivate block function if any.
-        if on_block_deactivated then
-            on_block_deactivated(player)
-        end
-
-        victim_data.shield = nil
-
-        -- Remove un-used hud element.
-        remove_text_center(player, "pvp_revamped:shield_pool")
-    end
+    clear_shielddata(victim_data.shield, player, name)
+    clear_blockdata(victim_data.block, player, name)
 
     -- Save new player data to the table.
     player_data[name] = victim_data

@@ -11,12 +11,15 @@ local new = vector.new
 local floor = math.floor
 local y = 0
 
--- Drops an item at the player's position.
+-- Drops an item at the given or player's position.
 function pvp_revamped.drop(player, item, pos)
+    -- Check if the param is true or not.
     if not pos then
+        -- Get the player's position.
         pos = player:get_pos()
     end
 
+    -- Create the item.
     local obj = add_item(pos, item)
 
     if obj then
@@ -26,6 +29,7 @@ end
 
 -- Get or create player data.
 function pvp_revamped.get_player_data(name)
+    -- Get or set the table.
     local data = player_data[name] or {}
 
     if not player_data[name] then
@@ -37,6 +41,7 @@ end
 
 local get_player_data = pvp_revamped.get_player_data
 
+-- Create the wield shield entity and attach it to the player.
 function pvp_revamped.create_wield_shield(player, name, bone, itemname, groups)
     local object = add_entity(player:get_pos(), "pvp_revamped:shield", name)
 
@@ -120,6 +125,51 @@ local function remove_hits(player, name)
     hit_data = nil
 end
 
+function pvp_revamped.clear_blockdata(block, player, name)
+    if block then
+        local on_block_deactivated = block.on_block_deactivated
+
+        -- Invoke deactivate block function if any.
+        if on_block_deactivated then
+            on_block_deactivated(player)
+        end
+
+        if not name then
+            name = player:get_player_name()
+        end
+
+        -- Remove block data.
+        player_data[name].block = nil
+
+        -- Remove un-used hud element.
+        remove_text_center(player, "pvp_revamped:block_pool")
+    end
+end
+
+function pvp_revamped.clear_shielddata(shield, player, name)
+    if shield then
+        on_block_deactivated = shield.on_block_deactivated
+
+        -- Invoke deactivate block function if any.
+        if on_block_deactivated then
+            on_block_deactivated(player)
+        end
+
+        if not name then
+            name = player:get_player_name()
+        end
+
+        -- Remove shield block data.
+        player_data[name].shield = nil
+
+        -- Remove un-used hud element.
+        remove_text_center(player, "pvp_revamped:shield_pool")
+    end
+end
+
+local clear_blockdata = pvp_revamped.clear_blockdata
+local clear_shielddata = pvp_revamped.clear_shielddata
+
 -- Helper function to check and set the dodge cooldown.
 function pvp_revamped.dodge(name, player, number)
     local dodge_data = get_player_data(name)
@@ -129,32 +179,9 @@ function pvp_revamped.dodge(name, player, number)
         player:set_properties{damage_texture_modifier = ""}
         -- Clear out any hit data on dodge.
         remove_hits(player, name)
+        clear_blockdata(dodge_data.block, player, name)
+        clear_shielddata(dodge_data.shield, player, name)
 
-        if dodge_data.block then
-            local on_block_deactivated = dodge_data.block.on_block_deactivated
-
-            -- Invoke deactivate block function if any.
-            if on_block_deactivated then
-                on_block_deactivated(player)
-            end
-
-            -- Remove shield and block.
-            dodge_data.block = nil
-        end
-
-        if dodge_data.shield then
-            on_block_deactivated = dodge_data.shield.on_block_deactivated
-
-            -- Invoke deactivate block function if any.
-            if on_block_deactivated then
-                on_block_deactivated(player)
-            end
-
-            dodge_data.shield = nil
-        end
-        -- Remove un-used hud element.
-        remove_text_center(player, "pvp_revamped:block_pool")
-        remove_text_center(player, "pvp_revamped:shield_pool")
         -- Display words invincible to player.
         create_hud_text_center(player, "pvp_revamped:dodge", "INVINCIBLE")
     elseif dodge_data.dodge and not dodge_data.dodge[number] then
@@ -162,33 +189,9 @@ function pvp_revamped.dodge(name, player, number)
         player:set_properties{damage_texture_modifier = ""}
         -- Clear out any hit data on dodge.
         remove_hits(player, name)
+        clear_blockdata(dodge_data.block, player, name)
+        clear_shielddata(dodge_data.shield, player, name)
 
-        if dodge_data.block then
-            local on_block_deactivated = dodge_data.block.on_block_deactivated
-
-            -- Invoke deactivate block function if any.
-            if on_block_deactivated then
-                on_block_deactivated(player)
-            end
-
-            -- Remove shield and block.
-            dodge_data.block = nil
-        end
-
-        if dodge_data.shield then
-            on_block_deactivated = dodge_data.shield.on_block_deactivated
-
-            -- Invoke deactivate block function if any.
-            if on_block_deactivated then
-                on_block_deactivated(player)
-            end
-
-            dodge_data.shield = nil
-        end
-
-        -- Remove un-used hud element.
-        remove_text_center(player, "pvp_revamped:block_pool")
-        remove_text_center(player, "pvp_revamped:shield_pool")
         -- Display words invincible to player.
         create_hud_text_center(player, "pvp_revamped:dodge", "INVINCIBLE")
     end
@@ -203,32 +206,9 @@ function pvp_revamped.barrel_roll(name, player, number, x, z)
         player:set_properties{damage_texture_modifier = ""}
         -- Clear out any hit data on barrel roll.
         remove_hits(player, name)
-        -- Remove shield and block.
-        if barrel_roll_data.block then
-            local on_block_deactivated = barrel_roll_data.block.on_block_deactivated
+        clear_blockdata(barrel_roll_data.block, player, name)
+        clear_shielddata(barrel_roll_data.shield, player, name)
 
-            -- Invoke deactivate block function if any.
-            if on_block_deactivated then
-                on_block_deactivated(player)
-            end
-
-            barrel_roll_data.block = nil
-        end
-
-        if barrel_roll_data.shield then
-            on_block_deactivated = barrel_roll_data.shield.on_block_deactivated
-
-            -- Invoke deactivate block function if any.
-            if on_block_deactivated then
-                on_block_deactivated(player)
-            end
-
-            barrel_roll_data.shield = nil
-        end
-
-        -- Remove un-used hud element.
-        remove_text_center(player, "pvp_revamped:block_pool")
-        remove_text_center(player, "pvp_revamped:shield_pool")
         -- Display words invincible to player.
         create_hud_text_center(player, "pvp_revamped:barrel_roll", "INVINCIBLE")
     elseif barrel_roll_data.barrel_roll and not barrel_roll_data.barrel_roll[number] then
@@ -236,33 +216,9 @@ function pvp_revamped.barrel_roll(name, player, number, x, z)
         player:set_properties{damage_texture_modifier = ""}
         -- Clear out any hit data on barrel roll.
         remove_hits(player, name)
-        
-        -- Remove shield and block.
-        if barrel_roll_data.block then
-            local on_block_deactivated = barrel_roll_data.block.on_block_deactivated
+        clear_blockdata(barrel_roll_data.block, player, name)
+        clear_shielddata(barrel_roll_data.shield, player, name)
 
-            -- Invoke deactivate block function if any.
-            if on_block_deactivated then
-                on_block_deactivated(player)
-            end
-            
-            barrel_roll_data.block = nil
-        end
-
-        if barrel_roll_data.shield then
-            on_block_deactivated = barrel_roll_data.shield.on_block_deactivated
-
-            -- Invoke deactivate block function if any.
-            if on_block_deactivated then
-                on_block_deactivated(player)
-            end
-
-            barrel_roll_data.shield = nil
-        end
-
-        -- Remove un-used hud element.
-        remove_text_center(player, "pvp_revamped:block_pool")
-        remove_text_center(player, "pvp_revamped:shield_pool")
         -- Display words invincible to player.
         create_hud_text_center(player, "pvp_revamped:barrel_roll", "INVINCIBLE")
     else
@@ -326,22 +282,11 @@ function pvp_revamped.shield_inv(user, name, player_pdata, data)
             on_hasty_guard = data_shield.on_hasty_guard
         }
 
-        if data.block then
-            local on_block_deactivated = data.block.on_block_deactivated
+        clear_blockdata(data.block, user, name)
 
-            -- Invoke deactivate block function if any.
-            if on_block_deactivated then
-                on_block_deactivated(user)
-            end
-
-            data.block = nil
-        end
         player_data[name] = data
         
         user:set_properties{damage_texture_modifier = ""}
-
-        -- Remove un-used hud element.
-        remove_text_center(user, "pvp_revamped:block_pool")
 
         -- Run user func if any.
         if on_block_activate then

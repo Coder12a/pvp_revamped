@@ -22,6 +22,8 @@ local player_data = pvp_revamped.player_data
 local player_persistent_data = pvp_revamped.player_persistent_data
 local create_hud_text_center = pvp_revamped.create_hud_text_center
 local remove_text_center = pvp_revamped.remove_text_center
+local clear_blockdata = pvp_revamped.clear_blockdata
+local clear_shielddata = pvp_revamped.clear_shielddata
 local shield_inv = pvp_revamped.shield_inv
 local registered_tools = minetest.registered_tools
 local get_us_time = minetest.get_us_time
@@ -160,19 +162,7 @@ minetest.register_on_mods_loaded(function()
                     -- Write pool to hud.
                     create_hud_text_center(user, "pvp_revamped:block_pool", block_pool)
 
-                    if data.shield then
-                        local on_block_deactivated = data.shield.on_block_deactivated
-
-                        -- Invoke deactivate block function if any.
-                        if on_block_deactivated then
-                            on_block_deactivated(user)
-                        end
-                        
-                        data.shield = nil
-
-                        -- Remove un-used hud element.
-                        remove_text_center(user, "pvp_revamped:shield_pool")
-                    end
+                    clear_shielddata(data.shield, user, name)
 
                     -- Run user on_block_activate function.
                     if on_block_activate then
@@ -236,33 +226,11 @@ minetest.register_on_mods_loaded(function()
                         return old_on_drop(itemstack, dropper, pos)
                     end
 
-                    if data.block then
-                        local on_block_deactivated = data.block.on_block_deactivated
-
-                        -- Invoke deactivate block function if any.
-                        if on_block_deactivated then
-                            on_block_deactivated(dropper)
-                        end
-
-                        data.block = nil
-
-                        -- Remove un-used block hud element.
-                        remove_text_center(dropper, "pvp_revamped:block_pool")
-                    end
+                    clear_blockdata(data.block, dropper, name)
 
                     -- Only clear shield if it is not from the armor inv.
                     if shield_data and not shield_data.armor_inv then
-                        local on_block_deactivated = shield_data.on_block_deactivated
-
-                        -- Invoke deactivate block function if any.
-                        if on_block_deactivated then
-                            on_block_deactivated(dropper)
-                        end
-                        
-                        data.shield = nil
-
-                        -- Remove shield pool hud element.
-                        remove_text_center(dropper, "pvp_revamped:shield_pool")
+                        clear_shielddata(data.shield, dropper, name)
                     end
 
                     -- Tell the player that a toss is being charged up.
@@ -363,19 +331,7 @@ minetest.register_on_mods_loaded(function()
                         on_hasty_guard = on_hasty_guard
                     }
 
-                    if data.block then
-                        local on_block_deactivated = data.block.on_block_deactivated
-
-                        -- Invoke deactivate block function if any.
-                        if on_block_deactivated then
-                            on_block_deactivated(user)
-                        end
-                        
-                        data.block = nil
-
-                        -- Remove un-used hud element.
-                        remove_text_center(user, "pvp_revamped:block_pool")
-                    end
+                    clear_blockdata(data.block, user, name)
 
                     player_data[name] = data
 

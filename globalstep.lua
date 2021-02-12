@@ -18,6 +18,8 @@ local player_data = pvp_revamped.player_data
 local player_persistent_data = pvp_revamped.player_persistent_data
 local create_hud_text_center = pvp_revamped.create_hud_text_center
 local remove_text_center = pvp_revamped.remove_text_center
+local clear_blockdata = pvp_revamped.clear_blockdata
+local clear_shielddata = pvp_revamped.clear_shielddata
 local get_player_information = minetest.get_player_information
 local get_player_by_name = minetest.get_player_by_name
 local get_us_time = minetest.get_us_time
@@ -59,16 +61,7 @@ minetest.register_globalstep(function(dtime)
                 -- Revert the damage texture modifier.
                 player:set_properties{damage_texture_modifier = pp_data.damage_texture_modifier}
 
-                local on_block_deactivated = block.on_block_deactivated
-
-                -- Invoke deactivate block function if any.
-                if on_block_deactivated then
-                    on_block_deactivated(player)
-                end
-
-                v.block = nil
-                -- Remove un-used hud element.
-                remove_text_center(player, "pvp_revamped:block_pool")
+                clear_blockdata(v.block, player, k)
             end
             
             active = true
@@ -96,16 +89,7 @@ minetest.register_globalstep(function(dtime)
                 -- Revert the damage texture modifier.
                 player:set_properties{damage_texture_modifier = pp_data.damage_texture_modifier}
                 
-                local on_block_deactivated = shield.on_block_deactivated
-
-                -- Invoke deactivate block function if any.
-                if on_block_deactivated then
-                    on_block_deactivated(player)
-                end
-
-                v.shield = nil
-                -- Remove un-used hud element.
-                remove_text_center(player, "pvp_revamped:shield_pool")
+                clear_shielddata(v.shield, player, k)
             end
 
             local entity = v.entity
@@ -217,8 +201,7 @@ minetest.register_globalstep(function(dtime)
                 elseif j < 5 and l.time + barrel_roll_cooldown + player_lag < time then
                     v.barrel_roll[j] = nil
                 elseif l.time + barrel_roll_duration + player_lag > time then
-
-                    local re_x, re_z = rotate_point(player:get_look_horizontal(), x, z)
+                    local re_x, re_z = rotate_point(player:get_look_horizontal(), l.x, l.z)
 
                     player:add_player_velocity({x = re_x, y = 0, z = re_z})
                     active_barrel_rolls = true
