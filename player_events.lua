@@ -98,8 +98,6 @@ minetest.register_on_dieplayer(function(player)
         remove_text_center(player, "pvp_revamped:shield_pool")
     end
 
-    if
-
     player_data[name] = nil
 end)
 
