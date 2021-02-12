@@ -211,7 +211,7 @@ minetest.register_entity("pvp_revamped:projectile", {
                             obj:punch(get_player_by_name(self.owner), nil, tool_capabilities)
                         end
 
-                        self:die(pos)
+                        self:die(pos, self.itemstring, velocity)
                         
                         return
                     end
@@ -220,7 +220,7 @@ minetest.register_entity("pvp_revamped:projectile", {
 
             -- If there is no velocity then drop the item.
             if velocity.y == 0 or velocity.x == 0 and velocity.z == 0 then
-                self:die(pos)
+                self:die(pos, self.itemstring, velocity)
 
                 return
             end
@@ -256,18 +256,14 @@ minetest.register_entity("pvp_revamped:projectile", {
         return true
     end,
 
-    die = function(self, pos)
+    die = function(self, pos, itemstring, velocity)
         -- Drop the item while giving it the same velocity.
-        if not pos then
-            pos = self.object:get_pos()
-        end
-
-        local obj = add_item(pos, self.itemstring)
+        local obj = add_item(pos, itemstring)
 
         if obj then
             obj:get_luaentity().collect = true
 
-            obj:set_velocity(self.object:get_velocity())
+            obj:set_velocity(velocity)
         end
 
         self.object:remove()
@@ -275,6 +271,8 @@ minetest.register_entity("pvp_revamped:projectile", {
 
     on_death = function(self)
         -- On death drop the item.
-        self:die()
+        local object = self.object
+
+        self:die(object:get_pos(), self.itemstring, object:get_velocity())
     end
 })
