@@ -86,6 +86,10 @@ minetest.register_on_dieplayer(function(player)
         player:set_bone_position(aim.bone, aim.position, new(-180, 0, 0))
     end
 
+    if pdata.immobilize then
+        player:set_physics_override({speed = 1, jump = 1})
+    end
+
     if pdata.block then
         remove_text_center(player, "pvp_revamped:block_pool")
     end
@@ -93,6 +97,8 @@ minetest.register_on_dieplayer(function(player)
     if pdata.shield then
         remove_text_center(player, "pvp_revamped:shield_pool")
     end
+
+    if
 
     player_data[name] = nil
 end)
