@@ -4,6 +4,7 @@ local remove_text_center = pvp_revamped.remove_text_center
 local clear_blockdata = pvp_revamped.clear_blockdata
 local clear_shielddata = pvp_revamped.clear_shielddata
 local get_player_by_name = minetest.get_player_by_name
+local add_item = minetest.add_item
 local new = vector.new
 
 -- Create an empty data sheet for the player.
