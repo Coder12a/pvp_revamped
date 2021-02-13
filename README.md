@@ -332,7 +332,7 @@ pvp_revamped.dash_speed = 9.2
 ```
 Set the barrel roll speed.
 ``` lua
-pvp_revamped.barrel_roll_speed = 1
+pvp_revamped.barrel_roll_speed = 1.5
 ```
 
 #### blocking

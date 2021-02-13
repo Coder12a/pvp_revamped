@@ -87,10 +87,10 @@ pvp_revamped.counter_dmg_mul (Counter damage multiplier) float 1.5
 pvp_revamped.optimal_distance_mul (Optimal distance multiplier) float 0.625
 
 [Maneuvers]
-# Set how fast eachh player should dash.
+# Set how fast each player should dash.
 pvp_revamped.dash_speed (Dash speed) float 9.2
 # Set the barrel roll speed.
-pvp_revamped.barrel_roll_speed (Barrel roll speed) float 1
+pvp_revamped.barrel_roll_speed (Barrel roll speed) float 1.5
 
 [Blocking]
 # The value is used to multiply tool damage subtracted by full_punch_interval.
