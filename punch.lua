@@ -130,7 +130,12 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         range = item.range
     end
 
-    local player_lag = get_player_information(name).avg_jitter
+    local info = get_player_information(name)
+    local player_lag = 0
+
+    if info then
+        player_lag = info.avg_jitter
+    end
 
     -- Get whether this is a full punch.
     if tool_capabilities and time_from_last_punch >= tool_capabilities.full_punch_interval - player_lag then
@@ -663,7 +668,13 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
     end
 
     if hitter_hitdata then
-        player_lag = get_player_information(hitter_name).avg_jitter * 1000000
+        info = get_player_information(hitter_name)
+        player_lag = 0
+    
+        if info then
+            player_lag = info.avg_jitter * 1000000
+        end
+        
         local count = #hitter_hitdata
 
         for i = count, 1, -1 do

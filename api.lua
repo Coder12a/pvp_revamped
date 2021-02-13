@@ -223,25 +223,29 @@ end
 
 function pvp_revamped.restore_hits(hitdata, name, user)
     if hitdata then
-        local player_lag = get_player_information(name).avg_jitter * 1000000
-        local timeframe = get_us_time() - player_lag
+        local info = get_player_information(name)
+        
+        if info then
+            local player_lag = info.avg_jitter * 1000000
+            local timeframe = get_us_time() - player_lag
 
-        local count = #hitdata
+            local count = #hitdata
 
-        for i = count, 1, -1 do
-            local hd = hitdata[i]
-            
-            if hd.time >= timeframe then
-                user:set_hp(user:get_hp() + hd.damage)
+            for i = count, 1, -1 do
+                local hd = hitdata[i]
                 
-                hitdata[i] = hitdata[count]
-                hitdata[count] = nil
+                if hd.time >= timeframe then
+                    user:set_hp(user:get_hp() + hd.damage)
+                    
+                    hitdata[i] = hitdata[count]
+                    hitdata[count] = nil
+                end
+
+                count = count - 1
             end
 
-            count = count - 1
+            return hitdata
         end
-
-        return hitdata
     end
 end
 
