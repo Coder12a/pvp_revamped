@@ -20,7 +20,6 @@ local create_wield_shield = pvp_revamped.create_wield_shield
 local player_data = pvp_revamped.player_data
 local player_persistent_data = pvp_revamped.player_persistent_data
 local create_hud_text_center = pvp_revamped.create_hud_text_center
-local remove_text_center = pvp_revamped.remove_text_center
 local clear_blockdata = pvp_revamped.clear_blockdata
 local clear_shielddata = pvp_revamped.clear_shielddata
 local shield_inv = pvp_revamped.shield_inv
