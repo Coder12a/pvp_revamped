@@ -5,7 +5,6 @@ local knee_height = pvp_revamped.config.knee_height
 local disarm_chance_mul = pvp_revamped.config.disarm_chance_mul
 local leg_immobilize_mul = pvp_revamped.config.leg_immobilize_mul
 local knee_immobilize_mul = pvp_revamped.config.knee_immobilize_mul
-local immobilize_mul = pvp_revamped.config.immobilize_mul
 local block_wear_mul = pvp_revamped.config.block_wear_mul
 local head_dmg_mul = pvp_revamped.config.head_dmg_mul
 local torso_dmg_mul = pvp_revamped.config.torso_dmg_mul
@@ -34,6 +33,7 @@ local remove_text_center = pvp_revamped.remove_text_center
 local point_arm = pvp_revamped.point_arm
 local clear_blockdata = pvp_revamped.clear_blockdata
 local clear_shielddata = pvp_revamped.clear_shielddata
+local set_immobilize_data = pvp_revamped.set_immobilize_data
 local registered_tools = minetest.registered_tools
 local raycast = minetest.raycast
 local get_us_time = minetest.get_us_time
@@ -156,164 +156,163 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
     local hit_pos1 = add(hitter_pos, _dir)
     local hit_pos2 = add(hit_pos1, multiply(_dir, range))
     local ray = raycast(hit_pos1, hit_pos2)
-
-    local function hit(intersection_point)
-        local newpos = subtract(intersection_point, pos2)
-        local y1 = intersection_point.y
-        local y2 = pos2.y
-        
-        -- Get the tool's modifiers or use the default ones.
-        local head_height = tool_capabilities.head_height or head_height
-        local torso_height = tool_capabilities.torso_height or torso_height
-        local leg_height = tool_capabilities.leg_height or leg_height
-        local knee_height = tool_capabilities.knee_height or knee_height
-        local head_dmg_mul = tool_capabilities.head_dmg_mul or head_dmg_mul
-        local torso_dmg_mul = tool_capabilities.torso_dmg_mul or torso_dmg_mul
-        local arm_dmg_mul = tool_capabilities.arm_dmg_mul or arm_dmg_mul
-        local leg_dmg_mul = tool_capabilities.leg_dmg_mul or leg_dmg_mul
-
-        if head_height and head_dmg_mul and y1 > y2 + head_height then
-            -- If the player was hit in the head add extra damage.
-            damage = damage * head_dmg_mul
-        elseif torso_height and y1 > y2 + torso_height then
-            -- Find if the player was hit in the torso or arm.
-            local near_part = 0
-            local past_distance = -1
-
-            for _, point in pairs(hit_points) do
-                local x = point.x
-                local y = point.y
-                local z = point.z
-                local re_x, re_z = rotate_point(yaw, x, z)
-                local dist = distance(newpos, {x = re_x, y = y, z = re_z})
-                
-                if dist < past_distance or past_distance == -1 then
-                    past_distance = dist
-                    near_part = point.part
-                end
-            end
-
-            if near_part == point_arm then
-                -- Hit in the arm.
-                arm = true
-
-                if arm_dmg_mul then
-                    damage = damage * arm_dmg_mul
-                end
-            elseif torso_dmg_mul then
-                -- Hit in the torso.
-                damage = damage * torso_dmg_mul
-            end
-        elseif leg_height and y1 > y2 + leg_height then
-            -- Hit in the leg.
-            leg = true
-
-            if leg_dmg_mul then
-                damage = damage * leg_dmg_mul
-            end
-        elseif knee_height and y1 > y2 + knee_height then
-            -- Hit in the knee.
-            knee = true
-
-            if leg_dmg_mul then
-                damage = damage * leg_dmg_mul
-            end
-        else
-            -- Hit in the lower leg.
-            leg = true
-
-            if leg_dmg_mul then
-                damage = damage * leg_dmg_mul
-            end
-        end
-
-        local dist = distance(hitter_pos, pos2)
-        local optimal_distance_mul = tool_capabilities.optimal_distance_mul or optimal_distance_mul
-        local dist_rounded = dist + 0.5 - (dist + 0.5) % 1
-
-        -- If the distance rounded is outside the range skip.
-        if optimal_distance_mul and dist_rounded <= range + 1 then
-            local optimal_distance_dmg_mul = tool_capabilities.optimal_distance_dmg_mul or optimal_distance_dmg_mul
-            local maximum_distance_dmg_mul = tool_capabilities.maximum_distance_dmg_mul or maximum_distance_dmg_mul
-            local optimal_range = range * optimal_distance_mul
-
-            -- Add or remove damage based on the distance.
-            if maximum_distance_dmg_mul < 1.0 and maximum_distance_dmg_mul and dist_rounded > optimal_range then
-                damage = damage * maximum_distance_dmg_mul
-            elseif optimal_distance_dmg_mul > 0.0 and optimal_distance_dmg_mul and dist_rounded < optimal_range then
-                damage = damage * optimal_distance_dmg_mul
-            end
-        end
-
-        -- Get the yaw from both the player and intersection point.
-        local yaw2 = atan(newpos.z / newpos.x) + rad90
-        
-        if intersection_point.x >= pos2.x then
-            yaw2 = yaw2 + pi
-        end
-
-        re_yaw = rad360 - (yaw - yaw2)
-
-        if re_yaw < 0 then
-            re_yaw = rad360 - re_yaw
-        end
-
-        if re_yaw > rad360 then
-            re_yaw = re_yaw - rad360
-        end
-
-        local back_dmg_mul = tool_capabilities.back_dmg_mul or back_dmg_mul
-
-        if (re_yaw <= 0.7853982 and re_yaw >= 0) or (re_yaw <= 6.283185 and re_yaw >= 5.497787) then
-            -- Hit on the front.
-            front = true
-
-            local front_dmg_mul = tool_capabilities.front_dmg_mul or front_dmg_mul
-
-            if front_dmg_mul then
-                damage = damage * front_dmg_mul
-            end
-        elseif re_yaw <= 2.356194 then
-            -- Hit on the left-side.
-            side = true
-
-            local side_dmg_mul = tool_capabilities.side_dmg_mul or side_dmg_mul
-
-            if side_dmg_mul then
-                damage = damage * side_dmg_mul
-            end
-        elseif back_dmg_mul and re_yaw <= 3.926991 then
-            -- Hit on the back-side.
-            damage = damage * back_dmg_mul
-        else
-            -- Hit on the right-side.
-            side = true
-
-            local side_dmg_mul = tool_capabilities.side_dmg_mul or side_dmg_mul
-
-            if side_dmg_mul then
-                damage = damage * side_dmg_mul
-            end
-        end
-
-        -- You can only hit the knee-caps in the front.
-        if side and knee then
-            knee = nil
-            leg = true
-        end
-    end
+    local intersection_point
 
     if not projectile then
         for pointed_thing in ray do
             if pointed_thing.type == "object" and pointed_thing.ref:is_player() and pointed_thing.ref:get_player_name() == name then
-                hit(pointed_thing.intersection_point)
+                intersection_point = pointed_thing.intersection_point
 
                 -- End the loop we got what we came for.
                 break
             end
         end
     else
-        hit(projectile_intersection_point)
+        intersection_point = projectile_intersection_point
+    end
+
+    local newpos = subtract(intersection_point, pos2)
+    local y1 = intersection_point.y
+    local y2 = pos2.y
+    
+    -- Get the tool's modifiers or use the default ones.
+    local head_height = tool_capabilities.head_height or head_height
+    local torso_height = tool_capabilities.torso_height or torso_height
+    local leg_height = tool_capabilities.leg_height or leg_height
+    local knee_height = tool_capabilities.knee_height or knee_height
+    local head_dmg_mul = tool_capabilities.head_dmg_mul or head_dmg_mul
+    local torso_dmg_mul = tool_capabilities.torso_dmg_mul or torso_dmg_mul
+    local arm_dmg_mul = tool_capabilities.arm_dmg_mul or arm_dmg_mul
+    local leg_dmg_mul = tool_capabilities.leg_dmg_mul or leg_dmg_mul
+
+    if head_height and head_dmg_mul and y1 > y2 + head_height then
+        -- If the player was hit in the head add extra damage.
+        damage = damage * head_dmg_mul
+    elseif torso_height and y1 > y2 + torso_height then
+        -- Find if the player was hit in the torso or arm.
+        local near_part = 0
+        local past_distance = -1
+
+        for _, point in pairs(hit_points) do
+            local x = point.x
+            local y = point.y
+            local z = point.z
+            local re_x, re_z = rotate_point(yaw, x, z)
+            local dist = distance(newpos, {x = re_x, y = y, z = re_z})
+            
+            if dist < past_distance or past_distance == -1 then
+                past_distance = dist
+                near_part = point.part
+            end
+        end
+
+        if near_part == point_arm then
+            -- Hit in the arm.
+            arm = true
+
+            if arm_dmg_mul then
+                damage = damage * arm_dmg_mul
+            end
+        elseif torso_dmg_mul then
+            -- Hit in the torso.
+            damage = damage * torso_dmg_mul
+        end
+    elseif leg_height and y1 > y2 + leg_height then
+        -- Hit in the leg.
+        leg = true
+
+        if leg_dmg_mul then
+            damage = damage * leg_dmg_mul
+        end
+    elseif knee_height and y1 > y2 + knee_height then
+        -- Hit in the knee.
+        knee = true
+
+        if leg_dmg_mul then
+            damage = damage * leg_dmg_mul
+        end
+    else
+        -- Hit in the lower leg.
+        leg = true
+
+        if leg_dmg_mul then
+            damage = damage * leg_dmg_mul
+        end
+    end
+
+    local dist = distance(hitter_pos, pos2)
+    local optimal_distance_mul = tool_capabilities.optimal_distance_mul or optimal_distance_mul
+    local dist_rounded = dist + 0.5 - (dist + 0.5) % 1
+
+    -- If the distance rounded is outside the range skip.
+    if optimal_distance_mul and dist_rounded <= range + 1 then
+        local optimal_distance_dmg_mul = tool_capabilities.optimal_distance_dmg_mul or optimal_distance_dmg_mul
+        local maximum_distance_dmg_mul = tool_capabilities.maximum_distance_dmg_mul or maximum_distance_dmg_mul
+        local optimal_range = range * optimal_distance_mul
+
+        -- Add or remove damage based on the distance.
+        if maximum_distance_dmg_mul < 1.0 and maximum_distance_dmg_mul and dist_rounded > optimal_range then
+            damage = damage * maximum_distance_dmg_mul
+        elseif optimal_distance_dmg_mul > 0.0 and optimal_distance_dmg_mul and dist_rounded < optimal_range then
+            damage = damage * optimal_distance_dmg_mul
+        end
+    end
+
+    -- Get the yaw from both the player and intersection point.
+    local yaw2 = atan(newpos.z / newpos.x) + rad90
+    
+    if intersection_point.x >= pos2.x then
+        yaw2 = yaw2 + pi
+    end
+
+    re_yaw = rad360 - (yaw - yaw2)
+
+    if re_yaw < 0 then
+        re_yaw = rad360 - re_yaw
+    end
+
+    if re_yaw > rad360 then
+        re_yaw = re_yaw - rad360
+    end
+
+    local back_dmg_mul = tool_capabilities.back_dmg_mul or back_dmg_mul
+
+    if (re_yaw <= 0.7853982 and re_yaw >= 0) or (re_yaw <= 6.283185 and re_yaw >= 5.497787) then
+        -- Hit on the front.
+        front = true
+
+        local front_dmg_mul = tool_capabilities.front_dmg_mul or front_dmg_mul
+
+        if front_dmg_mul then
+            damage = damage * front_dmg_mul
+        end
+    elseif re_yaw <= 2.356194 then
+        -- Hit on the left-side.
+        side = true
+
+        local side_dmg_mul = tool_capabilities.side_dmg_mul or side_dmg_mul
+
+        if side_dmg_mul then
+            damage = damage * side_dmg_mul
+        end
+    elseif back_dmg_mul and re_yaw <= 3.926991 then
+        -- Hit on the back-side.
+        damage = damage * back_dmg_mul
+    else
+        -- Hit on the right-side.
+        side = true
+
+        local side_dmg_mul = tool_capabilities.side_dmg_mul or side_dmg_mul
+
+        if side_dmg_mul then
+            damage = damage * side_dmg_mul
+        end
+    end
+
+    -- You can only hit the knee-caps in the front.
+    if side and knee then
+        knee = nil
+        leg = true
     end
 
     local elevated_dmg_mul = tool_capabilities.elevated_dmg_mul or elevated_dmg_mul
@@ -618,40 +617,27 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         end
     end
 
-     local function set_immobilize_data(speed, damage)
-        player:set_physics_override({speed = speed, jump = speed})
-
-        local immobilize_mul = tool_capabilities.immobilize_mul or immobilize_mul
-        
-        victim_data.immobilize = {time = get_us_time(), value = damage * immobilize_mul}
-    end
-
-     -- Process if the player was hit in the leg.
-    if leg then
+     -- Process if the player was hit in the leg or knee-cap.
+    if leg or knee then
         -- immobilize the player.
-        local leg_immobilize_mul = tool_capabilities.leg_immobilize_mul or leg_immobilize_mul
-        local dmg = max(damage - hp, 1)
-        local speed = min(1 / dmg * leg_immobilize_mul, 0.1)
-        local data_immobilize = victim_data.immobilize
+        local _immobilize_mul = 1
 
-        if not data_immobilize or data_immobilize.value > speed then
-            set_immobilize_data(speed, dmg)
+        if leg then
+            _immobilize_mul = tool_capabilities.leg_immobilize_mul or leg_immobilize_mul
+        else
+            _immobilize_mul = tool_capabilities.knee_immobilize_mul or knee_immobilize_mul
         end
-    elseif knee then
-        -- immobilize the player.
-        local knee_immobilize_mul = tool_capabilities.knee_immobilize_mul or knee_immobilize_mul
-        local dmg = max(damage - hp, 1.5)
-        local speed = min(1 / dmg * knee_immobilize_mul, 0.1)
+
+        local dmg = max(damage - hp, 1)
+        local speed = min(1 / dmg * _immobilize_mul, 0.01)
         local data_immobilize = victim_data.immobilize
 
         if data_immobilize then
             -- Add the original value and update all immobilize data.
-            speed = min(abs(speed - data_immobilize.value), 0.1)
-
-            set_immobilize_data(speed, dmg)
-        else
-            set_immobilize_data(speed, dmg)
+            speed = min(abs(speed - data_immobilize.value), 0.01)
         end
+
+        victim_data.immobilize = set_immobilize_data(player, speed, damage, tool_capabilities)
     end
 
     if player:get_properties().damage_texture_modifier == "" then
