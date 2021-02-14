@@ -376,7 +376,7 @@ pvp_revamped.leg_immobilize_mul = 0.8
 ```
 Multiplies the immobilize duration In microseconds.
 ``` lua
-pvp_revamped.immobilize_mul = 100000
+pvp_revamped.immobilize_mul = 500000
 ```
 
 #### projectile
@@ -453,7 +453,7 @@ tool_capabilities = {
     -- See knee_immobilize_mul in config.
     knee_immobilize_mul = 1.5,
     -- See immobilize_mul in config.
-    immobilize_mul = 100000,
+    immobilize_mul = 500000,
     -- See block_duration_mul in config.
     block_duration_mul = 100000,
     -- See block_interval_mul in config.

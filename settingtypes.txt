@@ -114,7 +114,7 @@ pvp_revamped.knee_immobilize_mul (Knee immobilize multiplier) float 1.5
 # Value multiplies damage subtracted by health to set the new walk speed.
 pvp_revamped.leg_immobilize_mul (Leg immobilize multiplier) float 0.8
 # Multiplies the immobilize duration In microseconds.
-pvp_revamped.immobilize_mul (immobilize multiplier) float 100000
+pvp_revamped.immobilize_mul (immobilize multiplier) float 500000
 
 [Projectile]
 # This value multiplies full_punch_interval to create the time need to fully throw a tool at max speed and damage.
