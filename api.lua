@@ -1,13 +1,15 @@
 local get_player_information = minetest.get_player_information
 local get_us_time = minetest.get_us_time
 local add_entity = minetest.add_entity
-local player_data = pvp_revamped.player_data
+local immobilize_mul = pvp_revamped.config.immobilize_mul
 local shield_entity_pos = pvp_revamped.config.shield_entity_pos
 local shield_entity_rotate = pvp_revamped.config.shield_entity_rotate
 local shield_entity_scale = pvp_revamped.config.shield_entity_scale
+local player_data = pvp_revamped.player_data
 local armor_3d = minetest.global_exists("armor")
 local new = vector.new
 local floor = math.floor
+local abs = math.abs
 local y = 0
 
 -- Get or create player data.
@@ -303,4 +305,16 @@ function pvp_revamped.shield_inv(user, name, player_pdata, data)
     end
 
     return false
+end
+
+function pvp_revamped.set_immobilize_data(player, speed, damage, tool_capabilities)
+    player:set_physics_override({speed = speed, jump = speed})
+
+    local _immobilize_mul = immobilize_mul
+
+    if tool_capabilities and tool_capabilities.immobilize_mul then
+        _immobilize_mul = tool_capabilities.immobilize_mul
+    end
+    
+    return {time = get_us_time(), value = abs(damage * _immobilize_mul)}
 end

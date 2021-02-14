@@ -1,11 +1,16 @@
+local leg_immobilize_mul = pvp_revamped.config.leg_immobilize_mul
 local player_data = pvp_revamped.player_data
+local get_player_data = pvp_revamped.get_player_data
 local player_persistent_data = pvp_revamped.player_persistent_data
 local remove_text_center = pvp_revamped.remove_text_center
 local clear_blockdata = pvp_revamped.clear_blockdata
 local clear_shielddata = pvp_revamped.clear_shielddata
+local set_immobilize_data = pvp_revamped.set_immobilize_data
 local get_player_by_name = minetest.get_player_by_name
 local add_item = minetest.add_item
 local new = vector.new
+local max = math.max
+local min = math.min
 
 -- Create an empty data sheet for the player.
 minetest.register_on_joinplayer(function(player)
@@ -13,6 +18,17 @@ minetest.register_on_joinplayer(function(player)
         damage_texture_modifier = player:get_properties().damage_texture_modifier,
         throw_style = player:get_meta():get_int("pvp_revamped.throw_style")
     }
+end)
+
+-- Immobilize the player on fall.
+minetest.register_on_player_hpchange(function(player, hp_change, reason)
+    local data = get_player_data(player:get_player_name())
+    local dmg = max(hp_change - player:get_hp(), 1)
+    local speed = min(1 / dmg * leg_immobilize_mul, 0.01)
+
+    if reason.type == "fall" then
+        data.immobilize = set_immobilize_data(player, speed, hp_change)
+    end
 end)
 
 -- Drops an item at the given or player's position.
