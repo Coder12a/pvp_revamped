@@ -152,13 +152,14 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         end
     end
 
-    -- Get the second position from the direction of the hitter.
-    local hit_pos1 = add(hitter_pos, _dir)
-    local hit_pos2 = add(hit_pos1, multiply(_dir, range))
-    local ray = raycast(hit_pos1, hit_pos2)
     local intersection_point
 
     if not projectile then
+        -- Get the second position from the direction of the hitter.
+        local hit_pos1 = add(hitter_pos, _dir)
+        local hit_pos2 = add(hit_pos1, multiply(_dir, range))
+        local ray = raycast(hit_pos1, hit_pos2)
+
         for pointed_thing in ray do
             if pointed_thing.type == "object" and pointed_thing.ref:is_player() and pointed_thing.ref:get_player_name() == name then
                 intersection_point = pointed_thing.intersection_point
@@ -169,6 +170,10 @@ local function punch(player, hitter, time_from_last_punch, tool_capabilities, di
         end
     else
         intersection_point = projectile_intersection_point
+    end
+
+    if intersection_point == nil then
+        return
     end
 
     local newpos = subtract(intersection_point, pos2)
